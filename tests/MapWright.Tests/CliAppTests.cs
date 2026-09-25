@@ -1,4 +1,5 @@
 using MapWright.Cli;
+using MapWright.Core.Playbooks;
 using MapWright.Core.Profile;
 using MapWright.Core.Spec;
 
@@ -70,6 +71,12 @@ public sealed class CliAppTests : IDisposable
     [InlineData("profile", "x.json")]
     [InlineData("profile", "--system", "S")]
     [InlineData("profile", "x.json", "--system", "S", "--bogus")]
+    [InlineData("playbook")]
+    [InlineData("playbook", "frobnicate")]
+    [InlineData("playbook", "validate")]
+    [InlineData("playbook", "test", "--bogus")]
+    [InlineData("playbook", "detect")]
+    [InlineData("playbook", "detect", "p.json", "--bogus")]
     public void Usage_errors(params string[] args)
     {
         Assert.Equal(CliApp.UsageError, Run(args));
@@ -121,5 +128,54 @@ public sealed class CliAppTests : IDisposable
         File.WriteAllText(Path.Combine(_dir, "b.xml"), "<R/>");
         Assert.Equal(CliApp.InvalidInput, Run("profile", _dir, "--system", "S"));
         Assert.Contains("share a format", _err.ToString());
+    }
+
+    [Fact]
+    public void Playbook_validate_and_test_pass_for_the_starter_set()
+    {
+        Assert.Equal(CliApp.Success, Run("playbook", "validate", StarterPlaybooks.Directory));
+        Assert.Contains("6 playbook(s) valid (0 warning(s))", _out.ToString());
+
+        Assert.Equal(CliApp.Success, Run("playbook", "test", StarterPlaybooks.Directory));
+        Assert.Matches(@"(\d+) of \1 playbook test\(s\) passed", _out.ToString());
+    }
+
+    [Fact]
+    public void Playbook_errors_and_failing_tests_are_reported()
+    {
+        var principals = StarterPlaybooks.Get("domain/principals");
+        var invalid = Path.Combine(_dir, "invalid.json");
+        PlaybookSerializer.Save(principals with { Version = "one" }, invalid);
+
+        Assert.Equal(CliApp.InvalidInput, Run("playbook", "validate", invalid));
+        Assert.Contains("PB003", _err.ToString());
+
+        var failing = Path.Combine(_dir, "failing.json");
+        var domain = principals.Domain!;
+        PlaybookSerializer.Save(principals with { Status = PlaybookStatus.Draft, Domain = domain with { Tests = [domain.Tests[0] with { Expect = null }] } }, failing);
+        Assert.Equal(CliApp.InvalidInput, Run("playbook", "test", failing));
+        Assert.Contains("FAIL domain/principals@1.0.0 detection PRN-T-01", _err.ToString());
+
+        Assert.Equal(CliApp.InvalidInput, Run("playbook", "validate", Path.Combine(_dir, "nope")));
+    }
+
+    [Fact]
+    public void Playbook_detect_lists_recognised_and_remaining_fields()
+    {
+        var profile = Path.Combine(AppContext.BaseDirectory, "samples", "systems", "uw-core", "profile.json");
+
+        Assert.Equal(CliApp.Success, Run("playbook", "detect", profile, "--playbooks", StarterPlaybooks.Directory));
+
+        var output = _out.ToString();
+        Assert.Contains("/UnderwritingRequest/Officers/Officer  Principal 65% review", output);
+        Assert.Contains("/UnderwritingRequest/Processing/MonthlyVolume  ProcessingVolume.CardVolume [period=monthly]", output);
+        Assert.Contains("/UnderwritingRequest/Merchant/MCC  -", output);
+        Assert.Contains("14 of 24 field(s) recognised; 10 remaining.", output);
+    }
+
+    [Fact]
+    public void Playbook_detect_reports_a_missing_profile()
+    {
+        Assert.Equal(CliApp.InvalidInput, Run("playbook", "detect", Path.Combine(_dir, "nope.json"), "--playbooks", StarterPlaybooks.Directory));
     }
 }

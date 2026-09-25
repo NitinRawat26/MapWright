@@ -1,3 +1,4 @@
+using MapWright.Core.Playbooks;
 using MapWright.Core.Profile;
 using MapWright.Core.Spec;
 using MapWright.Output.Renderers;
@@ -20,6 +21,9 @@ public static class CliApp
           mapwright render <spec.json> [--out <dir>] [--format <list>]
           mapwright profile <sample|dir>... --system <name> [--version <v>] [--description <text>]
                             [--out <profile.json>] [--no-values]
+          mapwright playbook validate <playbook|dir>...
+          mapwright playbook test <playbook|dir>...
+          mapwright playbook detect <profile.json> [--playbooks <playbook|dir>]...
 
         Render options:
           --out <dir>       Output directory (default: directory of the spec)
@@ -30,6 +34,12 @@ public static class CliApp
           --system <name>   System name recorded in the profile (required)
           --out <file>      Write the profile here (default: print to stdout)
           --no-values       Do not store sample or observed values in the profile
+
+        Playbook commands:
+          validate          Check playbooks and the references between them
+          test              Validate, then run each playbook's tests and rule examples
+          detect            Show which business concept each profile field is recognised as
+          --playbooks       Playbook files or directories for detect (default: ./playbooks)
         """;
 
     public static int Run(string[] args, TextWriter stdout, TextWriter stderr)
@@ -45,6 +55,7 @@ public static class CliApp
             "validate" => Validate(args[1..], stdout, stderr),
             "render" => Render(args[1..], stdout, stderr),
             "profile" => Profile(args[1..], stdout, stderr),
+            "playbook" => Playbook(args[1..], stdout, stderr),
             _ => Fail(stderr, $"Unknown command '{args[0]}'."),
         };
     }
@@ -235,6 +246,141 @@ public static class CliApp
         }
 
         return Success;
+    }
+
+    private static int Playbook(string[] args, TextWriter stdout, TextWriter stderr)
+    {
+        if (args.Length == 0)
+        {
+            return Fail(stderr, "playbook expects validate, test or detect.");
+        }
+
+        return args[0] switch
+        {
+            "validate" or "test" when args.Length > 1 && !args[1..].Any(a => a.StartsWith("--", StringComparison.Ordinal)) =>
+                ValidatePlaybooks(args[1..], runTests: args[0] == "test", stdout, stderr),
+            "validate" or "test" => Fail(stderr, $"playbook {args[0]} expects playbook files or directories."),
+            "detect" => Detect(args[1..], stdout, stderr),
+            _ => Fail(stderr, $"Unknown playbook command '{args[0]}'."),
+        };
+    }
+
+    private static int ValidatePlaybooks(string[] paths, bool runTests, TextWriter stdout, TextWriter stderr)
+    {
+        if (!TryLoadPlaybooks(paths, stdout, stderr, out var library))
+        {
+            return InvalidInput;
+        }
+
+        if (!runTests)
+        {
+            return Success;
+        }
+
+        var results = library.All.SelectMany(PlaybookTestRunner.Run).ToList();
+        foreach (var failure in results.Where(r => !r.Passed))
+        {
+            stderr.WriteLine(failure);
+        }
+
+        var failed = results.Count(r => !r.Passed);
+        (failed == 0 ? stdout : stderr).WriteLine($"{results.Count - failed} of {results.Count} playbook test(s) passed.");
+        return failed == 0 ? Success : InvalidInput;
+    }
+
+    private static int Detect(string[] args, TextWriter stdout, TextWriter stderr)
+    {
+        string? profilePath = null;
+        var playbookPaths = new List<string>();
+
+        for (var i = 0; i < args.Length; i++)
+        {
+            switch (args[i])
+            {
+                case "--playbooks" when i + 1 < args.Length:
+                    playbookPaths.Add(args[++i]);
+                    break;
+                case var arg when !arg.StartsWith("--", StringComparison.Ordinal) && profilePath is null:
+                    profilePath = arg;
+                    break;
+                default:
+                    return Fail(stderr, $"Unexpected argument '{args[i]}'.");
+            }
+        }
+
+        if (profilePath is null)
+        {
+            return Fail(stderr, "playbook detect expects a profile path.");
+        }
+
+        SystemProfile profile;
+        try
+        {
+            profile = ProfileSerializer.Load(profilePath);
+        }
+        catch (Exception ex) when (ex is ProfileException or IOException)
+        {
+            stderr.WriteLine(ex.Message);
+            return InvalidInput;
+        }
+
+        if (!TryLoadPlaybooks(playbookPaths.Count > 0 ? playbookPaths : ["playbooks"], TextWriter.Null, stderr, out var library))
+        {
+            return InvalidInput;
+        }
+
+        var fields = FieldContext.FromProfile(profile).Where(f => f.Kind == Core.Profile.FieldNodeKind.Value || f.Cardinality == Cardinality.Array).ToList();
+        var recognised = 0;
+        stdout.WriteLine($"{profile.System}: {fields.Count} field(s) checked against {library.Domains.Count()} domain playbook(s).");
+        foreach (var field in fields)
+        {
+            if (library.Detect(field) is not { } result)
+            {
+                stdout.WriteLine($"  {field.Path}  -");
+                continue;
+            }
+
+            recognised++;
+            var qualifiers = result.Qualifiers.Count == 0 ? "" : $" [{string.Join(", ", result.Qualifiers.Select(q => $"{q.Key}={q.Value}"))}]";
+            stdout.WriteLine($"  {field.Path}  {result.BusinessConcept}{qualifiers} {result.Score}%{(result.RequiresReview ? " review" : "")}");
+            foreach (var question in result.Questions)
+            {
+                stdout.WriteLine($"      ? {question}");
+            }
+        }
+
+        stdout.WriteLine($"{recognised} of {fields.Count} field(s) recognised; {fields.Count - recognised} remaining.");
+        return Success;
+    }
+
+    private static bool TryLoadPlaybooks(IReadOnlyList<string> paths, TextWriter stdout, TextWriter stderr, out PlaybookLibrary library)
+    {
+        library = null!;
+        try
+        {
+            library = PlaybookLibrary.Load(paths);
+        }
+        catch (Exception ex) when (ex is PlaybookException or IOException)
+        {
+            stderr.WriteLine(ex.Message);
+            return false;
+        }
+
+        var issues = PlaybookValidator.Validate(library.All);
+        foreach (var issue in issues)
+        {
+            (issue.Severity == IssueSeverity.Error ? stderr : stdout).WriteLine(issue);
+        }
+
+        var errors = issues.Count(i => i.Severity == IssueSeverity.Error);
+        if (errors > 0)
+        {
+            stderr.WriteLine($"{errors} playbook error(s).");
+            return false;
+        }
+
+        stdout.WriteLine($"{library.All.Count} playbook(s) valid ({issues.Count} warning(s)).");
+        return true;
     }
 
     private static bool TryLoad(string path, TextWriter stdout, TextWriter stderr, out MappingDocument document)
