@@ -1,17 +1,20 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { Router, RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { catchError, finalize, of } from 'rxjs';
 import { Api } from '../core/api';
 import { NewProfile, ProfileSummary } from '../core/models';
 import { UserService } from '../core/user';
 
-export const profileExtensions = '.json,.xml,.xsd,.wsdl,.csv,.xlsx,.yaml,.yml';
+export const profileExtensions = '.json,.xml,.xsd,.wsdl,.csv,.xlsx,.yaml,.yml,.pdf,.docx';
+
+const documentPattern = /\.(pdf|docx)$/i;
 
 @Component({
   selector: 'app-profile-list',
@@ -28,6 +31,8 @@ export class ProfileList {
   protected readonly files = signal<File[]>([]);
   protected readonly busy = signal(false);
   protected readonly request = signal<NewProfile>({ system: '' });
+  protected readonly ai = toSignal(this.api.ai().pipe(catchError(() => of(null))), { initialValue: null });
+  protected readonly hasDocuments = computed(() => this.files().some((f) => documentPattern.test(f.name)));
 
   constructor() {
     this.load();
@@ -45,6 +50,9 @@ export class ProfileList {
   protected build(): void {
     this.busy.set(true);
     const request = { ...this.request(), system: this.request().system.trim() };
+    if (!this.hasDocuments() || !this.ai()?.available) {
+      delete request.useAi;
+    }
     this.api
       .createProfile(this.files(), request)
       .pipe(finalize(() => this.busy.set(false)))

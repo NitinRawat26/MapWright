@@ -47,9 +47,29 @@ Unknown JSON properties and missing required properties are rejected.
 ## System profiles
 
 A system profile is a normalized description of one system's contract, built from any number of its inputs:
-JSON or XML sample payloads, JSON Schema, OpenAPI (JSON), XSD, WSDL and field specs (CSV or Excel). All
-inputs of one system are merged into one profile. PDF and Word documentation will feed the same profile in a
-later release.
+JSON or XML sample payloads, JSON Schema, OpenAPI (JSON), XSD, WSDL, field specs (CSV or Excel) and PDF or
+Word (.docx) specifications. All inputs of one system are merged into one profile.
+
+### PDF and Word specifications
+
+- **Field tables are read by rules.** A table whose header row has a path column (the same names as a field
+  spec, e.g. `Field Path`, `Field`, `XPath`) is read like a field spec: type, mandatory, lengths, valid values
+  and description. Word tables are read as they are; PDF tables are rebuilt from the positions of the words
+  under the header row, a description that wraps onto the next line included, and a header repeated on the next
+  page continues the table. Page numbers are ignored.
+- **Plain field names** (`legalName`) in a document with several field tables get the table's heading as their
+  parent: under "4.2 Merchant details" they become `merchantDetails.legalName`.
+- **A field listed twice** in a document keeps its first definition and gets a finding (a field spec treats it
+  as an error).
+- **Text outside the tables** is read by AI only when you ask (`useAi=true` on `POST /api/profiles`, or
+  **Let AI read document text** on the Profiles page). E-mail addresses and runs of six or more digits are masked
+  before sending. Fields the tables already define are skipped. Each field AI adds gets an `aiExtracted` finding
+  with its confidence (capped like other AI answers, 70% by default) and a quote from the text, so it can be
+  reviewed. Its input is listed as `<document> (read by AI)`.
+- **A document with no field table** is refused unless AI is asked to read it.
+- `.doc` (Word 97-2003) and scanned PDFs without text are not read; save them as `.docx` or a text PDF.
+- Sample: `samples/systems/sales-beta/docs` has the same specification as PDF and Word, with a sample in
+  `samples/systems/sales-beta/samples`.
 
 Each field records its path, parent, kind (object/value), cardinality, inferred data type and date format,
 required signal, length/value ranges, observed values and value shapes, presence counts, the samples it was

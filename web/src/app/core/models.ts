@@ -337,6 +337,7 @@ export interface NewProfile {
   root?: string;
   noValues?: boolean;
   replace?: boolean;
+  useAi?: boolean;
 }
 
 export interface ReplaySample {

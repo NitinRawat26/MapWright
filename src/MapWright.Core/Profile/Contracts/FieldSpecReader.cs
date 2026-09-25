@@ -52,28 +52,58 @@ public static partial class FieldSpecReader
     /// <summary>True when one of the first rows has a recognisable path column.</summary>
     public static bool HasHeader(IReadOnlyList<IReadOnlyList<string>> rows) => FindHeader(rows) is not null;
 
-    public static ContractDocument Read(string name, IReadOnlyList<IReadOnlyList<string>> rows, string? sha256 = null)
+    public static ContractDocument Read(string name, IReadOnlyList<IReadOnlyList<string>> rows, string? sha256 = null) =>
+        Read(name, [new FieldTable(rows)], sha256 ?? ContractDocument.Hash(string.Join("\n", rows.Select(r => string.Join("\t", r)))), InputKind.FieldSpec);
+
+    /// <summary>
+    /// Reads several field tables of one input, e.g. the tables of a specification document. Tables without a
+    /// path column are skipped. A table's <see cref="FieldTable.Group"/> prefixes its plain field names.
+    /// Documentation lists a field twice as a finding; a field spec as an error.
+    /// </summary>
+    public static ContractDocument Read(string name, IReadOnlyList<FieldTable> tables, string sha256, InputKind kind)
     {
-        if (FindHeader(rows) is not var (headerRow, columns))
+        var entries = new List<(string Where, int Row, string Path, PayloadFormat Format, bool RepeatsFromPath, Func<Column, string?> Cell)>();
+        var found = false;
+        foreach (var table in tables)
         {
-            throw new ProfileException(
-                $"Field spec '{name}' has no path column; expected a header such as {string.Join(", ", Headers[0].Names.Select(n => $"'{n}'"))}.");
-        }
-
-        var entries = new List<(int Row, string Path, PayloadFormat Format, bool RepeatsFromPath, Func<Column, string?> Cell)>();
-        for (var r = headerRow + 1; r < rows.Count; r++)
-        {
-            var row = rows[r];
-            string? Cell(Column column) =>
-                columns.TryGetValue(column, out var index) && index < row.Count && row[index].Trim() is { Length: > 0 } text ? text : null;
-
-            if (Cell(Column.Path) is not { } raw)
+            var rows = table.Rows;
+            if (FindHeader(rows) is not var (headerRow, columns))
             {
                 continue;
             }
 
-            var (path, pathFormat, repeats) = Normalize(raw);
-            entries.Add((r + 1, path, pathFormat, repeats, Cell));
+            found = true;
+            var paths = rows.Skip(headerRow + 1)
+                .Select(row => columns[Column.Path] < row.Count ? row[columns[Column.Path]].Trim() : "")
+                .Where(p => p.Length > 0)
+                .ToList();
+            var group = table.Group is { } g && paths.All(IsPlainName) ? g : null;
+            for (var r = headerRow + 1; r < rows.Count; r++)
+            {
+                var row = rows[r];
+                string? Cell(Column column) =>
+                    columns.TryGetValue(column, out var index) && index < row.Count && row[index].Trim() is { Length: > 0 } text ? text : null;
+
+                if (Cell(Column.Path) is not { } raw)
+                {
+                    continue;
+                }
+
+                if (group is not null)
+                {
+                    raw = $"{group}.{raw.Trim()}";
+                }
+
+                var (path, pathFormat, repeats) = Normalize(raw);
+                entries.Add((table.Label is null ? $"Row {r + 1}" : $"{table.Label} row {r + 1}", r + 1, path, pathFormat, repeats, Cell));
+            }
+        }
+
+        if (!found)
+        {
+            throw new ProfileException(tables.Count == 1
+                ? $"Field spec '{name}' has no path column; expected a header such as {string.Join(", ", Headers[0].Names.Select(n => $"'{n}'"))}."
+                : $"'{name}' has no field table; expected a header row with a column such as {string.Join(", ", Headers[0].Names.Select(n => $"'{n}'"))}.");
         }
 
         if (entries.Count == 0)
@@ -86,13 +116,24 @@ public static partial class FieldSpecReader
             throw new ProfileException($"Field spec '{name}' mixes JSON paths ($.a.b) and XML paths (/A/B).");
         }
 
-        if (entries.GroupBy(e => e.Path, StringComparer.Ordinal).FirstOrDefault(g => g.Count() > 1) is { } duplicate)
+        var duplicates = entries.GroupBy(e => e.Path, StringComparer.Ordinal).Where(g => g.Count() > 1).ToList();
+        if (kind != InputKind.Documentation && duplicates.FirstOrDefault() is { } duplicate)
         {
-            throw new ProfileException($"Field spec '{name}' lists '{duplicate.Key}' more than once (rows {string.Join(", ", duplicate.Select(e => e.Row))}).");
+            var where = duplicate.All(e => e.Where.StartsWith("Row ", StringComparison.Ordinal))
+                ? $"rows {string.Join(", ", duplicate.Select(e => e.Row))}"
+                : string.Join(", ", duplicate.Select(e => e.Where));
+            throw new ProfileException($"Field spec '{name}' lists '{duplicate.Key}' more than once ({where}).");
         }
 
+        var skipped = duplicates.SelectMany(g => g.Skip(1)).ToList();
+        entries = [.. entries.Except(skipped)];
         var format = entries[0].Format;
-        var builder = new ContractBuilder(name, InputKind.FieldSpec, format);
+        var builder = new ContractBuilder(name, kind, format);
+        foreach (var extra in skipped)
+        {
+            builder.Finding(ProfileFindingKind.SchemaSimplified, extra.Path, $"{extra.Where}: listed again; the first definition was used.");
+        }
+
         var parents = entries.Select(e => Parent(e.Path, format).Path).OfType<string>().ToHashSet(StringComparer.Ordinal);
 
         foreach (var entry in entries)
@@ -104,24 +145,24 @@ public static partial class FieldSpecReader
             {
                 field.Cardinality = Cardinality.Array;
                 field.MaxOccurs = entry.RepeatsFromPath ? null : maxOccurs;
-                field.Details[ProfileAttribute.Cardinality] = entry.RepeatsFromPath ? $"Row {entry.Row}: '[*]' in the path." : $"Row {entry.Row}: repeats '{cell(Column.Repeats)}'.";
+                field.Details[ProfileAttribute.Cardinality] = entry.RepeatsFromPath ? $"{entry.Where}: '[*]' in the path." : $"{entry.Where}: repeats '{cell(Column.Repeats)}'.";
             }
             else if (cell(Column.Repeats) is { } once)
             {
-                field.Details[ProfileAttribute.Cardinality] = $"Row {entry.Row}: repeats '{once}'.";
+                field.Details[ProfileAttribute.Cardinality] = $"{entry.Where}: repeats '{once}'.";
             }
 
-            Type(cell(Column.Type), field, parents.Contains(entry.Path), entry.Row, builder);
+            Type(cell(Column.Type), field, parents.Contains(entry.Path), entry.Where, builder);
             if (cell(Column.Format) is { } dateFormat && field.DataType is FieldDataType.Date or FieldDataType.DateTime)
             {
                 field.Format = NormalizeDateFormat(dateFormat);
-                field.Details[ProfileAttribute.Format] = $"Row {entry.Row}: format '{dateFormat}'.";
+                field.Details[ProfileAttribute.Format] = $"{entry.Where}: format '{dateFormat}'.";
             }
 
             if (cell(Column.Required) is { } required)
             {
                 (field.Required, var note) = ParseRequired(required);
-                field.Details[ProfileAttribute.Required] = $"Row {entry.Row}: '{required}'{note}.";
+                field.Details[ProfileAttribute.Required] = $"{entry.Where}: '{required}'{note}.";
             }
 
             field.MinLength = Int(cell(Column.MinLength)) ?? field.MinLength;
@@ -132,7 +173,7 @@ public static partial class FieldSpecReader
             if (cell(Column.AllowedValues) is { } values)
             {
                 field.AllowedValues = Values(values);
-                field.Details[ProfileAttribute.AllowedValues] = $"Row {entry.Row}: allowed values.";
+                field.Details[ProfileAttribute.AllowedValues] = $"{entry.Where}: allowed values.";
             }
 
             field.Description = cell(Column.Description);
@@ -142,7 +183,7 @@ public static partial class FieldSpecReader
             }
         }
 
-        return builder.Build(sha256 ?? ContractDocument.Hash(string.Join("\n", rows.Select(r => string.Join("\t", r)))), null);
+        return builder.Build(sha256, null);
     }
 
     private static (int Row, Dictionary<Column, int> Columns)? FindHeader(IReadOnlyList<IReadOnlyList<string>> rows)
@@ -168,6 +209,11 @@ public static partial class FieldSpecReader
 
         return null;
     }
+
+    /// <summary>The profile path a field spec cell such as <c>owners[].name</c> or <c>/A/B</c> stands for.</summary>
+    public static string PathOf(string raw) => Normalize(raw).Path;
+
+    private static bool IsPlainName(string raw) => raw.Trim() is var text && text.IndexOfAny(['.', '/', '$', '[']) < 0;
 
     private static (string Path, PayloadFormat Format, bool Repeats) Normalize(string raw)
     {
@@ -246,7 +292,7 @@ public static partial class FieldSpecReader
         return builder.Add(path, name, parent);
     }
 
-    private static void Type(string? text, ContractField field, bool hasChildren, int row, ContractBuilder builder)
+    private static void Type(string? text, ContractField field, bool hasChildren, string where, ContractBuilder builder)
     {
         if (hasChildren)
         {
@@ -283,7 +329,7 @@ public static partial class FieldSpecReader
         }
         else if (field.DataType == FieldDataType.Unknown)
         {
-            builder.Finding(ProfileFindingKind.SchemaSimplified, field.Path, $"Row {row}: type '{text}' is not recognised; the type is unknown.");
+            builder.Finding(ProfileFindingKind.SchemaSimplified, field.Path, $"{where}: type '{text}' is not recognised; the type is unknown.");
         }
         else if (first is not null)
         {
@@ -302,7 +348,7 @@ public static partial class FieldSpecReader
             }
         }
 
-        field.Details[ProfileAttribute.DataType] = $"Row {row}: type '{text}'.";
+        field.Details[ProfileAttribute.DataType] = $"{where}: type '{text}'.";
     }
 
     private static (Requirement Value, string Note) ParseRequired(string text) => text.Trim().ToLowerInvariant() switch
@@ -455,3 +501,6 @@ public static partial class FieldSpecReader
     [GeneratedRegex(@"^(.+?)\s*(?:=|:|\s-\s|\s–\s)")]
     private static partial Regex CodeLabel();
 }
+
+/// <summary>One table of field rows (header row first). <paramref name="Label"/> names it in messages, e.g. "Table 2".</summary>
+public sealed record FieldTable(IReadOnlyList<IReadOnlyList<string>> Rows, string? Group = null, string? Label = null);

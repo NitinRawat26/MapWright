@@ -50,6 +50,51 @@ describe('Profiles', () => {
     expect(navigate).toHaveBeenCalledWith(['/profiles', 'salesalpha-crm']);
   });
 
+  it('offers AI for document text only when a PDF or Word file is added and AI is configured', async () => {
+    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const fixture = TestBed.createComponent(ProfileList);
+    fixture.detectChanges();
+    respond('/api/profiles', []);
+    respond('/api/ai', { available: true, provider: 'vertex', maxConfidence: 70 });
+    await settle(fixture);
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelector('[data-testid="files"]')?.getAttribute('accept')).toContain('.pdf,.docx');
+    expect(root.querySelector('[data-testid="use-ai"]')).toBeNull();
+
+    const system = root.querySelector('[data-testid="system"]') as HTMLInputElement;
+    system.value = 'Sales Beta';
+    system.dispatchEvent(new Event('input'));
+    const picker = root.querySelector('[data-testid="files"]') as HTMLInputElement;
+    Object.defineProperty(picker, 'files', { value: [new File(['%PDF'], 'spec.PDF')], configurable: true });
+    picker.dispatchEvent(new Event('change'));
+    await settle(fixture);
+    expect(text(root, 'ai-note')).toContain('nothing is sent to AI');
+
+    (root.querySelector('[data-testid="use-ai"] input') as HTMLInputElement).click();
+    await settle(fixture);
+    expect(text(root, 'ai-note')).toContain('sent to vertex');
+    expect(text(root, 'ai-note')).toContain('70%');
+
+    (root.querySelector('[data-testid="build"]') as HTMLButtonElement).click();
+    const request = http().expectOne({ url: '/api/profiles', method: 'POST' });
+    expect((request.request.body as FormData).get('useAi')).toBe('true');
+  });
+
+  it('does not send useAi when AI is not configured', async () => {
+    const fixture = TestBed.createComponent(ProfileList);
+    fixture.detectChanges();
+    respond('/api/profiles', []);
+    respond('/api/ai', { available: false, maxConfidence: 70 });
+    await settle(fixture);
+    const root = fixture.nativeElement as HTMLElement;
+    const picker = root.querySelector('[data-testid="files"]') as HTMLInputElement;
+    Object.defineProperty(picker, 'files', { value: [new File(['x'], 'spec.docx')], configurable: true });
+    picker.dispatchEvent(new Event('change'));
+    await settle(fixture);
+    expect(root.querySelector('[data-testid="use-ai"] input')?.hasAttribute('disabled')).toBe(true);
+    expect(text(root, 'ai-note')).toContain('AI is not configured');
+  });
+
   it('shows fields and runs playbook-only detection when AI is not configured', async () => {
     const fixture = TestBed.createComponent(ProfileDetail);
     fixture.componentRef.setInput('id', 'salesalpha-crm');

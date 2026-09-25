@@ -17,7 +17,7 @@
   </table>
 
   <h2>Build a profile</h2>
-  <p class="muted">Upload sample payloads (JSON or XML) and any contracts: JSON Schema, OpenAPI (JSON), XSD, WSDL, or a CSV/Excel field spec. Contracts decide types and requiredness; samples add observed values.</p>
+  <p class="muted">Upload sample payloads (JSON or XML) and any contracts: JSON Schema, OpenAPI (JSON), XSD, WSDL, a CSV/Excel field spec, or a PDF/Word (.docx) specification with field tables. Contracts decide types and requiredness; samples add observed values.</p>
   <div class="form">
     <div class="row">
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
@@ -52,6 +52,20 @@
       <mat-checkbox [ngModel]="request().noValues" (ngModelChange)="patch({ noValues: $event })">Don't keep sample values</mat-checkbox>
       <mat-checkbox [ngModel]="request().replace" (ngModelChange)="patch({ replace: $event })">Replace an existing profile with this ID</mat-checkbox>
     </div>
+    @if (hasDocuments()) {
+      <div class="row">
+        <mat-checkbox [disabled]="!ai()?.available" [ngModel]="request().useAi" (ngModelChange)="patch({ useAi: $event })" data-testid="use-ai">Let AI read document text</mat-checkbox>
+        <span class="muted" data-testid="ai-note">
+          @if (!ai()?.available) {
+            Field tables in the documents are read by rules. AI is not configured, so text outside the tables is not read.
+          } @else if (request().useAi) {
+            Text outside the field tables is sent to {{ ai()?.provider }} with e-mail addresses and long numbers masked. Fields it finds are capped at {{ ai()?.maxConfidence }}% confidence and marked for review.
+          } @else {
+            Field tables in the documents are read by rules; nothing is sent to AI.
+          }
+        </span>
+      </div>
+    }
     <div class="row">
       <button mat-flat-button type="button" [disabled]="!user.name() || !request().system.trim() || !files().length || busy()" (click)="build()" data-testid="build">Build profile</button>
       @if (!user.name()) {

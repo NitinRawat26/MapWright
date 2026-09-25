@@ -35,7 +35,10 @@ public static class ProfileEndpoints
                 [FromForm] string? root,
                 [FromForm] bool? noValues,
                 [FromForm] bool? replace,
+                [FromForm] bool? useAi,
                 ProfileStore store,
+                PlaybookStore playbooks,
+                AiAccess ai,
                 HttpContext context,
                 [FromHeader(Name = ApiErrors.UserHeader)] string? user) =>
             {
@@ -52,17 +55,28 @@ public static class ProfileEndpoints
                 }
 
                 var inputs = await Uploads.Read(files, ProfileInputs.Extensions, context.RequestAborted);
-                var (samples, contracts) = ProfileInputs.Split(inputs, root);
+                var set = ProfileInputs.Read(inputs, root);
+                var aiFindings = useAi == true && set.Documents.Count > 0
+                    ? await Detection.ReadWithAi(set, ai, playbooks, context.RequestAborted)
+                    : [];
+                if (set.Documents.FirstOrDefault(d => set.Contracts.All(c => c.Name != d.Name && c.Name != d.Name + AiDocumentReader.Suffix)) is { } unread)
+                {
+                    throw new StoreException(StoreError.Invalid, useAi == true
+                        ? $"Neither the rules nor AI found fields in '{unread.Name}'. {string.Join(" ", aiFindings.Where(f => f.Inputs.Contains(unread.Name)).Select(f => f.Message))}".TrimEnd()
+                        : ProfileInputs.NoFieldTable(unread.Name));
+                }
+
                 var profile = ProfileBuilder.Build(
-                    new() { System = system.Trim(), Version = version, Description = description, Samples = samples, Contracts = contracts },
+                    new() { System = system.Trim(), Version = version, Description = description, Samples = set.Samples, Contracts = set.Contracts },
                     new() { RetainValues = noValues != true });
+                profile = profile with { Findings = [.. profile.Findings, .. aiFindings] };
                 store.Save(profileId, profile, actor);
                 context.Response.Headers.Location = $"/api/profiles/{profileId}";
                 return Results.Text(ProfileSerializer.Serialize(profile), "application/json", statusCode: StatusCodes.Status201Created);
             })
             .DisableAntiforgery()
             .Produces<SystemProfile>(StatusCodes.Status201Created)
-            .WithSummary("Build a profile from sample payloads and contracts (JSON, XML, JSON Schema, OpenAPI, XSD, WSDL, CSV/Excel field specs).");
+            .WithSummary("Build a profile from sample payloads and contracts (JSON, XML, JSON Schema, OpenAPI, XSD, WSDL, CSV/Excel field specs, PDF/Word specs); with useAi, AI also reads the documents' text.");
 
         group.MapGet("/{id}", (string id, ProfileStore store) => Results.Text(ProfileSerializer.Serialize(store.Get(id)), "application/json"))
             .Produces<SystemProfile>()
@@ -126,6 +140,27 @@ public static class ProfileEndpoints
 
 internal static class Detection
 {
+    /// <summary>Adds the fields AI reads from each document's text; returns its warnings as findings.</summary>
+    public static async Task<List<ProfileFinding>> ReadWithAi(ProfileInputSet set, AiAccess ai, PlaybookStore playbooks, CancellationToken cancellationToken)
+    {
+        var reader = new AiDocumentReader(ai.Require(), AiAccess.Cap(playbooks.Library()));
+        var known = set.Contracts.SelectMany(c => c.Fields).Select(f => f.Path).ToHashSet(StringComparer.Ordinal);
+        var findings = new List<ProfileFinding>();
+        foreach (var document in set.Documents.Where(d => d.Text.Trim().Length > 0 || set.Contracts.All(c => c.Name != d.Name)))
+        {
+            var result = await reader.ReadAsync(document.Name, document.Sha256, document.Text, set.Format, known, cancellationToken);
+            if (result.Contract is { } contract)
+            {
+                set.Contracts.Add(contract);
+                known.UnionWith(contract.Fields.Select(f => f.Path));
+            }
+
+            findings.AddRange(result.Warnings.Select(w => new ProfileFinding { Kind = ProfileFindingKind.AiExtracted, Message = w, Inputs = [document.Name] }));
+        }
+
+        return findings;
+    }
+
     public static DecodeReport Recognise(SystemProfile profile, PlaybookLibrary library)
     {
         var recognised = new List<PlaybookMatch>();
