@@ -12,6 +12,7 @@ import {
   MappingDocument,
   MappingListItem,
   MappingSummary,
+  Me,
   NewProfile,
   ReviewDecision,
   ReviewDecisionKind,
@@ -39,6 +40,10 @@ export class Api {
 
   health(): Observable<{ status: string }> {
     return this.http.get<{ status: string }>('/health');
+  }
+
+  me(): Observable<Me> {
+    return this.http.get<Me>('/api/me');
   }
 
   ai(): Observable<AiStatus> {

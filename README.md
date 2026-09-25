@@ -383,9 +383,34 @@ Settings (`appsettings.json`, or environment variables such as `MapWright__Datab
 | `MapWright:SeedPlaybooks` | `playbooks` | Imported when the store has no playbooks (relative to the app folder) |
 | `MapWright:RequireIndependentReview` | `true` | The submitter of a version cannot publish it |
 
-Writes need an `X-MapWright-User` header; the name is recorded in the audit trail. Errors come back as
-`{ title, status, detail, issues }` with 400 (invalid), 404 (not found) or 409 (conflict, e.g. editing a
-published version).
+Writes need a name for the audit trail. Without sign-in (the default, for local use) it is the
+`X-MapWright-User` header; with sign-in it is the verified caller (see below). Errors come back as
+`{ title, status, detail, issues }` with 400 (invalid), 401 (not signed in), 404 (not found) or 409 (conflict,
+e.g. editing a published version).
+
+### Sign-in
+
+Sign-in is off until you configure at least one method under `MapWright:Auth`. Once it is on, every `/api`
+request must be signed in (`/health`, `/swagger` and the UI files stay open), `X-MapWright-User` sent by the
+caller is ignored, and the verified name is recorded instead. The methods can be combined:
+
+| Method | Settings | The caller sends | Recorded name |
+|---|---|---|---|
+| API keys (scripts, CI) | `ApiKeys:0:Name`, `ApiKeys:0:Sha256` (hex SHA-256 of the key; add `:1:`, `:2:` … for more) | `X-Api-Key: <key>` or `Authorization: ApiKey <key>` | the key's `Name` |
+| OAuth / OpenID Connect bearer tokens | `Jwt:Authority` (issuer URL; keys come from its discovery document) and `Jwt:Audience`. For an issuer without discovery: `Jwt:SigningKey` (HMAC, ≥ 32 bytes) and `Jwt:Issuer` instead of `Authority`. `Jwt:NameClaims` changes the name claims | `Authorization: Bearer <token>` | first of `preferred_username`, `email`, `upn`, `name`, `sub` |
+| SSO through a sign-in proxy (web UI) | `Proxy:UserHeader` (e.g. `X-Forwarded-Email`) and `Proxy:Secret` (≥ 16 characters); `Proxy:SecretHeader` defaults to `X-MapWright-Proxy-Secret` | nothing; the proxy adds both headers after your SSO sign-in | the user header |
+
+Tokens are checked for signature, issuer, audience and expiry. API keys are stored only as hashes and compared
+in constant time. The API refuses to start if a method is half configured (for example a proxy without a secret).
+`GET /api/me` tells a caller who they are signed in as: `{ "name", "method", "signInRequired" }`.
+
+```bash
+KEY=$(openssl rand -hex 32); echo "key: $KEY"
+printf %s "$KEY" | sha256sum        # use the hash as MapWright__Auth__ApiKeys__0__Sha256
+MapWright__Auth__ApiKeys__0__Name=ci-bot MapWright__Auth__ApiKeys__0__Sha256=<hash> \
+  dotnet run --project src/MapWright.Api --urls http://localhost:5080
+curl localhost:5080/api/me -H "X-Api-Key: $KEY"
+```
 
 ### Playbooks
 
@@ -513,9 +538,10 @@ SQLite file and a `/health` check. Persistent disks need a paid instance type, w
    `vertex-key.json`. It is available at `/etc/secrets/vertex-key.json`, where `GOOGLE_APPLICATION_CREDENTIALS`
    already points. The account needs the Vertex AI User role.
 
-The API has no sign-in: `X-MapWright-User` is recorded for audit but not verified. Put it behind your own
-authentication (a gateway, VPN or Render private service) before exposing it. The same applies to the web UI:
-the name entered in its toolbar is only a label for the audit trail.
+Turn on [sign-in](#sign-in) before exposing the service: without it `X-MapWright-User` is recorded for audit but
+not verified. Set the `MapWright__Auth__…` variables in the service's environment (keep key hashes, signing keys
+and the proxy secret as secret values). For SSO in the web UI, put a sign-in proxy in front of the service and use
+the proxy settings.
 
 ## Web UI
 
@@ -533,7 +559,9 @@ dotnet run --project src/MapWright.Api --urls http://localhost:5080
 
 For UI development, run the API as above and `npm start` in `web/` (http://localhost:4200, with `/api`,
 `/health` and `/swagger` proxied to port 5080). Enter your name in the toolbar before making changes; it is
-sent as `X-MapWright-User`. Without a built UI the API serves only `/api`, `/health` and `/swagger`.
+sent as `X-MapWright-User`. When the API requires sign-in, the toolbar shows who you are signed in as (through
+the sign-in proxy), or asks for an API key, which is kept for the browser tab only and sent as `X-Api-Key`.
+Bearer-token sign-in is for API callers; the UI has no OAuth login of its own. Without a built UI the API serves only `/api`, `/health` and `/swagger`.
 API errors are shown with their `detail` and `issues`.
 
 Pages:

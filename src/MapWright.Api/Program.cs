@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<ApiOptions>(builder.Configuration.GetSection(ApiOptions.Section));
+builder.Services.AddMapWrightSignIn(builder.Configuration);
 builder.Services.ConfigureHttpJsonOptions(o =>
 {
     o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
@@ -42,6 +43,7 @@ var app = builder.Build();
 SeedPlaybooks(app);
 
 app.UseApiErrors();
+app.UseMapWrightSignIn();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseDefaultFiles();
@@ -49,6 +51,7 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).ExcludeFromDescription();
+app.MapSignInEndpoints();
 app.MapPlaybookEndpoints();
 app.MapProfileEndpoints();
 app.MapMappingEndpoints();

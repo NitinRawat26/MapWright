@@ -360,3 +360,10 @@ export interface ApprovedSuggestion {
   version: string;
   created?: boolean;
 }
+
+/** GET /api/me: who the API records as the author of changes. */
+export interface Me {
+  name?: string;
+  method?: 'header' | 'apiKey' | 'bearer' | 'proxy';
+  signInRequired: boolean;
+}

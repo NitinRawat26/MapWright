@@ -29,3 +29,12 @@ services:
         sync: false
       - key: MAPWRIGHT_OLLAMA_URL
         sync: false
+      # Sign-in (README "Sign-in"): fill in at least one method before exposing the service.
+      - key: MapWright__Auth__ApiKeys__0__Name
+        sync: false
+      - key: MapWright__Auth__ApiKeys__0__Sha256
+        sync: false
+      - key: MapWright__Auth__Jwt__Authority
+        sync: false
+      - key: MapWright__Auth__Jwt__Audience
+        sync: false

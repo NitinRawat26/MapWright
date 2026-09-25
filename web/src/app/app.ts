@@ -6,6 +6,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Api } from './core/api';
 import { UserService } from './core/user';
 
 @Component({
@@ -26,6 +27,31 @@ import { UserService } from './core/user';
 })
 export class App {
   protected readonly user = inject(UserService);
+  private readonly api = inject(Api);
+
+  constructor() {
+    this.refresh();
+  }
+
+  protected signIn(key: string): void {
+    this.user.setApiKey(key);
+    this.refresh();
+  }
+
+  protected signOut(): void {
+    this.user.setApiKey('');
+    this.refresh();
+  }
+
+  private refresh(): void {
+    this.api.me().subscribe({
+      next: (me) => this.user.me.set(me),
+      error: () => {
+        this.user.setApiKey('');
+        this.user.me.set({ signInRequired: true });
+      },
+    });
+  }
 
   protected readonly links = [
     { path: '/', label: 'Overview', exact: true },
