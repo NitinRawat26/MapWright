@@ -423,6 +423,25 @@ SQLite file and a `/health` check. Persistent disks need a paid instance type, w
 The API has no sign-in: `X-MapWright-User` is recorded for audit but not verified. Put it behind your own
 authentication (a gateway, VPN or Render private service) before exposing it.
 
+## Web UI
+
+`web/` is an Angular (Angular Material) app for the API. Build it and the API serves it at `/`:
+
+```bash
+cd web
+npm ci
+npm run build        # writes src/MapWright.Api/wwwroot, served by the API
+npm test
+cd ..
+dotnet run --project src/MapWright.Api --urls http://localhost:5080
+# UI: http://localhost:5080/   Swagger: http://localhost:5080/swagger
+```
+
+For UI development, run the API as above and `npm start` in `web/` (http://localhost:4200, with `/api`,
+`/health` and `/swagger` proxied to port 5080). Enter your name in the toolbar before making changes; it is
+sent as `X-MapWright-User`. Without a built UI the API serves only `/api`, `/health` and `/swagger`.
+API errors are shown with their `detail` and `issues`.
+
 ## Build and test
 
 Requires the .NET 10 SDK.
@@ -433,6 +452,8 @@ dotnet test
 dotnet format MapWright.slnx --verify-no-changes
 ```
 
+The web UI needs Node.js 22 or later: `npm ci`, `npm run build` and `npm test` in `web/`.
+
 ## Layout
 
 ```
@@ -442,6 +463,7 @@ src/MapWright.Output   Report model, Excel / CSV / HTML renderers and the Excel 
 src/MapWright.Ai       Optional AI assist: Vertex AI and Ollama providers, fallback, masked field prompts
 src/MapWright.Cli      `mapwright` command-line tool
 src/MapWright.Api      ASP.NET Core API (Swagger at /swagger) over the engine and the store
+web                    Angular web UI (served by the API once built)
 src/MapWright.Store    SQLite store: playbook versions and lifecycle, profiles, mappings, review decisions, AI suggestions
 tests/MapWright.Tests  Unit and API tests
 samples/mappings       Example mapping specs

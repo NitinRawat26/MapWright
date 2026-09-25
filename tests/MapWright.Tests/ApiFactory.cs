@@ -12,11 +12,16 @@ using Microsoft.Extensions.DependencyInjection;
 namespace MapWright.Tests;
 
 /// <summary>The API over a fresh in-memory store seeded with the starter playbooks.</summary>
-internal sealed class ApiFactory(IAiProvider? ai = null) : WebApplicationFactory<ApiOptions>
+internal sealed class ApiFactory(IAiProvider? ai = null, string? webRoot = null) : WebApplicationFactory<ApiOptions>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
+        if (webRoot is not null)
+        {
+            builder.UseWebRoot(webRoot);
+        }
+
         builder.UseSetting("MapWright:DatabasePath", ":memory:");
         builder.UseSetting("MapWright:SeedPlaybooks", StarterPlaybooks.Directory);
         builder.ConfigureTestServices(services => services.AddSingleton(new AiAccess(ai)));

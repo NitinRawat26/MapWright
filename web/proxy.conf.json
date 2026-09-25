@@ -1,0 +1,5 @@
+{
+  "/api": { "target": "http://localhost:5080", "secure": false },
+  "/health": { "target": "http://localhost:5080", "secure": false },
+  "/swagger": { "target": "http://localhost:5080", "secure": false }
+}

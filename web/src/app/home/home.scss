@@ -1,0 +1,21 @@
+.status {
+  margin-bottom: 16px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+mat-card {
+  cursor: pointer;
+}
+
+.big {
+  font: var(--mat-sys-display-small);
+}
+
+.steps li {
+  margin-bottom: 6px;
+}
