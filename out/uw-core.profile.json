@@ -1,0 +1,1917 @@
+{
+  "specVersion": "1.0",
+  "system": "UW Core",
+  "format": "xml",
+  "createdAt": "2026-09-25T01:08:49.228698+00:00",
+  "inputs": [
+    {
+      "name": "corp-application.xml",
+      "kind": "samplePayload",
+      "format": "xml",
+      "sha256": "d5db6dbb52201309190e4b3bb6473f1240566b0cffd1ae705114c0a4b35177f4"
+    },
+    {
+      "name": "sole-prop-application.xml",
+      "kind": "samplePayload",
+      "format": "xml",
+      "sha256": "d98532bb81a669d8338e7f0d05d7914b9b03d880bdccb1b84ca31244bd8013d4"
+    }
+  ],
+  "fields": [
+    {
+      "path": "/UnderwritingRequest",
+      "name": "UnderwritingRequest",
+      "kind": "object",
+      "cardinality": "single",
+      "dataType": "object",
+      "required": "likelyRequired",
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [],
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 2,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Structured element in 2 sample(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/@sourceChannel",
+      "name": "sourceChannel",
+      "parentPath": "/UnderwritingRequest",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 11,
+      "maxLength": 11,
+      "allowedValues": [],
+      "observedValues": [
+        "SALES_ALPHA"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "AAAAA_AAAAA"
+      ],
+      "sampleValue": "SALES_ALPHA",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 2,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Inferred from 2 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/@requestId",
+      "name": "requestId",
+      "parentPath": "/UnderwritingRequest",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 9,
+      "maxLength": 9,
+      "allowedValues": [],
+      "observedValues": [
+        "UW-778812",
+        "UW-779034"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "AA-999999"
+      ],
+      "sampleValue": "UW-778812",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 2,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Inferred from 2 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Merchant",
+      "name": "Merchant",
+      "parentPath": "/UnderwritingRequest",
+      "kind": "object",
+      "cardinality": "single",
+      "dataType": "object",
+      "required": "likelyRequired",
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [],
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 2,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Structured element in 2 sample(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Merchant/LegalName",
+      "name": "LegalName",
+      "parentPath": "/UnderwritingRequest/Merchant",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 10,
+      "maxLength": 24,
+      "allowedValues": [],
+      "observedValues": [
+        "Northwind Provisions Inc",
+        "Priya Nair"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "Aaaaaaaaa Aaaaaaaaaa Aaa",
+        "Aaaaa Aaaa"
+      ],
+      "sampleValue": "Northwind Provisions Inc",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 2,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Inferred from 2 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Merchant/DoingBusinessAs",
+      "name": "DoingBusinessAs",
+      "parentPath": "/UnderwritingRequest/Merchant",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 16,
+      "maxLength": 21,
+      "allowedValues": [],
+      "observedValues": [
+        "Northwind Market",
+        "Nair Mobile Detailing"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "Aaaaaaaaa Aaaaaa",
+        "Aaaa Aaaaaa Aaaaaaaaa"
+      ],
+      "sampleValue": "Northwind Market",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 2,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Inferred from 2 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Merchant/TaxId",
+      "name": "TaxId",
+      "parentPath": "/UnderwritingRequest/Merchant",
+      "kind": "object",
+      "cardinality": "single",
+      "dataType": "object",
+      "required": "likelyRequired",
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [],
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 2,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Structured element in 2 sample(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Merchant/TaxId/@type",
+      "name": "type",
+      "parentPath": "/UnderwritingRequest/Merchant/TaxId",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 3,
+      "maxLength": 3,
+      "allowedValues": [],
+      "observedValues": [
+        "EIN",
+        "SSN"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "AAA"
+      ],
+      "sampleValue": "EIN",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 2,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Inferred from 2 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Merchant/TaxId/Number",
+      "name": "Number",
+      "parentPath": "/UnderwritingRequest/Merchant/TaxId",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 9,
+      "maxLength": 9,
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "999999999"
+      ],
+      "sampleValue": "*****8899",
+      "sensitive": true,
+      "sensitivityReason": "Parent 'TaxId' matches sensitive term 'taxid'.",
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 2,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Inferred from 2 non-empty value(s). Numeric identifiers are kept as strings to preserve leading zeros."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        },
+        {
+          "attribute": "sensitivity",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Parent 'TaxId' matches sensitive term 'taxid'."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Merchant/OwnershipType",
+      "name": "OwnershipType",
+      "parentPath": "/UnderwritingRequest/Merchant",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 1,
+      "maxLength": 2,
+      "allowedValues": [],
+      "observedValues": [
+        "C",
+        "SP"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "A",
+        "AA"
+      ],
+      "sampleValue": "C",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 2,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Inferred from 2 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Merchant/MCC",
+      "name": "MCC",
+      "parentPath": "/UnderwritingRequest/Merchant",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "integer",
+      "required": "likelyRequired",
+      "minLength": 4,
+      "maxLength": 4,
+      "minValue": 5411,
+      "maxValue": 7542,
+      "allowedValues": [],
+      "observedValues": [
+        "5411",
+        "7542"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "9999"
+      ],
+      "sampleValue": "5411",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 2,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Inferred from 2 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Merchant/YearsInBusiness",
+      "name": "YearsInBusiness",
+      "parentPath": "/UnderwritingRequest/Merchant",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "integer",
+      "required": "likelyRequired",
+      "minLength": 1,
+      "maxLength": 2,
+      "minValue": 3,
+      "maxValue": 12,
+      "allowedValues": [],
+      "observedValues": [
+        "12",
+        "3"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "99",
+        "9"
+      ],
+      "sampleValue": "12",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 2,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Inferred from 2 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Merchant/EstablishedDate",
+      "name": "EstablishedDate",
+      "parentPath": "/UnderwritingRequest/Merchant",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "date",
+      "format": "MM/dd/yyyy",
+      "required": "likelyRequired",
+      "minLength": 10,
+      "maxLength": 10,
+      "allowedValues": [],
+      "observedValues": [
+        "03/15/2014",
+        "02/15/2023"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "99/99/9999"
+      ],
+      "sampleValue": "03/15/2014",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 2,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Inferred from 2 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        },
+        {
+          "attribute": "format",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Detected from value patterns."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Merchant/WebsiteUrl",
+      "name": "WebsiteUrl",
+      "parentPath": "/UnderwritingRequest/Merchant",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "optional",
+      "minLength": 25,
+      "maxLength": 25,
+      "allowedValues": [],
+      "observedValues": [
+        "https://northwind.example"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "aaaaa://aaaaaaaaa.aaaaaaa"
+      ],
+      "sampleValue": "https://northwind.example",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 1,
+        "occurrences": 1,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml"
+          ],
+          "detail": "Inferred from 1 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml"
+          ],
+          "detail": "Absent from 1 of 2 parent instance(s)."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Officers",
+      "name": "Officers",
+      "parentPath": "/UnderwritingRequest",
+      "kind": "object",
+      "cardinality": "single",
+      "dataType": "object",
+      "required": "likelyRequired",
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [],
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 2,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Structured element in 2 sample(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Officers/Officer",
+      "name": "Officer",
+      "parentPath": "/UnderwritingRequest/Officers",
+      "kind": "object",
+      "cardinality": "array",
+      "dataType": "object",
+      "required": "likelyRequired",
+      "maxOccurs": 3,
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [],
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 4,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Structured element in 2 sample(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Repeated up to 3 time(s) in 'corp-application.xml'."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Officers/Officer/FullName",
+      "name": "FullName",
+      "parentPath": "/UnderwritingRequest/Officers/Officer",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 8,
+      "maxLength": 14,
+      "allowedValues": [],
+      "observedValues": [
+        "Dana Whitfield",
+        "Luis Ortega",
+        "Ken Sato",
+        "Priya Nair"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "Aaaa Aaaaaaaaa",
+        "Aaaa Aaaaaa",
+        "Aaa Aaaa",
+        "Aaaaa Aaaa"
+      ],
+      "sampleValue": "Dana Whitfield",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 4,
+        "presentInstances": 4,
+        "occurrences": 4,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Inferred from 4 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 4 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Officers/Officer/Title",
+      "name": "Title",
+      "parentPath": "/UnderwritingRequest/Officers/Officer",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "optional",
+      "minLength": 3,
+      "maxLength": 3,
+      "allowedValues": [],
+      "observedValues": [
+        "CEO",
+        "CFO",
+        "COO"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "AAA"
+      ],
+      "sampleValue": "CEO",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 4,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml"
+          ],
+          "detail": "Absent from 1 of 4 parent instance(s)."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Officers/Officer/SSN",
+      "name": "SSN",
+      "parentPath": "/UnderwritingRequest/Officers/Officer",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 9,
+      "maxLength": 9,
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "999999999"
+      ],
+      "sampleValue": "*****2020",
+      "sensitive": true,
+      "sensitivityReason": "Field name matches sensitive term 'ssn'.",
+      "presence": {
+        "parentInstances": 4,
+        "presentInstances": 4,
+        "occurrences": 4,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Inferred from 4 non-empty value(s). Numeric identifiers are kept as strings to preserve leading zeros."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 4 parent instance(s); samples alone cannot prove it is required."
+        },
+        {
+          "attribute": "sensitivity",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Field name matches sensitive term 'ssn'."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Officers/Officer/OwnershipPct",
+      "name": "OwnershipPct",
+      "parentPath": "/UnderwritingRequest/Officers/Officer",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "integer",
+      "required": "likelyRequired",
+      "minLength": 2,
+      "maxLength": 3,
+      "minValue": 20,
+      "maxValue": 100,
+      "allowedValues": [],
+      "observedValues": [
+        "50",
+        "30",
+        "20",
+        "100"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "99",
+        "999"
+      ],
+      "sampleValue": "50",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 4,
+        "presentInstances": 4,
+        "occurrences": 4,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Inferred from 4 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 4 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Officers/Officer/DateOfBirth",
+      "name": "DateOfBirth",
+      "parentPath": "/UnderwritingRequest/Officers/Officer",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "date",
+      "format": "yyyy-MM-dd",
+      "required": "likelyRequired",
+      "minLength": 10,
+      "maxLength": 10,
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "9999-99-99"
+      ],
+      "sampleValue": "****-01-30",
+      "sensitive": true,
+      "sensitivityReason": "Field name matches sensitive term 'dateofbirth'.",
+      "presence": {
+        "parentInstances": 4,
+        "presentInstances": 4,
+        "occurrences": 4,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Inferred from 4 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 4 parent instance(s); samples alone cannot prove it is required."
+        },
+        {
+          "attribute": "format",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Detected from value patterns."
+        },
+        {
+          "attribute": "sensitivity",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Field name matches sensitive term 'dateofbirth'."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Processing",
+      "name": "Processing",
+      "parentPath": "/UnderwritingRequest",
+      "kind": "object",
+      "cardinality": "single",
+      "dataType": "object",
+      "required": "likelyRequired",
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [],
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 2,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Structured element in 2 sample(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Processing/MonthlyVolume",
+      "name": "MonthlyVolume",
+      "parentPath": "/UnderwritingRequest/Processing",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "decimal",
+      "required": "likelyRequired",
+      "minLength": 7,
+      "maxLength": 9,
+      "minValue": 7000.00,
+      "maxValue": 250000.00,
+      "maxScale": 2,
+      "allowedValues": [],
+      "observedValues": [
+        "250000.00",
+        "7000.00"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "999999.99",
+        "9999.99"
+      ],
+      "sampleValue": "250000.00",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 2,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Inferred from 2 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Processing/AverageTicket",
+      "name": "AverageTicket",
+      "parentPath": "/UnderwritingRequest/Processing",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "decimal",
+      "required": "likelyRequired",
+      "minLength": 5,
+      "maxLength": 6,
+      "minValue": 42.10,
+      "maxValue": 140.00,
+      "maxScale": 2,
+      "allowedValues": [],
+      "observedValues": [
+        "42.10",
+        "140.00"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "99.99",
+        "999.99"
+      ],
+      "sampleValue": "42.10",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 2,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Inferred from 2 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Processing/HighTicket",
+      "name": "HighTicket",
+      "parentPath": "/UnderwritingRequest/Processing",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "decimal",
+      "required": "optional",
+      "minLength": 7,
+      "maxLength": 7,
+      "minValue": 1500.00,
+      "maxValue": 1500.00,
+      "maxScale": 2,
+      "allowedValues": [],
+      "observedValues": [
+        "1500.00"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "9999.99"
+      ],
+      "sampleValue": "1500.00",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 1,
+        "occurrences": 1,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml"
+          ],
+          "detail": "Inferred from 1 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml"
+          ],
+          "detail": "Absent from 1 of 2 parent instance(s)."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Processing/CardPresentPct",
+      "name": "CardPresentPct",
+      "parentPath": "/UnderwritingRequest/Processing",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "integer",
+      "required": "likelyRequired",
+      "minLength": 2,
+      "maxLength": 2,
+      "minValue": 80,
+      "maxValue": 90,
+      "allowedValues": [],
+      "observedValues": [
+        "80",
+        "90"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "99"
+      ],
+      "sampleValue": "80",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 2,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Inferred from 2 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Processing/CardNotPresentPct",
+      "name": "CardNotPresentPct",
+      "parentPath": "/UnderwritingRequest/Processing",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "integer",
+      "required": "likelyRequired",
+      "minLength": 2,
+      "maxLength": 2,
+      "minValue": 10,
+      "maxValue": 20,
+      "allowedValues": [],
+      "observedValues": [
+        "20",
+        "10"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "99"
+      ],
+      "sampleValue": "20",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 2,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Inferred from 2 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Settlement",
+      "name": "Settlement",
+      "parentPath": "/UnderwritingRequest",
+      "kind": "object",
+      "cardinality": "single",
+      "dataType": "object",
+      "required": "likelyRequired",
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [],
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 2,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Structured element in 2 sample(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Settlement/RoutingNumber",
+      "name": "RoutingNumber",
+      "parentPath": "/UnderwritingRequest/Settlement",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 9,
+      "maxLength": 9,
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "999999999"
+      ],
+      "sampleValue": "*****0024",
+      "sensitive": true,
+      "sensitivityReason": "Field name matches sensitive term 'routing'.",
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 2,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Inferred from 2 non-empty value(s). Numeric identifiers are kept as strings to preserve leading zeros."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        },
+        {
+          "attribute": "sensitivity",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Field name matches sensitive term 'routing'."
+        }
+      ]
+    },
+    {
+      "path": "/UnderwritingRequest/Settlement/AccountNumber",
+      "name": "AccountNumber",
+      "parentPath": "/UnderwritingRequest/Settlement",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 12,
+      "maxLength": 12,
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "999999999999"
+      ],
+      "sampleValue": "********6655",
+      "sensitive": true,
+      "sensitivityReason": "Field name matches sensitive term 'accountnumber'.",
+      "presence": {
+        "parentInstances": 2,
+        "presentInstances": 2,
+        "occurrences": 2,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Inferred from 2 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Present in all 2 parent instance(s); samples alone cannot prove it is required."
+        },
+        {
+          "attribute": "sensitivity",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-application.xml",
+            "sole-prop-application.xml"
+          ],
+          "detail": "Field name matches sensitive term 'accountnumber'."
+        }
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "kind": "soapEnvelopeUnwrapped",
+      "message": "Profiled <UnderwritingRequest> from the SOAP Body. The SOAP Header was ignored.",
+      "inputs": [
+        "corp-application.xml"
+      ]
+    },
+    {
+      "kind": "namespacesIgnored",
+      "message": "Paths use local names; namespace(s) urn:uwcore:intake:4.2 were not included.",
+      "inputs": [
+        "corp-application.xml",
+        "sole-prop-application.xml"
+      ]
+    }
+  ]
+}

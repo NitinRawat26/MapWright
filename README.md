@@ -44,17 +44,50 @@ Confidence bands come from the spec's `confidencePolicy` (default High ≥ 85%, 
 
 Unknown JSON properties and missing required properties are rejected.
 
+## System profiles
+
+A system profile is a normalized description of one system's contract, built from any number of its inputs.
+This release builds profiles from JSON or XML sample payloads; schemas, field specs, metadata exports and
+documentation will feed the same profile in later releases.
+
+Each field records its path, parent, kind (object/value), cardinality, inferred data type and date format,
+required signal, length/value ranges, observed values and value shapes, presence counts, the samples it was
+seen in, and the source of each attribute.
+
+- **Paths**: JSONPath for JSON (`$.owners[*].ssn`), XPath-style local names for XML
+  (`/UnderwritingRequest/Officers/Officer/SSN`, attributes as `/@type`, mixed text as `/text()`).
+- **XML**: repeated elements become arrays, a single child of a plural wrapper (`<Officers><Officer/>`) is
+  inferred as an array and reported, SOAP envelopes are unwrapped, namespaces are reported, `xsi:nil` is a null
+  and DTDs are rejected.
+- **Required**: samples can only show *likely required* (present every time) or *optional* (missing, null or
+  empty at least once); the formal schema inputs will make this authoritative.
+- **Dates**: ISO dates and times are detected; `MM/dd/yyyy` vs `dd/MM/yyyy` is resolved from the values or
+  reported as ambiguous.
+- **Sensitive data**: fields whose names match PII/financial terms (SSN, tax id, DOB, account/routing number,
+  card number…) or whose values look like identifiers store only a masked sample (last 4 characters), no
+  observed values and no numeric ranges. `--no-values` stores no values at all.
+- **Findings**: type conflicts, object/value conflicts, mixed or ambiguous date formats, inferred
+  cardinality, SOAP and namespace handling.
+
 ## Usage
 
 ```bash
 dotnet run --project src/MapWright.Cli -- validate samples/mappings/sales-alpha__uw-core/mapping.json
 dotnet run --project src/MapWright.Cli -- render samples/mappings/sales-alpha__uw-core/mapping.json --out out/
 dotnet run --project src/MapWright.Cli -- render <spec.json> --format xlsx,html
+
+dotnet run --project src/MapWright.Cli -- profile samples/systems/sales-alpha/samples \
+  --system "SalesAlpha CRM" --version 2026.3 --out samples/systems/sales-alpha/profile.json
+dotnet run --project src/MapWright.Cli -- profile a.xml b.xml --system "UW Core" --no-values
 ```
+
+`profile` accepts files and directories (their `*.json` and `*.xml` files). All samples of one system must
+share a format. Without `--out` the profile is printed to stdout.
 
 `samples/mappings/sales-alpha__uw-core/mapping.json` is a synthetic example covering Owners → Officers,
 annual → monthly volume, CNP = MOTO + ECOMM, SSN/EIN tax-id type, enum value maps, gaps, conflicts and a
-validation run.
+validation run. `samples/systems/sales-alpha` (three JSON applications) and `samples/systems/uw-core` (SOAP
+and plain XML applications) hold synthetic sample payloads and the profiles generated from them.
 
 ## Build and test
 
@@ -68,9 +101,10 @@ dotnet test
 ## Layout
 
 ```
-src/MapWright.Core     Mapping spec model, JSON serializer, validator, summary
+src/MapWright.Core     Mapping spec model, system profile model, JSON/XML sample readers, profile builder
 src/MapWright.Output   Report model and Excel / CSV / HTML renderers
 src/MapWright.Cli      `mapwright` command-line tool
 tests/MapWright.Tests  Unit tests
 samples/mappings       Example mapping specs
+samples/systems        Example sample payloads and generated system profiles
 ```

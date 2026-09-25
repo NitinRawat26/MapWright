@@ -1,0 +1,2492 @@
+{
+  "specVersion": "1.0",
+  "system": "SalesAlpha CRM",
+  "format": "json",
+  "createdAt": "2026-09-25T01:08:48.116704+00:00",
+  "inputs": [
+    {
+      "name": "corp-three-owners.json",
+      "kind": "samplePayload",
+      "format": "json",
+      "sha256": "6cd08113b90e6c8651a7a63dca137d8c0b1469676617a43c10e234ae91aab86b"
+    },
+    {
+      "name": "llc-two-owners.json",
+      "kind": "samplePayload",
+      "format": "json",
+      "sha256": "44cd89b7b258f51992c89b5d42288947df26c7f427f17e7714ae0ca83fb2aa46"
+    },
+    {
+      "name": "sole-prop.json",
+      "kind": "samplePayload",
+      "format": "json",
+      "sha256": "5187395898367595fb76b5079041d6326db7aa995667f71658aa8afc9051da1f"
+    }
+  ],
+  "fields": [
+    {
+      "path": "$",
+      "name": "$",
+      "kind": "object",
+      "cardinality": "single",
+      "dataType": "object",
+      "required": "likelyRequired",
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [],
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Structured element in 3 sample(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.applicationId",
+      "name": "applicationId",
+      "parentPath": "$",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 14,
+      "maxLength": 14,
+      "allowedValues": [],
+      "observedValues": [
+        "SA-2026-000204",
+        "SA-2026-000123",
+        "SA-2026-000187"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "AA-9999-999999"
+      ],
+      "sampleValue": "SA-2026-000204",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.submittedAt",
+      "name": "submittedAt",
+      "parentPath": "$",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "dateTime",
+      "format": "ISO 8601",
+      "required": "likelyRequired",
+      "minLength": 20,
+      "maxLength": 20,
+      "allowedValues": [],
+      "observedValues": [
+        "2026-09-20T16:48:12Z",
+        "2026-09-18T14:22:05Z",
+        "2026-09-19T09:05:41Z"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "9999-99-99A99:99:99A"
+      ],
+      "sampleValue": "2026-09-20T16:48:12Z",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        },
+        {
+          "attribute": "format",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Detected from value patterns."
+        }
+      ]
+    },
+    {
+      "path": "$.account",
+      "name": "account",
+      "parentPath": "$",
+      "kind": "object",
+      "cardinality": "single",
+      "dataType": "object",
+      "required": "likelyRequired",
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [],
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Structured element in 3 sample(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.account.legalName",
+      "name": "legalName",
+      "parentPath": "$.account",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 10,
+      "maxLength": 24,
+      "allowedValues": [],
+      "observedValues": [
+        "Northwind Provisions Inc",
+        "Blue Harbor Coffee LLC",
+        "Priya Nair"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "Aaaaaaaaa Aaaaaaaaaa Aaa",
+        "Aaaa Aaaaaa Aaaaaa AAA",
+        "Aaaaa Aaaa"
+      ],
+      "sampleValue": "Northwind Provisions Inc",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.account.dbaName",
+      "name": "dbaName",
+      "parentPath": "$.account",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 16,
+      "maxLength": 21,
+      "allowedValues": [],
+      "observedValues": [
+        "Northwind Market",
+        "Blue Harbor Coffee",
+        "Nair Mobile Detailing"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "Aaaaaaaaa Aaaaaa",
+        "Aaaa Aaaaaa Aaaaaa",
+        "Aaaa Aaaaaa Aaaaaaaaa"
+      ],
+      "sampleValue": "Northwind Market",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.account.taxId",
+      "name": "taxId",
+      "parentPath": "$.account",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 9,
+      "maxLength": 11,
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "999999999",
+        "999-99-9999"
+      ],
+      "sampleValue": "*****8899",
+      "sensitive": true,
+      "sensitivityReason": "Field name matches sensitive term 'taxid'.",
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        },
+        {
+          "attribute": "sensitivity",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Field name matches sensitive term 'taxid'."
+        }
+      ]
+    },
+    {
+      "path": "$.account.entityType",
+      "name": "entityType",
+      "parentPath": "$.account",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 3,
+      "maxLength": 9,
+      "allowedValues": [],
+      "observedValues": [
+        "CORP",
+        "LLC",
+        "SOLE_PROP"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "AAAA",
+        "AAA",
+        "AAAA_AAAA"
+      ],
+      "sampleValue": "CORP",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.account.mcc",
+      "name": "mcc",
+      "parentPath": "$.account",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 4,
+      "maxLength": 4,
+      "allowedValues": [],
+      "observedValues": [
+        "5411",
+        "5814",
+        "7542"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "9999"
+      ],
+      "sampleValue": "5411",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.account.incorporationDate",
+      "name": "incorporationDate",
+      "parentPath": "$.account",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "date",
+      "format": "yyyy-MM-dd",
+      "required": "likelyRequired",
+      "minLength": 10,
+      "maxLength": 10,
+      "allowedValues": [],
+      "observedValues": [
+        "2014-03-15",
+        "2019-04-01",
+        "2023-02-15"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "9999-99-99"
+      ],
+      "sampleValue": "2014-03-15",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        },
+        {
+          "attribute": "format",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Detected from value patterns."
+        }
+      ]
+    },
+    {
+      "path": "$.account.phone",
+      "name": "phone",
+      "parentPath": "$.account",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 14,
+      "maxLength": 14,
+      "allowedValues": [],
+      "observedValues": [
+        "(206) 555-0110",
+        "(415) 555-0142",
+        "(512) 555-0199"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "(999) 999-9999"
+      ],
+      "sampleValue": "(206) 555-0110",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.account.salesRepId",
+      "name": "salesRepId",
+      "parentPath": "$.account",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 8,
+      "maxLength": 8,
+      "allowedValues": [],
+      "observedValues": [
+        "REP-0042",
+        "REP-0107"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "AAA-9999"
+      ],
+      "sampleValue": "REP-0042",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.account.leadSource",
+      "name": "leadSource",
+      "parentPath": "$.account",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 3,
+      "maxLength": 16,
+      "allowedValues": [],
+      "observedValues": [
+        "Partner Referral",
+        "Web"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "Aaaaaaa Aaaaaaaa",
+        "Aaa"
+      ],
+      "sampleValue": "Partner Referral",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.account.address",
+      "name": "address",
+      "parentPath": "$.account",
+      "kind": "object",
+      "cardinality": "single",
+      "dataType": "object",
+      "required": "likelyRequired",
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [],
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Structured element in 3 sample(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.account.address.line1",
+      "name": "line1",
+      "parentPath": "$.account.address",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 11,
+      "maxLength": 17,
+      "allowedValues": [],
+      "observedValues": [
+        "455 Pine St",
+        "100 Embarcadero",
+        "2208 Riverside Dr"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "999 Aaaa Aa",
+        "999 Aaaaaaaaaaa",
+        "9999 Aaaaaaaaa Aa"
+      ],
+      "sampleValue": "455 Pine St",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.account.address.city",
+      "name": "city",
+      "parentPath": "$.account.address",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 6,
+      "maxLength": 13,
+      "allowedValues": [],
+      "observedValues": [
+        "Seattle",
+        "San Francisco",
+        "Austin"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "Aaaaaaa",
+        "Aaa Aaaaaaaaa",
+        "Aaaaaa"
+      ],
+      "sampleValue": "Seattle",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.account.address.state",
+      "name": "state",
+      "parentPath": "$.account.address",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 2,
+      "maxLength": 2,
+      "allowedValues": [],
+      "observedValues": [
+        "WA",
+        "CA",
+        "TX"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "AA"
+      ],
+      "sampleValue": "WA",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.account.address.postalCode",
+      "name": "postalCode",
+      "parentPath": "$.account.address",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 5,
+      "maxLength": 5,
+      "allowedValues": [],
+      "observedValues": [
+        "98101",
+        "94105",
+        "78741"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "99999"
+      ],
+      "sampleValue": "98101",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.account.address.line2",
+      "name": "line2",
+      "parentPath": "$.account.address",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "optional",
+      "minLength": 7,
+      "maxLength": 7,
+      "allowedValues": [],
+      "observedValues": [
+        "Suite 4"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "Aaaaa 9"
+      ],
+      "sampleValue": "Suite 4",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 1,
+        "occurrences": 1,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "llc-two-owners.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "llc-two-owners.json"
+          ],
+          "detail": "Inferred from 1 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "llc-two-owners.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "llc-two-owners.json"
+          ],
+          "detail": "Absent from 2 of 3 parent instance(s)."
+        }
+      ]
+    },
+    {
+      "path": "$.owners",
+      "name": "owners",
+      "parentPath": "$",
+      "kind": "object",
+      "cardinality": "array",
+      "dataType": "object",
+      "required": "likelyRequired",
+      "maxOccurs": 3,
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [],
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 6,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Structured element in 3 sample(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "JSON array with up to 3 item(s) in 'corp-three-owners.json'."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.owners[*].firstName",
+      "name": "firstName",
+      "parentPath": "$.owners",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 3,
+      "maxLength": 5,
+      "allowedValues": [],
+      "observedValues": [
+        "Dana",
+        "Luis",
+        "Ken",
+        "Maria",
+        "Sam",
+        "Priya"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "Aaaa",
+        "Aaa",
+        "Aaaaa"
+      ],
+      "sampleValue": "Dana",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 6,
+        "presentInstances": 6,
+        "occurrences": 6,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 6 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 6 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.owners[*].lastName",
+      "name": "lastName",
+      "parentPath": "$.owners",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 4,
+      "maxLength": 9,
+      "allowedValues": [],
+      "observedValues": [
+        "Whitfield",
+        "Ortega",
+        "Sato",
+        "Lopez",
+        "Okafor",
+        "Nair"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "Aaaaaaaaa",
+        "Aaaaaa",
+        "Aaaa",
+        "Aaaaa"
+      ],
+      "sampleValue": "Whitfield",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 6,
+        "presentInstances": 6,
+        "occurrences": 6,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 6 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 6 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.owners[*].title",
+      "name": "title",
+      "parentPath": "$.owners",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "optional",
+      "minLength": 3,
+      "maxLength": 15,
+      "allowedValues": [],
+      "observedValues": [
+        "CEO",
+        "CFO",
+        "COO",
+        "Managing Member"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "AAA",
+        "Aaaaaaaa Aaaaaa"
+      ],
+      "sampleValue": "CEO",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 6,
+        "presentInstances": 4,
+        "occurrences": 4,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json"
+          ],
+          "detail": "Inferred from 4 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json"
+          ],
+          "detail": "Absent from 2 of 6 parent instance(s)."
+        }
+      ]
+    },
+    {
+      "path": "$.owners[*].ownershipPercent",
+      "name": "ownershipPercent",
+      "parentPath": "$.owners",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "decimal",
+      "required": "likelyRequired",
+      "minLength": 1,
+      "maxLength": 3,
+      "minValue": 0.2,
+      "maxValue": 1,
+      "maxScale": 1,
+      "allowedValues": [],
+      "observedValues": [
+        "0.5",
+        "0.3",
+        "0.2",
+        "0.6",
+        "0.4",
+        "1"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "9.9",
+        "9"
+      ],
+      "sampleValue": "0.5",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 6,
+        "presentInstances": 6,
+        "occurrences": 6,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 6 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 6 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.owners[*].ssn",
+      "name": "ssn",
+      "parentPath": "$.owners",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 11,
+      "maxLength": 11,
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "999-99-9999"
+      ],
+      "sampleValue": "***-**-2020",
+      "sensitive": true,
+      "sensitivityReason": "Field name matches sensitive term 'ssn'.",
+      "presence": {
+        "parentInstances": 6,
+        "presentInstances": 6,
+        "occurrences": 6,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 6 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 6 parent instance(s); samples alone cannot prove it is required."
+        },
+        {
+          "attribute": "sensitivity",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Field name matches sensitive term 'ssn'."
+        }
+      ]
+    },
+    {
+      "path": "$.owners[*].dateOfBirth",
+      "name": "dateOfBirth",
+      "parentPath": "$.owners",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "date",
+      "format": "yyyy-MM-dd",
+      "required": "likelyRequired",
+      "minLength": 10,
+      "maxLength": 10,
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "9999-99-99"
+      ],
+      "sampleValue": "****-01-30",
+      "sensitive": true,
+      "sensitivityReason": "Field name matches sensitive term 'dateofbirth'.",
+      "presence": {
+        "parentInstances": 6,
+        "presentInstances": 6,
+        "occurrences": 6,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 6 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 6 parent instance(s); samples alone cannot prove it is required."
+        },
+        {
+          "attribute": "format",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Detected from value patterns."
+        },
+        {
+          "attribute": "sensitivity",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Field name matches sensitive term 'dateofbirth'."
+        }
+      ]
+    },
+    {
+      "path": "$.owners[*].email",
+      "name": "email",
+      "parentPath": "$.owners",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "optional",
+      "minLength": 21,
+      "maxLength": 24,
+      "allowedValues": [],
+      "observedValues": [
+        "dana@northwind.example",
+        "luis@northwind.example",
+        "ken@northwind.example",
+        "maria@blueharbor.example",
+        "sam@blueharbor.example"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "aaaa@aaaaaaaaa.aaaaaaa",
+        "aaa@aaaaaaaaa.aaaaaaa",
+        "aaaaa@aaaaaaaaaa.aaaaaaa",
+        "aaa@aaaaaaaaaa.aaaaaaa"
+      ],
+      "sampleValue": "dana@northwind.example",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 6,
+        "presentInstances": 6,
+        "occurrences": 6,
+        "nullCount": 1,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 5 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Sent empty or null 1 time(s)."
+        }
+      ]
+    },
+    {
+      "path": "$.processing",
+      "name": "processing",
+      "parentPath": "$",
+      "kind": "object",
+      "cardinality": "single",
+      "dataType": "object",
+      "required": "likelyRequired",
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [],
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Structured element in 3 sample(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.processing.annualCardVolume",
+      "name": "annualCardVolume",
+      "parentPath": "$.processing",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "integer",
+      "required": "likelyRequired",
+      "minLength": 5,
+      "maxLength": 7,
+      "minValue": 84000,
+      "maxValue": 3000000,
+      "allowedValues": [],
+      "observedValues": [
+        "3000000",
+        "500000",
+        "84000"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "9999999",
+        "999999",
+        "99999"
+      ],
+      "sampleValue": "3000000",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.processing.averageTicket",
+      "name": "averageTicket",
+      "parentPath": "$.processing",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "decimal",
+      "required": "likelyRequired",
+      "minLength": 3,
+      "maxLength": 4,
+      "minValue": 12.5,
+      "maxValue": 140,
+      "maxScale": 1,
+      "allowedValues": [],
+      "observedValues": [
+        "42.1",
+        "12.5",
+        "140"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "99.9",
+        "999"
+      ],
+      "sampleValue": "42.1",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.processing.cardPresentPercent",
+      "name": "cardPresentPercent",
+      "parentPath": "$.processing",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "integer",
+      "required": "likelyRequired",
+      "minLength": 2,
+      "maxLength": 2,
+      "minValue": 70,
+      "maxValue": 90,
+      "allowedValues": [],
+      "observedValues": [
+        "80",
+        "70",
+        "90"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "99"
+      ],
+      "sampleValue": "80",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.processing.motoPercent",
+      "name": "motoPercent",
+      "parentPath": "$.processing",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "integer",
+      "required": "likelyRequired",
+      "minLength": 1,
+      "maxLength": 2,
+      "minValue": 0,
+      "maxValue": 10,
+      "allowedValues": [],
+      "observedValues": [
+        "0",
+        "5",
+        "10"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "9",
+        "99"
+      ],
+      "sampleValue": "0",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.processing.ecommPercent",
+      "name": "ecommPercent",
+      "parentPath": "$.processing",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "integer",
+      "required": "likelyRequired",
+      "minLength": 1,
+      "maxLength": 2,
+      "minValue": 0,
+      "maxValue": 25,
+      "allowedValues": [],
+      "observedValues": [
+        "20",
+        "25",
+        "0"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "99",
+        "9"
+      ],
+      "sampleValue": "20",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.bank",
+      "name": "bank",
+      "parentPath": "$",
+      "kind": "object",
+      "cardinality": "single",
+      "dataType": "object",
+      "required": "likelyRequired",
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [],
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Structured element in 3 sample(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        }
+      ]
+    },
+    {
+      "path": "$.bank.routingNumber",
+      "name": "routingNumber",
+      "parentPath": "$.bank",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 9,
+      "maxLength": 9,
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "999999999"
+      ],
+      "sampleValue": "*****0024",
+      "sensitive": true,
+      "sensitivityReason": "Field name matches sensitive term 'routing'.",
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        },
+        {
+          "attribute": "sensitivity",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Field name matches sensitive term 'routing'."
+        }
+      ]
+    },
+    {
+      "path": "$.bank.accountNumber",
+      "name": "accountNumber",
+      "parentPath": "$.bank",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "likelyRequired",
+      "minLength": 12,
+      "maxLength": 12,
+      "allowedValues": [],
+      "observedValues": [],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "999999999999"
+      ],
+      "sampleValue": "********6655",
+      "sensitive": true,
+      "sensitivityReason": "Field name matches sensitive term 'accountnumber'.",
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 3,
+        "occurrences": 3,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "corp-three-owners.json",
+        "llc-two-owners.json",
+        "sole-prop.json"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Inferred from 3 non-empty value(s)."
+        },
+        {
+          "attribute": "cardinality",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Never repeated in samples."
+        },
+        {
+          "attribute": "required",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+        },
+        {
+          "attribute": "sensitivity",
+          "kind": "samplePayload",
+          "inputs": [
+            "corp-three-owners.json",
+            "llc-two-owners.json",
+            "sole-prop.json"
+          ],
+          "detail": "Field name matches sensitive term 'accountnumber'."
+        }
+      ]
+    }
+  ],
+  "findings": []
+}

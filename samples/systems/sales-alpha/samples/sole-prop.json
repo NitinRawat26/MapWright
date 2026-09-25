@@ -1,0 +1,42 @@
+{
+  "applicationId": "SA-2026-000187",
+  "submittedAt": "2026-09-19T09:05:41Z",
+  "account": {
+    "legalName": "Priya Nair",
+    "dbaName": "Nair Mobile Detailing",
+    "taxId": "900-44-5566",
+    "entityType": "SOLE_PROP",
+    "mcc": "7542",
+    "incorporationDate": "2023-02-15",
+    "phone": "(512) 555-0199",
+    "salesRepId": "REP-0107",
+    "leadSource": "Web",
+    "address": {
+      "line1": "2208 Riverside Dr",
+      "city": "Austin",
+      "state": "TX",
+      "postalCode": "78741"
+    }
+  },
+  "owners": [
+    {
+      "firstName": "Priya",
+      "lastName": "Nair",
+      "ownershipPercent": 1,
+      "ssn": "900-44-5566",
+      "dateOfBirth": "1990-03-22",
+      "email": null
+    }
+  ],
+  "processing": {
+    "annualCardVolume": 84000,
+    "averageTicket": 140,
+    "cardPresentPercent": 90,
+    "motoPercent": 10,
+    "ecommPercent": 0
+  },
+  "bank": {
+    "routingNumber": "111000025",
+    "accountNumber": "004455667788"
+  }
+}

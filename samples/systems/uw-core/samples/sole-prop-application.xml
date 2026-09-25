@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UnderwritingRequest xmlns="urn:uwcore:intake:4.2" sourceChannel="SALES_ALPHA" requestId="UW-779034">
+  <Merchant>
+    <LegalName>Priya Nair</LegalName>
+    <DoingBusinessAs>Nair Mobile Detailing</DoingBusinessAs>
+    <TaxId type="SSN">
+      <Number>900445566</Number>
+    </TaxId>
+    <OwnershipType>SP</OwnershipType>
+    <MCC>7542</MCC>
+    <YearsInBusiness>3</YearsInBusiness>
+    <EstablishedDate>02/15/2023</EstablishedDate>
+  </Merchant>
+  <Officers>
+    <Officer>
+      <FullName>Priya Nair</FullName>
+      <SSN>900445566</SSN>
+      <OwnershipPct>100</OwnershipPct>
+      <DateOfBirth>1990-03-22</DateOfBirth>
+    </Officer>
+  </Officers>
+  <Processing>
+    <MonthlyVolume>7000.00</MonthlyVolume>
+    <AverageTicket>140.00</AverageTicket>
+    <CardPresentPct>90</CardPresentPct>
+    <CardNotPresentPct>10</CardNotPresentPct>
+  </Processing>
+  <Settlement>
+    <RoutingNumber>111000025</RoutingNumber>
+    <AccountNumber>004455667788</AccountNumber>
+  </Settlement>
+</UnderwritingRequest>

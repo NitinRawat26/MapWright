@@ -1,0 +1,52 @@
+{
+  "applicationId": "SA-2026-000123",
+  "submittedAt": "2026-09-18T14:22:05Z",
+  "account": {
+    "legalName": "Blue Harbor Coffee LLC",
+    "dbaName": "Blue Harbor Coffee",
+    "taxId": "900123456",
+    "entityType": "LLC",
+    "mcc": "5814",
+    "incorporationDate": "2019-04-01",
+    "phone": "(415) 555-0142",
+    "salesRepId": "REP-0042",
+    "leadSource": "Partner Referral",
+    "address": {
+      "line1": "100 Embarcadero",
+      "line2": "Suite 4",
+      "city": "San Francisco",
+      "state": "CA",
+      "postalCode": "94105"
+    }
+  },
+  "owners": [
+    {
+      "firstName": "Maria",
+      "lastName": "Lopez",
+      "title": "Managing Member",
+      "ownershipPercent": 0.6,
+      "ssn": "900-12-3456",
+      "dateOfBirth": "1981-07-14",
+      "email": "maria@blueharbor.example"
+    },
+    {
+      "firstName": "Sam",
+      "lastName": "Okafor",
+      "ownershipPercent": 0.4,
+      "ssn": "900-65-4321",
+      "dateOfBirth": "1979-11-02",
+      "email": "sam@blueharbor.example"
+    }
+  ],
+  "processing": {
+    "annualCardVolume": 500000,
+    "averageTicket": 12.5,
+    "cardPresentPercent": 70,
+    "motoPercent": 5,
+    "ecommPercent": 25
+  },
+  "bank": {
+    "routingNumber": "121000358",
+    "accountNumber": "000123456789"
+  }
+}

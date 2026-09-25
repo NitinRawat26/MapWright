@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\samples\**\*.json" LinkBase="samples" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\samples\**\*.json;..\..\samples\**\*.xml" LinkBase="samples" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
