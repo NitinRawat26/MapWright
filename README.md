@@ -157,6 +157,28 @@ source field(s) and transformation for each target. Its rows are capped at 70%, 
 `aiSuggestion` evidence naming the provider and model, and never replace a playbook row. Without `--out` the
 question goes to stderr so stdout stays pure JSON.
 
+## Replaying samples
+
+`mapwright replay <mapping.json> <sample|dir>... --target <target-profile.json>` runs source payloads through a
+mapping spec, writes the target payload for each sample and checks it. This proves each transformation works on
+real data before anyone builds the integration.
+
+1. **Transform:** each row reads its source paths (list items stay aligned, e.g. `owners[1].firstName` with
+   `owners[1].lastName`) and runs its transformation: copies, type casts (`999-99-9999` → `999999999`, date
+   formats, decimals rounded to the target's scale), value maps, conditions, concatenation and expressions such
+   as `annual / 12` with the source fields recorded in the row's `transformation.inputs`.
+2. **Write:** values are written as target JSON or XML in the target profile's field order, with nested objects,
+   JSON arrays, repeated XML elements and XML attributes. `--xml-namespace` sets the XML namespace.
+3. **Check:** every row gets a result: pass, fail (transformation error, required target field with no value,
+   wrong type or date format, a value outside the allowed values or the digit shape) or skipped (unmapped and
+   optional). The domain playbooks' validation rules then run over the produced values, e.g. `PRN-VAL-01`
+   `sum(ownership) <= 100` or `MIX-VAL-02` `abs(cp + cnp - 100) <= 0.5`; rules for concepts the target has no field for are
+   left out.
+
+Each sample becomes one validation run (`V001`, `V002`, ...). `--record` adds the runs to the mapping file so
+the Validation tab of `render` shows them; `--strict` exits with 1 when any check fails. Sensitive values stay
+masked in the results, but the written target payloads contain the real values from the samples.
+
 ## Usage
 
 ```bash
@@ -183,13 +205,21 @@ dotnet run --project src/MapWright.Cli -- render out/sales-alpha__uw-core.mappin
 dotnet run --project src/MapWright.Cli -- map samples/systems/uw-core/profile.json samples/systems/sales-alpha/profile.json
 ```
 
+```bash
+dotnet run --project src/MapWright.Cli -- replay samples/mappings/sales-alpha__uw-core/generated-mapping.json \
+  samples/systems/sales-alpha/samples --target samples/systems/uw-core/profile.json \
+  --xml-namespace urn:uwcore:intake:4.2 --out out/replay
+dotnet run --project src/MapWright.Cli -- replay out/sales-alpha__uw-core.mapping.json samples/systems/sales-alpha/samples \
+  --target samples/systems/uw-core/profile.json --out out/replay --record --strict
+```
+
 `profile` accepts files and directories (their `*.json` and `*.xml` files). All samples of one system must
 share a format. Without `--out` the profile is printed to stdout.
 
 `samples/mappings/sales-alpha__uw-core/mapping.json` is a synthetic example covering Owners → Officers,
 annual → monthly volume, CNP = MOTO + ECOMM, SSN/EIN tax-id type, enum value maps, gaps, conflicts and a
 validation run. `generated-mapping.json` next to it is what `mapwright map` produces from the two sample
-profiles. `samples/systems/sales-alpha` (three JSON applications) and `samples/systems/uw-core` (SOAP
+profiles, and `replay/` holds the UW Core XML that `mapwright replay` builds from the SalesAlpha samples. `samples/systems/sales-alpha` (three JSON applications) and `samples/systems/uw-core` (SOAP
 and plain XML applications) hold synthetic sample payloads and the profiles generated from them.
 
 ## Build and test
@@ -206,7 +236,7 @@ dotnet format MapWright.slnx --verify-no-changes
 
 ```
 src/MapWright.Core     Mapping spec model, system profiles and sample readers, playbook model, validator and matcher,
-                       mapping generator
+                       mapping generator, replay (transform engine, JSON/XML target writers, validation)
 src/MapWright.Output   Report model and Excel / CSV / HTML renderers
 src/MapWright.Ai       Optional AI assist: Vertex AI and Ollama providers, fallback, masked field prompts
 src/MapWright.Cli      `mapwright` command-line tool

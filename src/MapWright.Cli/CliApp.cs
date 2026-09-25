@@ -3,6 +3,8 @@ using MapWright.Core;
 using MapWright.Core.Matching;
 using MapWright.Core.Playbooks;
 using MapWright.Core.Profile;
+using MapWright.Core.Profile.Samples;
+using MapWright.Core.Replay;
 using MapWright.Core.Spec;
 using MapWright.Output.Renderers;
 using MapWright.Output.Report;
@@ -31,6 +33,8 @@ public static class CliApp
                             [--out <report.json>]
           mapwright map <source-profile.json> <target-profile.json> [--playbooks <playbook|dir>]...
                             [--ai ask|yes|no] [--id <id>] [--title <text>] [--out <mapping.json>]
+          mapwright replay <mapping.json> <sample|dir>... --target <target-profile.json>
+                            [--playbooks <playbook|dir>]... [--out <dir>] [--xml-namespace <uri>] [--record] [--strict]
 
         Render options:
           --out <dir>       Output directory (default: directory of the spec)
@@ -56,6 +60,15 @@ public static class CliApp
           --ai <mode>       After the playbooks, offer AI for the unmapped target fields: ask (default), yes or no
           --id, --title     Mapping id and title (default: from the two system names)
           --out <file>      Write the mapping spec here (default: print to stdout)
+
+        Replay options:
+          <sample|dir>      Source payloads (JSON or XML, matching the mapping's source format)
+          --target <file>   Target system profile: field order, types and formats for writing and checking
+          --playbooks       Playbooks whose validation rules are checked (default: ./playbooks)
+          --out <dir>       Where the target payloads are written (default: replay/ next to the mapping)
+          --xml-namespace   Namespace for XML target payloads (profile paths carry none)
+          --record          Add the validation runs to the mapping file (shown on the Validation tab)
+          --strict          Exit with 1 when any check fails
 
         AI (optional; without it MapWright uses playbooks only):
           {AiProviders.VertexProjectVariable}    Google Cloud project; enables Vertex AI (credentials from
@@ -85,6 +98,7 @@ public static class CliApp
             "profile" => Profile(args[1..], stdout, stderr),
             "playbook" => Playbook(args[1..], stdin, stdout, stderr, ai),
             "map" => Map(args[1..], stdin, stdout, stderr, ai),
+            "replay" => Replay(args[1..], stdout, stderr),
             _ => Fail(stderr, $"Unknown command '{args[0]}'."),
         };
     }
@@ -209,29 +223,8 @@ public static class CliApp
             return Fail(stderr, "profile expects at least one sample file or directory.");
         }
 
-        var files = new List<string>();
-        foreach (var input in inputs)
+        if (!TryCollectSamples(inputs, stderr, out var files))
         {
-            if (Directory.Exists(input))
-            {
-                files.AddRange(Directory.EnumerateFiles(input)
-                    .Where(f => Path.GetExtension(f).ToLowerInvariant() is ".json" or ".xml")
-                    .Order(StringComparer.Ordinal));
-            }
-            else if (File.Exists(input))
-            {
-                files.Add(input);
-            }
-            else
-            {
-                stderr.WriteLine($"Sample not found: {input}");
-                return InvalidInput;
-            }
-        }
-
-        if (files.Count == 0)
-        {
-            stderr.WriteLine("No .json or .xml samples found.");
             return InvalidInput;
         }
 
@@ -596,6 +589,169 @@ public static class CliApp
         }
 
         return issues.Any(i => i.Severity == IssueSeverity.Error) ? InvalidSpec : Success;
+    }
+
+    private static int Replay(string[] args, TextWriter stdout, TextWriter stderr)
+    {
+        var inputs = new List<string>();
+        var playbookPaths = new List<string>();
+        string? targetPath = null;
+        string? outDir = null;
+        string? xmlNamespace = null;
+        var record = false;
+        var strict = false;
+
+        for (var i = 0; i < args.Length; i++)
+        {
+            switch (args[i])
+            {
+                case "--target" when i + 1 < args.Length:
+                    targetPath = args[++i];
+                    break;
+                case "--playbooks" when i + 1 < args.Length:
+                    playbookPaths.Add(args[++i]);
+                    break;
+                case "--out" when i + 1 < args.Length:
+                    outDir = args[++i];
+                    break;
+                case "--xml-namespace" when i + 1 < args.Length:
+                    xmlNamespace = args[++i];
+                    break;
+                case "--record":
+                    record = true;
+                    break;
+                case "--strict":
+                    strict = true;
+                    break;
+                case var arg when !arg.StartsWith("--", StringComparison.Ordinal):
+                    inputs.Add(arg);
+                    break;
+                default:
+                    return Fail(stderr, $"Unexpected argument '{args[i]}'.");
+            }
+        }
+
+        if (inputs.Count < 2)
+        {
+            return Fail(stderr, "replay expects a mapping spec and at least one sample file or directory.");
+        }
+
+        if (targetPath is null)
+        {
+            return Fail(stderr, "replay expects --target <target-profile.json>.");
+        }
+
+        var mappingPath = inputs[0];
+        if (!TryLoad(mappingPath, stdout, stderr, out var mapping))
+        {
+            return InvalidSpec;
+        }
+
+        SystemProfile target;
+        try
+        {
+            target = ProfileSerializer.Load(targetPath);
+        }
+        catch (Exception ex) when (ex is ProfileException or IOException)
+        {
+            stderr.WriteLine(ex.Message);
+            return InvalidInput;
+        }
+
+        if (target.Format != mapping.Target.Format)
+        {
+            stderr.WriteLine($"Target profile is {target.Format} but the mapping's target is {mapping.Target.Format}.");
+            return InvalidInput;
+        }
+
+        if (!TryCollectSamples(inputs[1..], stderr, out var files)
+            || !TryLoadPlaybooks(playbookPaths.Count > 0 ? playbookPaths : ["playbooks"], stdout, stderr, out var library))
+        {
+            return InvalidInput;
+        }
+
+        outDir ??= Path.Combine(Path.GetDirectoryName(Path.GetFullPath(mappingPath)) ?? ".", "replay");
+        Directory.CreateDirectory(outDir);
+        var extension = mapping.Target.Format == PayloadFormat.Xml ? ".xml" : ".json";
+        var ranAt = DateTimeOffset.UtcNow.AddTicks(-(DateTimeOffset.UtcNow.Ticks % TimeSpan.TicksPerSecond));
+        var runs = new List<ValidationRun>();
+
+        foreach (var file in files)
+        {
+            TransformResult result;
+            string payload;
+            try
+            {
+                var sample = SampleReader.Read(Path.GetFileName(file), File.ReadAllText(file));
+                if (sample.Format != mapping.Source.Format)
+                {
+                    stderr.WriteLine($"{file}: sample is {sample.Format} but the mapping's source is {mapping.Source.Format}.");
+                    return InvalidInput;
+                }
+
+                result = TransformEngine.Run(mapping, sample, target);
+                payload = TargetWriter.Write(result.Values, target, new() { XmlNamespace = xmlNamespace });
+            }
+            catch (Exception ex) when (ex is ProfileException or TransformException or IOException)
+            {
+                stderr.WriteLine($"{file}: {ex.Message}");
+                return InvalidInput;
+            }
+
+            var outPath = Path.Combine(outDir, Path.GetFileNameWithoutExtension(file) + extension);
+            File.WriteAllText(outPath, payload + Environment.NewLine);
+
+            var run = ReplayValidator.Validate(mapping, result, target, library, ReplayValidator.NextRunId(mapping, runs.Count), ranAt);
+            runs.Add(run);
+            var counts = run.Results.GroupBy(r => r.Outcome).ToDictionary(g => g.Key, g => g.Count());
+            stdout.WriteLine(
+                $"{run.Id} {Path.GetFileName(file)} -> {outPath}: {counts.GetValueOrDefault(ValidationOutcome.Pass)} passed, " +
+                $"{counts.GetValueOrDefault(ValidationOutcome.Fail)} failed, {counts.GetValueOrDefault(ValidationOutcome.Skipped)} skipped.");
+            var targets = mapping.Mappings.ToDictionary(m => m.Id, m => m.Target.Path, StringComparer.Ordinal);
+            foreach (var failure in run.Results.Where(r => r.Outcome == ValidationOutcome.Fail))
+            {
+                stdout.WriteLine($"  FAIL {failure.MappingId} {targets[failure.MappingId]}: {failure.Message}");
+            }
+        }
+
+        if (record)
+        {
+            MappingSpecSerializer.Save(mapping with { ValidationRuns = [.. mapping.ValidationRuns, .. runs] }, mappingPath);
+            stdout.WriteLine($"Recorded {runs.Count} validation run(s) in {mappingPath}.");
+        }
+
+        return strict && runs.Any(r => r.Results.Any(x => x.Outcome == ValidationOutcome.Fail)) ? InvalidInput : Success;
+    }
+
+    private static bool TryCollectSamples(IEnumerable<string> inputs, TextWriter stderr, out List<string> files)
+    {
+        files = [];
+        foreach (var input in inputs)
+        {
+            if (Directory.Exists(input))
+            {
+                files.AddRange(Directory.EnumerateFiles(input)
+                    .Where(f => Path.GetExtension(f).ToLowerInvariant() is ".json" or ".xml")
+                    .Order(StringComparer.Ordinal));
+            }
+            else if (File.Exists(input))
+            {
+                files.Add(input);
+            }
+            else
+            {
+                stderr.WriteLine($"Sample not found: {input}");
+                return false;
+            }
+        }
+
+        if (files.Count == 0)
+        {
+            stderr.WriteLine("No .json or .xml samples found.");
+            return false;
+        }
+
+        return true;
     }
 
     private static MappingDocument PairWithAi(

@@ -227,7 +227,7 @@ public static class TransformEngine
         {
             return DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var dt)
                 ? (targetFormat == iso ? dt.ToString("o", CultureInfo.InvariantCulture) : dt.ToString(targetFormat, CultureInfo.InvariantCulture))
-                : throw new TransformException($"'{value}' is not an ISO 8601 date-time.");
+                : throw new TransformException("Value is not an ISO 8601 date-time.");
         }
 
         if (!DateOnly.TryParseExact(value, sourceFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))

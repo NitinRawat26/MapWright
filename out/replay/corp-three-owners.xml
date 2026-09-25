@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UnderwritingRequest>
+  <Merchant>
+    <LegalName>Northwind Provisions Inc</LegalName>
+    <DoingBusinessAs>Northwind Market</DoingBusinessAs>
+    <TaxId type="EIN">
+      <Number>900778899</Number>
+    </TaxId>
+    <OwnershipType>C</OwnershipType>
+    <MCC>5411</MCC>
+  </Merchant>
+  <Officers>
+    <Officer>
+      <FullName>Dana Whitfield</FullName>
+      <Title>CEO</Title>
+      <SSN>900102020</SSN>
+      <OwnershipPct>50</OwnershipPct>
+      <DateOfBirth>1970-01-30</DateOfBirth>
+    </Officer>
+    <Officer>
+      <FullName>Luis Ortega</FullName>
+      <Title>CFO</Title>
+      <SSN>900304040</SSN>
+      <OwnershipPct>30</OwnershipPct>
+      <DateOfBirth>1976-05-09</DateOfBirth>
+    </Officer>
+    <Officer>
+      <FullName>Ken Sato</FullName>
+      <Title>COO</Title>
+      <SSN>900506060</SSN>
+      <OwnershipPct>20</OwnershipPct>
+      <DateOfBirth>1983-12-17</DateOfBirth>
+    </Officer>
+  </Officers>
+  <Processing>
+    <MonthlyVolume>250000</MonthlyVolume>
+    <AverageTicket>42.1</AverageTicket>
+    <CardPresentPct>80</CardPresentPct>
+    <CardNotPresentPct>20</CardNotPresentPct>
+  </Processing>
+  <Settlement>
+    <RoutingNumber>125000024</RoutingNumber>
+    <AccountNumber>009988776655</AccountNumber>
+  </Settlement>
+</UnderwritingRequest>
