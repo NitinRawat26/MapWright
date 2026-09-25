@@ -18,13 +18,25 @@ export function describeError(error: unknown): string {
     return String(error);
   }
 
-  const problem = error.error as Partial<ApiProblem> | null;
+  const problem = readProblem(error.error);
   if (problem && typeof problem === 'object' && typeof problem.detail === 'string') {
     const issues = (problem.issues ?? []).map((i) => `${i.severity} ${i.code} [${i.location}] ${i.message}`);
     return [problem.detail, ...issues].join('\n');
   }
 
   return error.status === 0 ? 'The MapWright API is not reachable.' : `${error.status} ${error.statusText}`;
+}
+
+function readProblem(body: unknown): Partial<ApiProblem> | null {
+  if (typeof body !== 'string') {
+    return body as Partial<ApiProblem> | null;
+  }
+
+  try {
+    return JSON.parse(body) as Partial<ApiProblem>;
+  } catch {
+    return null;
+  }
 }
 
 export const errorInterceptor: HttpInterceptorFn = (request, next) => {

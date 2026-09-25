@@ -27,6 +27,13 @@ describe('http', () => {
       error: { title: 'Invalid', status: 400, detail: 'Playbook is invalid.', issues: [{ severity: 'error', code: 'PB001', location: '$.id', message: 'Missing id.' }] },
     });
     expect(describeError(problem)).toBe('Playbook is invalid.\nerror PB001 [$.id] Missing id.');
+    const text = new HttpErrorResponse({
+      status: 409,
+      statusText: 'Conflict',
+      error: JSON.stringify({ title: 'Conflict', status: 409, detail: "Playbook 'domain/tax-id@1.1.0' already exists.", issues: [] }),
+    });
+    expect(describeError(text)).toBe("Playbook 'domain/tax-id@1.1.0' already exists.");
+    expect(describeError(new HttpErrorResponse({ status: 409, statusText: 'Conflict', error: 'not json' }))).toBe('409 Conflict');
     expect(describeError(new HttpErrorResponse({ status: 0 }))).toBe('The MapWright API is not reachable.');
     expect(describeError(new HttpErrorResponse({ status: 500, statusText: 'Server Error' }))).toBe('500 Server Error');
   });

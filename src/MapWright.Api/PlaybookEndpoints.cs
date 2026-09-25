@@ -89,7 +89,7 @@ public static class PlaybookEndpoints
                 return Respond(context, store, draft, StatusCodes.Status201Created, Address(draft));
             })
             .Produces<Playbook>(StatusCodes.Status201Created, BodyTypes[0], BodyTypes[1..])
-            .WithSummary("Draft a new version from this one (next minor version by default).");
+            .WithSummary("Draft a new version from this one (next unused minor version by default).");
 
         group.MapPost($"/{Kind}/{{slug}}/{{version}}/status", (
                 string kind, string slug, string version, StatusChangeRequest body, PlaybookStore store, HttpContext context,
