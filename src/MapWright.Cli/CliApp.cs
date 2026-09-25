@@ -1,3 +1,4 @@
+using MapWright.Core.Profile;
 using MapWright.Core.Spec;
 using MapWright.Output.Renderers;
 using MapWright.Output.Report;
@@ -8,6 +9,7 @@ public static class CliApp
 {
     public const int Success = 0;
     public const int InvalidSpec = 1;
+    public const int InvalidInput = 1;
     public const int UsageError = 2;
 
     private static readonly string Usage = $"""
@@ -16,10 +18,18 @@ public static class CliApp
         Usage:
           mapwright validate <spec.json>
           mapwright render <spec.json> [--out <dir>] [--format <list>]
+          mapwright profile <sample|dir>... --system <name> [--version <v>] [--description <text>]
+                            [--out <profile.json>] [--no-values]
 
-        Options:
+        Render options:
           --out <dir>       Output directory (default: directory of the spec)
           --format <list>   Comma-separated: {string.Join(",", MappingRenderers.All.Select(r => r.Format))} (default: all)
+
+        Profile options:
+          <sample|dir>      JSON or XML sample payloads; directories contribute their *.json and *.xml files
+          --system <name>   System name recorded in the profile (required)
+          --out <file>      Write the profile here (default: print to stdout)
+          --no-values       Do not store sample or observed values in the profile
         """;
 
     public static int Run(string[] args, TextWriter stdout, TextWriter stderr)
@@ -34,6 +44,7 @@ public static class CliApp
         {
             "validate" => Validate(args[1..], stdout, stderr),
             "render" => Render(args[1..], stdout, stderr),
+            "profile" => Profile(args[1..], stdout, stderr),
             _ => Fail(stderr, $"Unknown command '{args[0]}'."),
         };
     }
@@ -107,6 +118,120 @@ public static class CliApp
             }
 
             stdout.WriteLine($"Wrote {path}");
+        }
+
+        return Success;
+    }
+
+    private static int Profile(string[] args, TextWriter stdout, TextWriter stderr)
+    {
+        string? system = null;
+        string? version = null;
+        string? description = null;
+        string? outPath = null;
+        var retainValues = true;
+        var inputs = new List<string>();
+
+        for (var i = 0; i < args.Length; i++)
+        {
+            switch (args[i])
+            {
+                case "--system" when i + 1 < args.Length:
+                    system = args[++i];
+                    break;
+                case "--version" when i + 1 < args.Length:
+                    version = args[++i];
+                    break;
+                case "--description" when i + 1 < args.Length:
+                    description = args[++i];
+                    break;
+                case "--out" when i + 1 < args.Length:
+                    outPath = args[++i];
+                    break;
+                case "--no-values":
+                    retainValues = false;
+                    break;
+                case var arg when !arg.StartsWith("--", StringComparison.Ordinal):
+                    inputs.Add(arg);
+                    break;
+                default:
+                    return Fail(stderr, $"Unexpected argument '{args[i]}'.");
+            }
+        }
+
+        if (system is null)
+        {
+            return Fail(stderr, "profile expects --system <name>.");
+        }
+
+        if (inputs.Count == 0)
+        {
+            return Fail(stderr, "profile expects at least one sample file or directory.");
+        }
+
+        var files = new List<string>();
+        foreach (var input in inputs)
+        {
+            if (Directory.Exists(input))
+            {
+                files.AddRange(Directory.EnumerateFiles(input)
+                    .Where(f => Path.GetExtension(f).ToLowerInvariant() is ".json" or ".xml")
+                    .Order(StringComparer.Ordinal));
+            }
+            else if (File.Exists(input))
+            {
+                files.Add(input);
+            }
+            else
+            {
+                stderr.WriteLine($"Sample not found: {input}");
+                return InvalidInput;
+            }
+        }
+
+        if (files.Count == 0)
+        {
+            stderr.WriteLine("No .json or .xml samples found.");
+            return InvalidInput;
+        }
+
+        SystemProfile profile;
+        try
+        {
+            profile = ProfileBuilder.Build(
+                new()
+                {
+                    System = system,
+                    Version = version,
+                    Description = description,
+                    Samples = [.. files.Select(f => new SampleInput(Path.GetFileName(f), File.ReadAllText(f)))],
+                },
+                new() { RetainValues = retainValues });
+        }
+        catch (ProfileException ex)
+        {
+            stderr.WriteLine(ex.Message);
+            return InvalidInput;
+        }
+
+        if (outPath is null)
+        {
+            stdout.WriteLine(ProfileSerializer.Serialize(profile));
+            return Success;
+        }
+
+        if (Path.GetDirectoryName(Path.GetFullPath(outPath)) is { } directory)
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        ProfileSerializer.Save(profile, outPath);
+        stdout.WriteLine(
+            $"Wrote {outPath}: {profile.Fields.Count} field(s) from {profile.Inputs.Count} {profile.Format.ToString().ToUpperInvariant()} sample(s), " +
+            $"{profile.Fields.Count(f => f.Sensitive)} sensitive field(s) masked, {profile.Findings.Count} finding(s).");
+        foreach (var finding in profile.Findings)
+        {
+            stdout.WriteLine($"  {finding.Kind}{(finding.Path is null ? "" : $" [{finding.Path}]")} {finding.Message}");
         }
 
         return Success;

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:uw="urn:uwcore:intake:4.2">
+  <soapenv:Header>
+    <uw:ClientId>SALES-ALPHA</uw:ClientId>
+  </soapenv:Header>
+  <soapenv:Body>
+    <uw:UnderwritingRequest sourceChannel="SALES_ALPHA" requestId="UW-778812">
+      <uw:Merchant>
+        <uw:LegalName>Northwind Provisions Inc</uw:LegalName>
+        <uw:DoingBusinessAs>Northwind Market</uw:DoingBusinessAs>
+        <uw:TaxId type="EIN">
+          <uw:Number>900778899</uw:Number>
+        </uw:TaxId>
+        <uw:OwnershipType>C</uw:OwnershipType>
+        <uw:MCC>5411</uw:MCC>
+        <uw:YearsInBusiness>12</uw:YearsInBusiness>
+        <uw:EstablishedDate>03/15/2014</uw:EstablishedDate>
+        <uw:WebsiteUrl>https://northwind.example</uw:WebsiteUrl>
+      </uw:Merchant>
+      <uw:Officers>
+        <uw:Officer>
+          <uw:FullName>Dana Whitfield</uw:FullName>
+          <uw:Title>CEO</uw:Title>
+          <uw:SSN>900102020</uw:SSN>
+          <uw:OwnershipPct>50</uw:OwnershipPct>
+          <uw:DateOfBirth>1970-01-30</uw:DateOfBirth>
+        </uw:Officer>
+        <uw:Officer>
+          <uw:FullName>Luis Ortega</uw:FullName>
+          <uw:Title>CFO</uw:Title>
+          <uw:SSN>900304040</uw:SSN>
+          <uw:OwnershipPct>30</uw:OwnershipPct>
+          <uw:DateOfBirth>1976-05-09</uw:DateOfBirth>
+        </uw:Officer>
+        <uw:Officer>
+          <uw:FullName>Ken Sato</uw:FullName>
+          <uw:Title>COO</uw:Title>
+          <uw:SSN>900506060</uw:SSN>
+          <uw:OwnershipPct>20</uw:OwnershipPct>
+          <uw:DateOfBirth>1983-12-17</uw:DateOfBirth>
+        </uw:Officer>
+      </uw:Officers>
+      <uw:Processing>
+        <uw:MonthlyVolume>250000.00</uw:MonthlyVolume>
+        <uw:AverageTicket>42.10</uw:AverageTicket>
+        <uw:HighTicket>1500.00</uw:HighTicket>
+        <uw:CardPresentPct>80</uw:CardPresentPct>
+        <uw:CardNotPresentPct>20</uw:CardNotPresentPct>
+      </uw:Processing>
+      <uw:Settlement>
+        <uw:RoutingNumber>125000024</uw:RoutingNumber>
+        <uw:AccountNumber>009988776655</uw:AccountNumber>
+      </uw:Settlement>
+    </uw:UnderwritingRequest>
+  </soapenv:Body>
+</soapenv:Envelope>
