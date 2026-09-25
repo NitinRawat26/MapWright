@@ -224,6 +224,10 @@ export interface DetectResponse {
   suggestions: Suggestion[];
   remaining: string[];
   warnings: string[];
+  usedAi?: boolean;
+  detectedAt?: string;
+  detectedBy?: string;
+  stale?: string[];
 }
 
 export interface FieldDescriptor {

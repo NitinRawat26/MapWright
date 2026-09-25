@@ -34,6 +34,14 @@
 
     @if (detection(); as d) {
       <h2 data-testid="detected">Recognised {{ d.recognised.length }} of {{ d.recognised.length + d.remaining.length + d.suggestions.length }} fields</h2>
+      @if (d.detectedAt) {
+        <p class="muted" data-testid="detected-at">
+          Last run {{ d.detectedAt | date: 'medium' }} by {{ d.detectedBy }}{{ d.usedAi ? ', with AI' : ', playbooks only' }}.
+        </p>
+      }
+      @for (s of d.stale ?? []; track $index) {
+        <p class="warn-text" data-testid="stale">{{ s }} Run detection again to update it.</p>
+      }
       <table class="plain wide">
         <tr><th>Field</th><th>Concept</th><th>Score</th><th>Playbook</th><th>Notes</th></tr>
         @for (m of d.recognised; track m.path) {

@@ -133,6 +133,9 @@ public sealed class AiApiTests
         Assert.Contains("send create: true", (await refused.Node())["detail"].Text());
 
         var created = await (await ben.Post($"/api/suggestions/{ids[0]}/approve", new { create = true })).Node();
+        var saved = await (await ana.GetAsync("/api/profiles/sales-alpha/detection")).Node();
+        Assert.True(saved["usedAi"]!.GetValue<bool>());
+        Assert.Equal(["approved", "pending", "pending"], saved["suggestions"]!.AsArray().Select(s => s!["status"].Text()));
         Assert.Equal(("domain/merchant", "0.1.0", true), (created["playbookId"].Text(), created["version"].Text(), created["created"]!.GetValue<bool>()));
         var merchant = PlaybookSerializer.Deserialize(await ben.GetStringAsync("/api/playbooks/domain/merchant/0.1.0"));
         Assert.Equal((PlaybookStatus.Draft, "Merchant", "ben"), (merchant.Status, merchant.Domain!.Concept.Name, merchant.Owner));

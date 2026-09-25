@@ -29,6 +29,7 @@ builder.Services.AddSingleton<PlaybookStore>();
 builder.Services.AddSingleton<ProfileStore>();
 builder.Services.AddSingleton<MappingStore>();
 builder.Services.AddSingleton<SuggestionStore>();
+builder.Services.AddSingleton<DetectionStore>();
 builder.Services.AddSingleton(sp => new AiAccess(sp.GetRequiredService<IConfiguration>()));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(o => o.SwaggerDoc("v1", new()

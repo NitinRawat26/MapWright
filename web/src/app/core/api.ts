@@ -145,6 +145,11 @@ export class Api {
     return this.http.post<DetectResponse>(`/api/profiles/${encodeURIComponent(id)}/detect`, { useAi });
   }
 
+  /** The profile's latest saved detection, or null when detection hasn't run. */
+  detection(id: string): Observable<DetectResponse | null> {
+    return this.http.get<DetectResponse | null>(`/api/profiles/${encodeURIComponent(id)}/detection`);
+  }
+
   mappings(): Observable<MappingListItem[]> {
     return this.http.get<MappingListItem[]>('/api/mappings');
   }

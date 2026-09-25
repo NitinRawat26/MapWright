@@ -451,7 +451,8 @@ curl -X POST localhost:5080/api/playbooks -H 'X-MapWright-User: ana' -H 'Content
 | `GET /api/profiles` | List profiles |
 | `POST /api/profiles` | Build a profile from uploaded files (multipart `files`, plus `system`, and optional `id`, `version`, `description`, `root`, `noValues`, `replace`) |
 | `GET` / `PUT` / `DELETE /api/profiles/{id}` | Get, store (profile JSON, e.g. from the CLI) or delete a profile |
-| `POST /api/profiles/{id}/detect` | Which business concept the published playbooks recognise in each field |
+| `POST /api/profiles/{id}/detect` | Which business concept the published playbooks recognise in each field. The result is saved with `detectedAt` and `detectedBy`, replacing the profile's previous one |
+| `GET /api/profiles/{id}/detection` | The profile's latest saved detection (204 if detection hasn't run), with the AI suggestions' current status and `stale` reasons when the profile was saved again or the published playbooks changed since |
 | `GET /api/mappings` | List mappings |
 | `POST /api/mappings` | Generate a mapping: `{ "source": "<profile id>", "target": "<profile id>", "id": "…", "title": "…", "replace": false, "useAi": false }`. With `useAi`, the mapping's `aiPass` gives the provider, the cap, the rows AI filled in (`suggestedRows`), the target fields still unmatched (`unmatched`) and the AI's `warnings`; it is stored with the mapping |
 | `GET` / `PUT` / `DELETE /api/mappings/{id}` | Get, store (mapping JSON) or delete a mapping |
@@ -571,6 +572,7 @@ Pages:
   changes, publish, retire or draft a new version, see the audit history, and compare any two versions side by side.
 - **Profiles:** upload sample payloads and contracts to build a profile, browse its fields, findings and inputs, and
   run detection to see which business concepts the published playbooks recognise (optionally asking AI about the rest).
+  The latest result is kept and shown when you come back, with a warning when it may be out of date.
   A preset picks the kind of system: JSON REST API, SOAP/XML service, XML file or batch, Field spec, Data dictionary,
   PDF/Word spec, Samples only or Mixed/custom (the default, which accepts every input). Each preset says what to
   upload, limits the file picker to its file types, hints at Root and fills in a description you can change. A file

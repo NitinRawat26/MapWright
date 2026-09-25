@@ -4,7 +4,10 @@ using MapWright.Core.Profile;
 using MapWright.Core.Spec;
 using MapWright.Output.Readers;
 using MapWright.Store;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using HttpJsonOptions = Microsoft.AspNetCore.Http.Json.JsonOptions;
 
 namespace MapWright.Api;
 
@@ -14,7 +17,18 @@ public sealed record DetectRequest(bool UseAi = false);
 /// <param name="Suggestions">AI answers, filed in the suggestions inbox for review.</param>
 /// <param name="Remaining">Fields neither the playbooks nor the AI resolved.</param>
 public sealed record DetectResponse(
-    string System, IReadOnlyList<PlaybookMatch> Recognised, IReadOnlyList<Suggestion> Suggestions, IReadOnlyList<string> Remaining, IReadOnlyList<string> Warnings);
+    string System, IReadOnlyList<PlaybookMatch> Recognised, IReadOnlyList<Suggestion> Suggestions, IReadOnlyList<string> Remaining, IReadOnlyList<string> Warnings)
+{
+    public bool UsedAi { get; init; }
+
+    /// <summary>When the result was saved; every run replaces the profile's previous result.</summary>
+    public DateTimeOffset? DetectedAt { get; init; }
+
+    public string? DetectedBy { get; init; }
+
+    /// <summary>Why a saved result may be out of date: the profile or the published playbooks changed since.</summary>
+    public IReadOnlyList<string> Stale { get; init; } = [];
+}
 
 /// <summary>System profiles, built from uploaded samples and contracts or imported as profile JSON.</summary>
 public static class ProfileEndpoints
@@ -103,15 +117,16 @@ public static class ProfileEndpoints
             .WithSummary("Delete a profile.");
 
         group.MapPost("/{id}/detect", async (
-                string id, DetectRequest? body, ProfileStore profiles, PlaybookStore playbooks, SuggestionStore suggestions, AiAccess ai,
-                HttpContext context, [FromHeader(Name = ApiErrors.UserHeader)] string? user) =>
+                string id, DetectRequest? body, ProfileStore profiles, PlaybookStore playbooks, SuggestionStore suggestions, DetectionStore detections,
+                AiAccess ai, IOptions<HttpJsonOptions> json, HttpContext context, [FromHeader(Name = ApiErrors.UserHeader)] string? user) =>
             {
                 var profile = profiles.Get(id);
                 var library = playbooks.Library();
                 var report = Detection.Recognise(profile, library);
                 if (body?.UseAi != true || report.Remaining.Count == 0)
                 {
-                    return new DetectResponse(report.System, report.Recognised, [], report.Remaining, []);
+                    var actorOrAnyone = string.IsNullOrWhiteSpace(user) ? Detection.Anonymous : user.Trim();
+                    return Detection.Save(detections, id, new(report.System, report.Recognised, [], report.Remaining, []), false, library, actorOrAnyone, json.Value);
                 }
 
                 var actor = ApiErrors.Actor(user);
@@ -132,14 +147,66 @@ public static class ProfileEndpoints
                     Provider = s.Provider,
                     Model = s.Model,
                 }), actor);
-                return new DetectResponse(report.System, report.Recognised, inbox, result.Unresolved, result.Warnings);
+                return Detection.Save(detections, id, new(report.System, report.Recognised, inbox, result.Unresolved, result.Warnings), true, library, actor, json.Value);
             })
-            .WithSummary("Show which business concept the published playbooks recognise in each field; with useAi, ask AI about the rest and file its answers in the suggestions inbox.");
+            .WithSummary("Show which business concept the published playbooks recognise in each field and save the result; with useAi, ask AI about the rest and file its answers in the suggestions inbox.");
+
+        group.MapGet("/{id}/detection", (
+                string id, ProfileStore profiles, PlaybookStore playbooks, SuggestionStore suggestions, DetectionStore detections, IOptions<HttpJsonOptions> json) =>
+            {
+                profiles.Get(id);
+                if (detections.Find(id) is not { } saved)
+                {
+                    return Results.NoContent();
+                }
+
+                var response = JsonSerializer.Deserialize<DetectResponse>(saved.Json, json.Value.SerializerOptions)!;
+                var current = suggestions.List(profileId: id).ToDictionary(s => s.Id);
+                var stale = new List<string>();
+                if (saved.ProfileChanged)
+                {
+                    stale.Add("The profile has been saved again since detection ran.");
+                }
+
+                var published = Detection.References(playbooks.Library());
+                List<string> changes =
+                [
+                    .. published.Except(saved.Playbooks, StringComparer.Ordinal).Select(r => $"{r} is now published"),
+                    .. saved.Playbooks.Except(published, StringComparer.Ordinal).Select(r => $"{r} is no longer published"),
+                ];
+                if (changes.Count > 0)
+                {
+                    stale.Add($"The published playbooks have changed since detection ran: {string.Join("; ", changes)}.");
+                }
+
+                return Results.Ok(response with
+                {
+                    Suggestions = [.. response.Suggestions.Select(s => current.GetValueOrDefault(s.Id, s))],
+                    UsedAi = saved.UsedAi,
+                    DetectedAt = saved.DetectedAt,
+                    DetectedBy = saved.DetectedBy,
+                    Stale = stale,
+                });
+            })
+            .Produces<DetectResponse>()
+            .Produces(StatusCodes.Status204NoContent)
+            .WithSummary("The profile's latest saved detection result, with the suggestions' current status and whether it may be out of date; 204 when detection has not run.");
     }
 }
 
 internal static class Detection
 {
+    public const string Anonymous = "anonymous";
+
+    public static List<string> References(PlaybookLibrary library) => [.. library.Domains.Select(p => p.Reference).Order(StringComparer.Ordinal)];
+
+    public static DetectResponse Save(
+        DetectionStore detections, string id, DetectResponse response, bool usedAi, PlaybookLibrary library, string actor, HttpJsonOptions json)
+    {
+        var saved = detections.Save(id, JsonSerializer.Serialize(response, json.SerializerOptions), usedAi, References(library), actor);
+        return response with { UsedAi = usedAi, DetectedAt = saved.DetectedAt, DetectedBy = saved.DetectedBy };
+    }
+
     /// <summary>Adds the fields AI reads from each document's text; returns its warnings as findings.</summary>
     public static async Task<List<ProfileFinding>> ReadWithAi(ProfileInputSet set, AiAccess ai, PlaybookStore playbooks, CancellationToken cancellationToken)
     {
