@@ -18,6 +18,9 @@ public sealed record ContractDocument
     /// <summary>Which part of the input was profiled, e.g. "POST /applications request body".</summary>
     public string? Root { get; init; }
 
+    /// <summary>Other uploaded files this contract's references were read from.</summary>
+    public IReadOnlyList<ProfileInput> Referenced { get; init; } = [];
+
     internal static string Hash(string content) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(content)));
 
     internal static string Hash(byte[] content) => Convert.ToHexStringLower(SHA256.HashData(content));

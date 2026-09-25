@@ -86,7 +86,7 @@ public sealed partial class AiFieldAssistant(IAiProvider provider, int maxConfid
                 ["fields"] = new JsonArray([.. batch.Select(f => MaskedField(f, contexts[f.Path]))]),
             };
 
-            var reply = await provider.GenerateJsonAsync(new(Instructions, input.ToJsonString(), ResponseSchema), cancellationToken).ConfigureAwait(false);
+            var reply = await provider.GenerateJsonAsync(new(Instructions, input.ToJsonString(), ResponseSchema([.. batch.Select(f => f.Path)])), cancellationToken).ConfigureAwait(false);
             suggestions.AddRange(Parse(reply, batch.Select(f => f.Path).ToHashSet(StringComparer.Ordinal), concepts, warnings)
                 .Where(s => suggestions.All(existing => existing.Path != s.Path)));
         }
@@ -162,7 +162,15 @@ public sealed partial class AiFieldAssistant(IAiProvider provider, int maxConfid
     [GeneratedRegex(@"^[A-Za-z0-9_.\-]{1,12}$")]
     private static partial Regex CodeLike();
 
-    internal static JsonObject ResponseSchema => new()
+    /// <summary>A string schema that allows only <paramref name="values"/>.</summary>
+    internal static JsonObject OneOf(IEnumerable<string> values) => new()
+    {
+        ["type"] = "string",
+        ["enum"] = new JsonArray([.. values.Select(v => (JsonNode)v)]),
+    };
+
+    /// <summary>The answer's shape: at most one suggestion per field, and only for the paths asked about.</summary>
+    internal static JsonObject ResponseSchema(IReadOnlyList<string> paths) => new()
     {
         ["type"] = "object",
         ["properties"] = new JsonObject
@@ -170,12 +178,13 @@ public sealed partial class AiFieldAssistant(IAiProvider provider, int maxConfid
             ["suggestions"] = new JsonObject
             {
                 ["type"] = "array",
+                ["maxItems"] = paths.Count,
                 ["items"] = new JsonObject
                 {
                     ["type"] = "object",
                     ["properties"] = new JsonObject
                     {
-                        ["path"] = new JsonObject { ["type"] = "string" },
+                        ["path"] = OneOf(paths),
                         ["concept"] = new JsonObject { ["type"] = "string" },
                         ["newConcept"] = new JsonObject { ["type"] = "string" },
                         ["meaning"] = new JsonObject { ["type"] = "string" },

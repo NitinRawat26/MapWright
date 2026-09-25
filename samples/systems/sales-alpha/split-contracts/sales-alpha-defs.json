@@ -1,0 +1,131 @@
+{
+  "$comment": "Definitions shared by the SalesAlpha application schema.",
+  "$defs": {
+    "account": {
+      "type": "object",
+      "required": [
+        "legalName",
+        "taxId",
+        "entityType",
+        "mcc",
+        "address"
+      ],
+      "properties": {
+        "legalName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "dbaName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "taxId": {
+          "type": "string",
+          "description": "EIN, or the owner's SSN for sole proprietors."
+        },
+        "entityType": {
+          "enum": [
+            "CORP",
+            "LLC",
+            "PARTNERSHIP",
+            "SOLE_PROP",
+            "NON_PROFIT"
+          ],
+          "type": "string"
+        },
+        "mcc": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 4
+        },
+        "incorporationDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "salesRepId": {
+          "type": "string"
+        },
+        "leadSource": {
+          "type": "string"
+        },
+        "address": {
+          "$ref": "#/$defs/address"
+        }
+      }
+    },
+    "address": {
+      "type": "object",
+      "required": [
+        "line1",
+        "city",
+        "state",
+        "postalCode"
+      ],
+      "properties": {
+        "line1": {
+          "type": "string"
+        },
+        "line2": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 2
+        },
+        "postalCode": {
+          "type": "string"
+        }
+      }
+    },
+    "owner": {
+      "type": "object",
+      "required": [
+        "firstName",
+        "lastName",
+        "ownershipPercent",
+        "ssn",
+        "dateOfBirth"
+      ],
+      "properties": {
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "ownershipPercent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Share of the business as a fraction (0.25 = 25%)."
+        },
+        "ssn": {
+          "type": "string"
+        },
+        "dateOfBirth": {
+          "type": "string",
+          "format": "date"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        }
+      }
+    },
+    "percent": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    }
+  }
+}

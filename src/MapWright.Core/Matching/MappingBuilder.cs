@@ -411,6 +411,11 @@ internal sealed class MappingBuilder(IReadOnlyList<RecognisedField> sources, Pla
                 Condition = string.Join("; ", otherwise is null ? cases : [.. cases, $"otherwise → {otherwise}"]),
                 DefaultValue = otherwise,
                 ValueMap = inputs.Count == 1 ? ConditionTable(rule, inputs[0], Spell) : [],
+                Cases = inputs.Count == 1 ? null : [.. rule.Cases.Select(c => new ConditionalCase
+                {
+                    When = [.. c.When.Select(w => new ConditionalClause { Source = Input(w, inputs).Field.Path, In = [.. Spellings(w, inputs)] })],
+                    Then = Spell(c.Then),
+                })],
             },
         };
 
@@ -424,14 +429,20 @@ internal sealed class MappingBuilder(IReadOnlyList<RecognisedField> sources, Pla
     }
 
     /// <summary>"entityType in (SOLE_PROP)", using the source's own spellings of the clause's codes.</summary>
-    private string Clause(ConditionClause clause, IReadOnlyList<RecognisedField> inputs)
+    private string Clause(ConditionClause clause, IReadOnlyList<RecognisedField> inputs) =>
+        $"{Input(clause, inputs).Field.Name} in ({string.Join(", ", Spellings(clause, inputs))})";
+
+    private static RecognisedField Input(ConditionClause clause, IReadOnlyList<RecognisedField> inputs) =>
+        inputs.First(i => Same(i.Detection!.BusinessConcept, clause.Concept));
+
+    /// <summary>The source's own spellings of the clause's codes; a code no source value resolves to is kept as it is.</summary>
+    private IEnumerable<string> Spellings(ConditionClause clause, IReadOnlyList<RecognisedField> inputs)
     {
-        var input = inputs.First(i => Same(i.Detection!.BusinessConcept, clause.Concept));
+        var input = Input(clause, inputs);
         var map = ValueMapFor(input.Detection!);
-        var spellings = clause.In
+        return clause.In
             .SelectMany(code => input.Values.Where(v => map is not null && PlaybookMatcher.ResolveCode(map, v) == code).DefaultIfEmpty(code))
             .Distinct(StringComparer.Ordinal);
-        return $"{input.Field.Name} in ({string.Join(", ", spellings)})";
     }
 
     /// <summary>Each observed source value and the target value the rule gives it.</summary>

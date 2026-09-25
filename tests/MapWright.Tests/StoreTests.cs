@@ -2,6 +2,7 @@ using MapWright.Core.Playbooks;
 using MapWright.Core.Profile;
 using MapWright.Core.Spec;
 using MapWright.Store;
+using Microsoft.Data.Sqlite;
 
 namespace MapWright.Tests;
 
@@ -30,6 +31,83 @@ public sealed class StoreTests : IDisposable
         var store = Playbooks;
         store.Import(StarterPlaybooks.Library().All, "seed");
         return store;
+    }
+
+    [Fact]
+    public void Playbooks_stored_without_yaml_get_their_files_yaml_and_comments_back()
+    {
+        var store = Imported();
+        store.Transition("domain/tax-id", "1.0.0", PlaybookStatus.Retired, "ana", "Replaced.");
+        var draft = store.DraftNewVersion("domain/channel-mix", "1.0.0", null, "ana", "Next.");
+        Assert.DoesNotContain("#", store.GetYaml("domain/tax-id", "1.0.0"), StringComparison.Ordinal);
+        var files = PlaybookLibrary.Read([StarterPlaybooks.Directory]);
+
+        var restored = store.RestoreYaml(files);
+
+        Assert.Contains("domain/tax-id@1.0.0", restored);
+        Assert.Contains(draft.Reference, restored);
+        foreach (var (id, version) in new[] { ("domain/tax-id", "1.0.0"), (draft.Id, draft.Version) })
+        {
+            var yaml = store.GetYaml(id, version);
+            Assert.StartsWith("# Domain playbook:", yaml, StringComparison.Ordinal);
+            Assert.Equal(PlaybookSerializer.Serialize(store.Get(id, version)), PlaybookSerializer.Serialize(PlaybookSerializer.Deserialize(yaml)));
+        }
+
+        Assert.Contains("status: retired", store.GetYaml("domain/tax-id", "1.0.0"), StringComparison.Ordinal);
+        Assert.Empty(store.RestoreYaml(files));
+    }
+
+    private static SuggestionContent Suggested(string path, string? concept = null, string? proposed = null, string? playbook = null) => new()
+    {
+        Path = path,
+        FieldName = path.Split('.')[^1],
+        BusinessConcept = concept,
+        DomainPlaybook = playbook,
+        ProposedConcept = proposed,
+        Meaning = "Test meaning",
+        ConfidencePercent = 70,
+        Reasoning = "Test.",
+        Provider = "fake",
+        Model = "test",
+    };
+
+    private void Run(string sql)
+    {
+        using var connection = _database.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        command.ExecuteNonQuery();
+    }
+
+    [Fact]
+    public void An_approval_that_fails_to_save_the_decision_leaves_no_draft_change()
+    {
+        var store = Imported();
+        var owner = store.Library().Domains.Where(p => p.Status == PlaybookStatus.Published && p.Domain!.Concept.Name == "LegalEntity").OrderBy(p => p.Id).First();
+        var suggestions = new SuggestionStore(_database, store);
+        var ids = suggestions.Add(
+            "sales-alpha",
+            "SalesAlpha CRM",
+            [Suggested("$.account.legalName", concept: "LegalEntity", playbook: owner.Reference), Suggested("$.account.mcc", proposed: "Merchant.Mcc")],
+            "ana").Select(s => s.Id).ToList();
+        var history = store.History(owner.Id).Count;
+
+        Run("CREATE TRIGGER fail_decisions BEFORE UPDATE ON ai_suggestions BEGIN SELECT RAISE(ABORT, 'simulated failure'); END;");
+        Assert.Contains("simulated failure", Assert.Throws<SqliteException>(() => suggestions.Approve(ids[0], "ben", null, null)).Message);
+        Assert.Throws<SqliteException>(() => suggestions.Approve(ids[1], "ben", null, null, create: true));
+        Assert.Throws<SqliteException>(() => suggestions.Reject(ids[1], "ben", null));
+
+        Assert.Empty(store.List(PlaybookStatus.Draft));
+        Assert.Equal(history, store.History(owner.Id).Count);
+        Assert.Equal(StoreError.NotFound, Assert.Throws<StoreException>(() => store.Versions("domain/merchant")).Error);
+        Assert.All(suggestions.List(), s => Assert.Equal((SuggestionStatus.Pending, null), (s.Status, s.Playbook)));
+
+        Run("DROP TRIGGER fail_decisions;");
+        var (approved, draft, created) = suggestions.Approve(ids[0], "ben", null, null);
+        Assert.Equal((SuggestionStatus.Approved, draft.Reference, false), (approved.Status, approved.Playbook, created));
+        Assert.Equal(PlaybookStatus.Draft, store.Get(owner.Id, draft.Version).Status);
+        var (newConcept, merchant, isNew) = suggestions.Approve(ids[1], "ben", null, null, create: true);
+        Assert.Equal((SuggestionStatus.Approved, "domain/merchant@0.1.0", true), (newConcept.Status, merchant.Reference, isNew));
     }
 
     [Fact]

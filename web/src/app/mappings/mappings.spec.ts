@@ -75,11 +75,34 @@ describe('Mappings', () => {
     const { fixture, root } = await open();
     expect(text(root, 'needs-review')).toBe('2');
     expect(root.querySelector('[data-testid="export-xlsx"]')?.getAttribute('href')).toBe('/api/mappings/a__b/export/xlsx');
+    expect(root.querySelector('[data-testid="export-pdf"]')?.getAttribute('href')).toBe('/api/mappings/a__b/export/pdf');
     expect(root.querySelectorAll('tr[data-row]').length).toBe(3);
 
     (root.querySelectorAll('[data-testid="filter"] button')[2] as HTMLButtonElement).click();
     await settle(fixture);
     expect([...root.querySelectorAll('tr[data-row]')].map((r) => r.getAttribute('data-row'))).toEqual(['M003']);
+  });
+
+  it('shows what the AI pass reported', async () => {
+    const fixture = TestBed.createComponent(MappingDetail);
+    fixture.componentRef.setInput('id', 'a__b');
+    fixture.detectChanges();
+    respond('/api/mappings/a__b', {
+      ...mapping,
+      aiPass: { provider: 'fake/model', maxConfidence: 70, suggestedRows: ['M001'], unmatched: ['/Request/M003'], warnings: ['fake: ignored a pairing for \'/Request/X\'.'] },
+    });
+    respond('/api/mappings/a__b/summary', summary(2, 0));
+    await settle(fixture);
+    const root = fixture.nativeElement as HTMLElement;
+
+    expect(text(root, 'ai-pass')).toContain('suggested sources for 1 row(s); 1 target field(s) were still unmatched');
+    expect(text(root, 'ai-unmatched')).toBe('/Request/M003');
+    expect(text(root, 'ai-warning')).toBe("fake: ignored a pairing for '/Request/X'.");
+  });
+
+  it('shows no AI panel without an AI pass', async () => {
+    const { root } = await open();
+    expect(root.querySelector('[data-testid="ai-pass"]')).toBeNull();
   });
 
   it('approves a row and overrides another', async () => {

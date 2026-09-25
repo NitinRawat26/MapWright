@@ -224,6 +224,10 @@ export interface DetectResponse {
   suggestions: Suggestion[];
   remaining: string[];
   warnings: string[];
+  usedAi?: boolean;
+  detectedAt?: string;
+  detectedBy?: string;
+  stale?: string[];
 }
 
 export interface FieldDescriptor {
@@ -257,6 +261,7 @@ export interface FieldMapping {
     condition?: string;
     defaultValue?: string;
     valueMap?: { sourceValue: string; targetValue: string; notes?: string }[];
+    cases?: { when: { source: string; in: string[] }[]; then: string }[];
   };
   confidencePercent: number;
   reasoning: string;
@@ -296,6 +301,7 @@ export interface MappingDocument {
   orphanSourceFields?: { field: FieldDescriptor; suggestedResolution?: string }[];
   findings?: { id: string; kind: string; description: string; mappingIds?: string[]; sources?: string[]; resolution?: string }[];
   validationRuns?: ValidationRun[];
+  aiPass?: { provider: string; maxConfidence: number; suggestedRows?: string[]; unmatched?: string[]; warnings?: string[] };
 }
 
 export interface MappingSummary {
@@ -349,10 +355,19 @@ export interface ReplaySample {
 export interface ReplayResponse {
   samples: ReplaySample[];
   recorded: boolean;
+  masked?: boolean;
 }
 
 export interface ApprovedSuggestion {
   suggestion: Suggestion;
   playbookId: string;
   version: string;
+  created?: boolean;
+}
+
+/** GET /api/me: who the API records as the author of changes. */
+export interface Me {
+  name?: string;
+  method?: 'header' | 'apiKey' | 'bearer' | 'proxy';
+  signInRequired: boolean;
 }

@@ -56,15 +56,14 @@ public sealed class AiMappingAssistant(IAiProvider provider, int maxConfidence =
         var used = document.Mappings.SelectMany(m => m.Sources).Select(f => f.Path).ToHashSet(StringComparer.Ordinal);
         var sourceContexts = FieldContext.FromProfile(source).ToDictionary(f => f.Path!, StringComparer.Ordinal);
         var targetContexts = FieldContext.FromProfile(target).ToDictionary(f => f.Path!, StringComparer.Ordinal);
+        List<string> targetPaths = [.. unmapped.Select(m => m.Target.Path).Where(targetFields.ContainsKey).Distinct(StringComparer.Ordinal)];
 
         var input = new JsonObject
         {
             ["sourceSystem"] = source.System,
             ["targetSystem"] = target.System,
             ["concepts"] = new JsonArray([.. domainPlaybooks.Where(p => p.Domain is not null).Select(AiFieldAssistant.Describe)]),
-            ["targets"] = new JsonArray([.. unmapped
-                .Where(m => targetFields.ContainsKey(m.Target.Path))
-                .Select(m => (JsonNode)AiFieldAssistant.MaskedField(targetFields[m.Target.Path], targetContexts[m.Target.Path]))]),
+            ["targets"] = new JsonArray([.. targetPaths.Select(p => (JsonNode)AiFieldAssistant.MaskedField(targetFields[p], targetContexts[p]))]),
             ["sources"] = new JsonArray([.. sourceFields.Values.Select(f =>
             {
                 var field = AiFieldAssistant.MaskedField(f, sourceContexts[f.Path]);
@@ -73,14 +72,21 @@ public sealed class AiMappingAssistant(IAiProvider provider, int maxConfidence =
             })]),
         };
 
-        var reply = await provider.GenerateJsonAsync(new(Instructions, input.ToJsonString(), ResponseSchema), cancellationToken).ConfigureAwait(false);
+        var reply = await provider.GenerateJsonAsync(new(Instructions, input.ToJsonString(), ResponseSchema(targetPaths, [.. sourceFields.Keys])), cancellationToken).ConfigureAwait(false);
         var warnings = new List<string>();
         var pairings = Parse(reply, warnings);
 
         var rows = document.Mappings.ToList();
         var suggested = new List<string>();
+        var answered = new HashSet<string>(StringComparer.Ordinal);
         foreach (var pairing in pairings)
         {
+            if (!answered.Add(pairing.Target!))
+            {
+                warnings.Add($"{reply.Provider}: ignored a repeated pairing for '{pairing.Target}'.");
+                continue;
+            }
+
             var index = rows.FindIndex(m => m.Type == MappingType.Unmapped && m.Target.Path == pairing.Target);
             if (index < 0)
             {
@@ -105,15 +111,24 @@ public sealed class AiMappingAssistant(IAiProvider provider, int maxConfidence =
         }
 
         var nowUsed = rows.SelectMany(m => m.Sources).Select(f => f.Path).ToHashSet(StringComparer.Ordinal);
+        List<string> unresolved = [.. rows.Where(m => m.Type == MappingType.Unmapped).Select(m => m.Target.Path)];
         return new()
         {
             Document = document with
             {
                 Mappings = rows,
                 OrphanSourceFields = [.. document.OrphanSourceFields.Where(o => !nowUsed.Contains(o.Field.Path))],
+                AiPass = new()
+                {
+                    Provider = $"{reply.Provider}/{reply.Model}",
+                    MaxConfidence = maxConfidence,
+                    SuggestedRows = suggested,
+                    Unmatched = unresolved,
+                    Warnings = warnings,
+                },
             },
             Suggested = suggested,
-            Unresolved = [.. rows.Where(m => m.Type == MappingType.Unmapped).Select(m => m.Target.Path)],
+            Unresolved = unresolved,
             Warnings = warnings,
         };
     }
@@ -145,7 +160,11 @@ public sealed class AiMappingAssistant(IAiProvider provider, int maxConfidence =
             ? field with { SampleValue = SensitiveDataPolicy.Mask(sample) }
             : field;
 
-    internal static JsonObject ResponseSchema => new()
+    /// <summary>
+    /// The answer's shape. Paths and transformation names are listed as the only allowed values, and there is at
+    /// most one pairing per target, so a provider that enforces the schema can't invent paths or keep repeating.
+    /// </summary>
+    internal static JsonObject ResponseSchema(IReadOnlyList<string> targets, IReadOnlyList<string> sources) => new()
     {
         ["type"] = "object",
         ["properties"] = new JsonObject
@@ -153,14 +172,15 @@ public sealed class AiMappingAssistant(IAiProvider provider, int maxConfidence =
             ["pairings"] = new JsonObject
             {
                 ["type"] = "array",
+                ["maxItems"] = targets.Count,
                 ["items"] = new JsonObject
                 {
                     ["type"] = "object",
                     ["properties"] = new JsonObject
                     {
-                        ["target"] = new JsonObject { ["type"] = "string" },
-                        ["sources"] = new JsonObject { ["type"] = "array", ["items"] = new JsonObject { ["type"] = "string" } },
-                        ["transformation"] = new JsonObject { ["type"] = "string" },
+                        ["target"] = AiFieldAssistant.OneOf(targets),
+                        ["sources"] = new JsonObject { ["type"] = "array", ["items"] = AiFieldAssistant.OneOf(sources) },
+                        ["transformation"] = AiFieldAssistant.OneOf([.. Enum.GetValues<TransformationType>().Select(t => JsonNamingPolicy.CamelCase.ConvertName(t.ToString()))]),
                         ["expression"] = new JsonObject { ["type"] = "string" },
                         ["confidence"] = new JsonObject { ["type"] = "integer" },
                         ["reasoning"] = new JsonObject { ["type"] = "string" },

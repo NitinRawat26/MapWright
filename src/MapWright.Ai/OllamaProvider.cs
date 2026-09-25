@@ -5,9 +5,20 @@ namespace MapWright.Ai;
 public sealed record OllamaOptions
 {
     public const string DefaultModel = "qwen3";
+    public const int DefaultContextTokens = 16384;
+    public const int DefaultMaxOutputTokens = 4096;
 
     public required Uri BaseUrl { get; init; }
     public string Model { get; init; } = DefaultModel;
+
+    /// <summary>
+    /// Context window for prompt plus answer (<c>num_ctx</c>). Ollama's own default can be as small as 4096
+    /// tokens, which cuts off a mapping prompt without saying so.
+    /// </summary>
+    public int ContextTokens { get; init; } = DefaultContextTokens;
+
+    /// <summary>Longest answer (<c>num_predict</c>), so a model that keeps repeating itself stops.</summary>
+    public int MaxOutputTokens { get; init; } = DefaultMaxOutputTokens;
 }
 
 /// <summary>A self-hosted Ollama server (<c>/api/chat</c>) with structured output.</summary>
@@ -24,7 +35,12 @@ public sealed class OllamaProvider(HttpClient http, OllamaOptions options) : IAi
             ["model"] = options.Model,
             ["stream"] = false,
             ["format"] = prompt.ResponseSchema.DeepClone(),
-            ["options"] = new JsonObject { ["temperature"] = 0 },
+            ["options"] = new JsonObject
+            {
+                ["temperature"] = 0,
+                ["num_ctx"] = options.ContextTokens,
+                ["num_predict"] = options.MaxOutputTokens,
+            },
             ["messages"] = new JsonArray(
                 new JsonObject { ["role"] = "system", ["content"] = prompt.Instructions },
                 new JsonObject { ["role"] = "user", ["content"] = prompt.Input }),
@@ -32,6 +48,13 @@ public sealed class OllamaProvider(HttpClient http, OllamaOptions options) : IAi
 
         var response = await HttpJson.PostAsync(http, Name, new Uri(options.BaseUrl, "api/chat"), body, bearerToken: null, cancellationToken)
             .ConfigureAwait(false);
+
+        if (response["done_reason"]?.GetValue<string>() == "length")
+        {
+            throw new AiProviderException(
+                $"{Name}: the answer was cut off after {options.MaxOutputTokens} tokens, or the prompt did not fit in {options.ContextTokens}; " +
+                $"raise {AiProviders.OllamaContextVariable} or use a larger model.");
+        }
 
         return new(Name, options.Model, HttpJson.RequireJson(Name, response["message"]?["content"]?.GetValue<string>()));
     }

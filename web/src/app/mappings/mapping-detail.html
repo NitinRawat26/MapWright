@@ -9,6 +9,7 @@
       <a mat-stroked-button [href]="exportUrl('xlsx')" download data-testid="export-xlsx">Excel</a>
       <a mat-stroked-button [href]="exportUrl('csv')" download>CSV</a>
       <a mat-stroked-button [href]="exportUrl('html')" target="_blank">HTML report</a>
+      <a mat-stroked-button [href]="exportUrl('pdf')" download data-testid="export-pdf">PDF</a>
     </div>
 
     @if (summary(); as s) {
@@ -19,6 +20,21 @@
         <div class="card"><div class="muted">Needs review</div><div class="value" data-testid="needs-review">{{ s.byReviewStatus.needsReview }}</div><div class="muted">{{ s.byReviewStatus.approved + s.byReviewStatus.overridden }} approved, {{ s.byReviewStatus.rejected }} rejected</div></div>
         <div class="card"><div class="muted">Findings</div><div class="value">{{ s.conflicts + s.assumptions }}</div><div class="muted">{{ s.conflicts }} conflicts, {{ s.assumptions }} assumptions</div></div>
         <div class="card"><div class="muted">Unused source fields</div><div class="value">{{ s.orphanSourceFields }}</div></div>
+      </div>
+    }
+
+    @if (m.aiPass; as ai) {
+      <div class="ai-pass" data-testid="ai-pass">
+        <div>
+          AI ({{ ai.provider }}, capped at {{ ai.maxConfidence }}%) suggested sources for {{ ai.suggestedRows?.length ?? 0 }} row(s);
+          {{ ai.unmatched?.length ?? 0 }} target field(s) were still unmatched.
+        </div>
+        @if (ai.unmatched?.length) {
+          <div class="muted">Still unmatched: <span class="mono" data-testid="ai-unmatched">{{ ai.unmatched?.join(', ') }}</span></div>
+        }
+        @for (w of ai.warnings ?? []; track $index) {
+          <div class="warn-text" data-testid="ai-warning">{{ w }}</div>
+        }
       </div>
     }
 

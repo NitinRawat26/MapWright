@@ -39,12 +39,20 @@ public static class ProfileInputs
         $"'{name}' has no field table MapWright can read (a header row with a column such as 'Field Name' or 'Path'). " +
         "Let AI read its text (useAi, or 'Let AI read document text' on the Profiles page), or upload the fields as a CSV or Excel field spec.";
 
+    /// <summary>
+    /// Sorts the inputs. A file that another contract refers to (external <c>$ref</c>, <c>xs:import</c>,
+    /// <c>xs:include</c>) is read as part of that contract rather than on its own.
+    /// </summary>
     public static ProfileInputSet Read(IEnumerable<InputFile> inputs, string? root)
     {
         var samples = new List<SampleInput>();
         var contracts = new List<ContractDocument>();
         var documents = new List<DocumentContent>();
-        foreach (var input in inputs)
+        var all = inputs.ToList();
+        var texts = all.Where(IsText).Select(i => (Input: i, Content: Decode(i.Content))).ToList();
+        var files = new ContractFiles(texts.Select(t => (t.Input.Name, t.Content)));
+        var referenced = files.Referenced();
+        foreach (var input in all)
         {
             if (DocumentReader.IsDocument(input.Name))
             {
@@ -64,11 +72,15 @@ public static class ProfileInputs
                 continue;
             }
 
-            using var reader = new StreamReader(new MemoryStream(input.Content), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-            var content = reader.ReadToEnd();
+            if (referenced.Contains(input.Name))
+            {
+                continue;
+            }
+
+            var content = texts.First(t => ReferenceEquals(t.Input, input)).Content;
             if (ContractReader.Detect(input.Name, content) is { } kind)
             {
-                contracts.Add(ContractReader.Read(input.Name, content, kind, root));
+                contracts.Add(ContractReader.Read(input.Name, content, kind, root, files));
             }
             else
             {
@@ -77,5 +89,14 @@ public static class ProfileInputs
         }
 
         return new(samples, contracts, documents);
+    }
+
+    private static bool IsText(InputFile input) =>
+        !DocumentReader.IsDocument(input.Name) && !Path.GetExtension(input.Name).Equals(".xlsx", StringComparison.OrdinalIgnoreCase);
+
+    private static string Decode(byte[] content)
+    {
+        using var reader = new StreamReader(new MemoryStream(content), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+        return reader.ReadToEnd();
     }
 }

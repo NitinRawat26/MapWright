@@ -7,7 +7,8 @@ namespace MapWright.Core.Profile.Contracts;
 
 /// <summary>
 /// Reads an XML Schema into profile fields for one root element: sequences, choices, groups, attributes,
-/// named and inline types, extensions, simple-type facets and annotations. Paths use local names.
+/// named and inline types, extensions, simple-type facets and annotations. Paths use local names. Schemas that
+/// <c>xs:import</c> or <c>xs:include</c> names are read from the other uploaded files.
 /// </summary>
 public static class XsdReader
 {
@@ -22,7 +23,8 @@ public static class XsdReader
     };
 
     /// <param name="root">The global element to profile; optional when the schema has one root element.</param>
-    public static ContractDocument Read(string name, string content, string? root = null)
+    /// <param name="files">Other uploaded files that <c>xs:import</c> and <c>xs:include</c> may point to.</param>
+    public static ContractDocument Read(string name, string content, string? root = null, ContractFiles? files = null)
     {
         var schema = Load(name, content, "XML Schema").Root!;
         if (schema.Name != Xs + "schema")
@@ -31,10 +33,68 @@ public static class XsdReader
         }
 
         var builder = new ContractBuilder(name, InputKind.Xsd, PayloadFormat.Xml);
-        var walker = new Walker([schema], builder);
+        var used = new List<ProfileInput>();
+        var resolved = new HashSet<XElement>();
+        var walker = new Walker(Expand(name, [schema], files ?? ContractFiles.None, builder, used, resolved), builder, resolved);
         var element = walker.SelectRoot(root);
         walker.Root(element);
-        return builder.Build(ContractDocument.Hash(content), $"element {element}");
+        return builder.Build(ContractDocument.Hash(content), $"element {element}") with { Referenced = used };
+    }
+
+    /// <summary>
+    /// The schemas plus every uploaded schema they import, include, redefine or override, transitively. The
+    /// reference elements that were found are added to <paramref name="resolved"/>.
+    /// </summary>
+    internal static List<XElement> Expand(string name, IReadOnlyList<XElement> schemas, ContractFiles files, ContractBuilder builder, List<ProfileInput> used, HashSet<XElement> resolved)
+    {
+        var all = new List<XElement>(schemas);
+        var loaded = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { name };
+        var queue = new Queue<(XElement Schema, string File)>(schemas.Select(s => (s, name)));
+        while (queue.TryDequeue(out var next))
+        {
+            foreach (var reference in next.Schema.Elements().Where(e => e.Name.Namespace == Xs && e.Name.LocalName is "import" or "include" or "redefine" or "override"))
+            {
+                var location = (string?)reference.Attribute("schemaLocation");
+                var ns = (string?)reference.Attribute("namespace");
+                string? problem = null;
+                var target = location is { Length: > 0 } ? files.Find(next.File, location, out problem)
+                    : ns is { Length: > 0 } ? files.FindNamespace(next.File, ns, out problem)
+                    : null;
+                if (problem is not null)
+                {
+                    builder.Finding(ProfileFindingKind.UnresolvedReference, null, problem);
+                }
+
+                if (target is null)
+                {
+                    if (location is not { Length: > 0 } && ns is { Length: > 0 } && all.Any(s => (string?)s.Attribute("targetNamespace") == ns))
+                    {
+                        resolved.Add(reference);
+                    }
+
+                    continue;
+                }
+
+                resolved.Add(reference);
+                if (!loaded.Add(target))
+                {
+                    continue;
+                }
+
+                var content = files.Content(target);
+                var schema = Load(target, content, "XML Schema").Root!;
+                if (schema.Name != Xs + "schema")
+                {
+                    throw new ProfileException($"'{target}', which '{next.File}' refers to, is not an XML Schema (found <{schema.Name.LocalName}>).");
+                }
+
+                used.Add(ContractFiles.Used(target, content, InputKind.Xsd, PayloadFormat.Xml, name));
+                all.Add(schema);
+                queue.Enqueue((schema, target));
+            }
+        }
+
+        return all;
     }
 
     internal static XDocument Load(string name, string content, string what)
@@ -63,7 +123,7 @@ public static class XsdReader
         private readonly HashSet<string> _referenced = new(StringComparer.Ordinal);
         private readonly Stack<XElement> _typeStack = new();
 
-        public Walker(IReadOnlyList<XElement> schemas, ContractBuilder builder)
+        public Walker(IReadOnlyList<XElement> schemas, ContractBuilder builder, IReadOnlySet<XElement>? resolved = null)
         {
             _builder = builder;
             foreach (var schema in schemas)
@@ -85,7 +145,7 @@ public static class XsdReader
                         target.TryAdd(key, child);
                     }
 
-                    if (child.Name.LocalName is "import" or "include" or "redefine" or "override")
+                    if (child.Name.LocalName is "import" or "include" or "redefine" or "override" && resolved?.Contains(child) != true)
                     {
                         var location = (string?)child.Attribute("schemaLocation") ?? (string?)child.Attribute("namespace") ?? "?";
                         builder.Finding(ProfileFindingKind.UnresolvedReference, null,

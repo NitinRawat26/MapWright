@@ -14,6 +14,7 @@ from it, so documents never drift from what the tool executes.
 |---|---|
 | `<id>.xlsx` | Sign-off workbook for BAs: Summary, Mapping, Gaps, Value Maps, Conflicts & Assumptions, Validation, Change Log |
 | `<id>.html` | Self-contained, printable report for leadership review and audit |
+| `<id>.pdf`  | The same report as a landscape A4 PDF: summary, the main mapping columns (ID, type, source and target path, required, transformation, confidence, sensitivity, review status) and every supporting table; long tables continue with their header on the next page. It uses the built-in PDF fonts, so accents are dropped (é → e) and other non-ASCII characters become `?`; the Excel and HTML outputs keep them |
 | `<id>.csv`  | Flat export of the Mapping sheet (multi-value cells joined with ` \| `) |
 | `mapping.json` | Machine-readable, versioned mapping spec |
 
@@ -47,7 +48,7 @@ Unknown JSON properties and missing required properties are rejected.
 ## System profiles
 
 A system profile is a normalized description of one system's contract, built from any number of its inputs:
-JSON or XML sample payloads, JSON Schema, OpenAPI (JSON), XSD, WSDL, field specs (CSV or Excel) and PDF or
+JSON or XML sample payloads, JSON Schema, OpenAPI (JSON or YAML), XSD, WSDL, field specs (CSV or Excel) and PDF or
 Word (.docx) specifications. All inputs of one system are merged into one profile.
 
 ### Data dictionaries
@@ -119,10 +120,10 @@ seen in, and the source of each attribute.
 
 | Input | Recognised by | What is read |
 |---|---|---|
-| JSON Schema | `$schema`, or `type: object` with `properties` | `properties`, `required`, arrays and `maxItems`, `enum`/`const`, `format` (date, date-time), length, range, `multipleOf` (scale), `description`; local `$ref`, `allOf`; `oneOf`/`anyOf` are merged and their fields made optional |
-| OpenAPI 3.x / Swagger 2.0 (JSON) | `openapi` or `swagger` | The JSON request body of one operation, or one named schema, read as JSON Schema |
+| JSON Schema | `$schema`, or `type: object` with `properties` | `properties`, `required`, arrays and `maxItems`, `enum`/`const`, `format` (date, date-time), length, range, `multipleOf` (scale), `description`; `$ref` (local, or to another uploaded file), `allOf`; `oneOf`/`anyOf` are merged and their fields made optional |
+| OpenAPI 3.x / Swagger 2.0 (JSON or YAML) | `openapi` or `swagger` | The JSON request body of one operation, or one named schema, read as JSON Schema |
 | XSD | `.xsd`, or an `xs:schema` root | One global element: sequences, `xs:all`, choices (optional), groups, attributes and attribute groups, named and inline types, extensions, `simpleContent` (`/text()`), `minOccurs`/`maxOccurs`, enumerations, length, range and `fractionDigits` facets, `fixed`, annotations |
-| WSDL 1.1 / 2.0 | `.wsdl`, or a WSDL root | The input element of one document/literal operation, read from the XSD in `types` |
+| WSDL 1.1 / 2.0 | `.wsdl`, or a WSDL root | The input of one operation, read from the XSD in `types`: the part's element for document/literal; for RPC style (`style="rpc"` or typed parts), a wrapper element named after the operation with one child per part (`/SubmitApplication/request/...`). `use="encoded"` is read as literal XML, with a finding |
 | Field spec | `.csv`, `.xlsx` | One row per field. Only a path column is required (`Path`, `Field Path`, `XPath`, `JSON Path`, `Field`, `Element`). Also recognised: type (`String(20)`, `Decimal(12,2)`, `Date`…), required/mandatory (`Y`, `M`, `C` = conditional…), format (`YYYY-MM-DD`), min/max length, min/max value, scale, allowed values (`CORP = Corporation; LLC = …`), description, sensitive/PII and repeats. `owners[].ssn` and `/uw:Merchant/uw:Name` style paths are normalized |
 | Data dictionary | `.csv`, `.xlsx` | Read like a field spec, with the column names data dictionaries use (see below) |
 
@@ -134,12 +135,23 @@ seen in, and the source of each attribute.
 - **Disagreements are findings, not overwrites**: `typeConflict` (samples look like a number, the contract
   declares a boolean), `contractMismatch` (required but missing in samples, values outside the allowed list,
   values longer than the declared length, a repeating field declared once, a different date format),
-  `undeclaredField` (seen in samples, not in any contract), `unresolvedReference` (external `$ref`,
-  `xs:import`) and `schemaSimplified` (merged alternatives, recursion, unknown types).
+  `undeclaredField` (seen in samples, not in any contract), `unresolvedReference` (an external `$ref` or
+  `xs:import` whose file was not uploaded) and `schemaSimplified` (merged alternatives, recursion, unknown types).
 - **Provenance**: every attribute records the input kind and file it came from, and `seenIn` lists samples and
   contracts. A field a contract marks sensitive masks the sample values too.
-- XML contracts are read with DTDs rejected and no external resolution; referenced files are not fetched.
-- YAML OpenAPI documents are not read yet; convert them to JSON first.
+- **References to other files**: an external `$ref` (`common.json#/$defs/Address`, `../schemas/app.yaml`,
+  `https://example.com/defs/common.json#/A`) and an `xs:import`, `xs:include`, `xs:redefine` or `xs:override`
+  are read from the other files uploaded with the contract. A reference matches the file at the same relative
+  path, or else the only upload with that file name; an `xs:import` without `schemaLocation` matches the uploaded
+  schema with that `targetNamespace`. A referenced file is read as part of the contract that refers to it, not on
+  its own, and is listed in the profile's inputs as "Referenced by ...". Nothing is fetched from disk or the
+  network, and DTDs are rejected. A reference that matches no upload, or several, is an `unresolvedReference`
+  finding. `samples/systems/sales-alpha/split-contracts` (JSON Schema plus a definitions file) and
+  `samples/systems/uw-core/split-contracts` (a WSDL importing an XSD that includes another) are examples.
+- `samples/systems/uw-core/rpc` has the UW Core service as an RPC/literal WSDL, with a matching SOAP sample.
+- OpenAPI documents may be YAML (`.yaml`/`.yml`). Anchors, aliases and `<<` merge keys are resolved, plain
+  scalars follow the YAML core schema (so `openapi: 3.1` still counts), and errors give the YAML line. One document
+  per file. `samples/systems/sales-alpha/openapi-yaml` has the SalesAlpha OpenAPI document in YAML.
 
 ## Playbooks
 
@@ -194,6 +206,11 @@ domain playbook must have tests.
 `MapWright.Store` keeps playbooks in SQLite, one row per version, plus an audit trail of every change. Each version
 is stored as normalized JSON (what validation, tests and mapping read) together with its YAML text, so comments
 survive new versions, status changes and edits. Playbooks that arrived as JSON get generated YAML. The files in `playbooks/` can be imported as the starting set.
+A change made outside the YAML (a status change, a new version, an approved AI suggestion) is written into the YAML
+text: changed values are replaced in place, new keys and list items are added, and removed ones lose their lines, so
+only comments inside a rewritten value are lost. When the API starts with seed playbooks and the database already has
+playbooks, versions stored without YAML (for example the starter set in a database created before YAML was kept, and
+drafts made from them) get the YAML of their seed file, with the changes made since applied to it.
 
 | From | To | Rule |
 |---|---|---|
@@ -224,7 +241,7 @@ with none configured MapWright uses playbooks only.
 | Provider | Variables |
 |---|---|
 | Vertex AI (Gemini, first) | `MAPWRIGHT_VERTEX_PROJECT` (enables it), `MAPWRIGHT_VERTEX_LOCATION` (default `global`), `MAPWRIGHT_VERTEX_MODEL` (default `gemini-3.5-flash`); credentials from Application Default Credentials, e.g. `GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json` |
-| Ollama (fallback) | `MAPWRIGHT_OLLAMA_URL` (enables it, e.g. `http://localhost:11434`), `MAPWRIGHT_OLLAMA_MODEL` (default `qwen3`) |
+| Ollama (fallback) | `MAPWRIGHT_OLLAMA_URL` (enables it, e.g. `http://localhost:11434`), `MAPWRIGHT_OLLAMA_MODEL` (default `qwen3`), `MAPWRIGHT_OLLAMA_CONTEXT_TOKENS` (default 16384; Ollama's own default can be 4096, too small for a mapping prompt) |
 | Both | `MAPWRIGHT_AI_TIMEOUT_SECONDS` (default 180) |
 
 What the AI sees and what it can do:
@@ -276,7 +293,12 @@ real data before anyone builds the integration.
 1. **Transform:** each row reads its source paths (list items stay aligned, e.g. `owners[1].firstName` with
    `owners[1].lastName`) and runs its transformation: copies, type casts (`999-99-9999` → `999999999`, date
    formats, decimals rounded to the target's scale), value maps, conditions, concatenation and expressions such
-   as `annual / 12` with the source fields recorded in the row's `transformation.inputs`.
+   as `annual / 12` with the source fields recorded in the row's `transformation.inputs`. A condition over
+   several fields runs from the row's `transformation.cases`: the first case whose clauses all hold gives the
+   value, otherwise `defaultValue`, e.g.
+   `{"when": [{"source": "$.account.entityType", "in": ["SOLE_PROP"]}, {"source": "$.account.country", "in": ["US"]}], "then": "SSN"}`.
+   Values match exactly or, after trimming, ignoring case. The mapping generator writes `cases` for playbook
+   conditional rules whose cases name more than one concept, using the source's own spellings of the codes.
 2. **Write:** values are written as target JSON or XML in the target profile's field order, with nested objects,
    JSON arrays, repeated XML elements and XML attributes. `--xml-namespace` sets the XML namespace.
 3. **Check:** every row gets a result: pass, fail (transformation error, required target field with no value,
@@ -287,7 +309,11 @@ real data before anyone builds the integration.
 
 Each sample becomes one validation run (`V001`, `V002`, ...). `--record` adds the runs to the mapping file so
 the Validation tab of `render` shows them; `--strict` exits with 1 when any check fails. Sensitive values stay
-masked in the results, but the written target payloads contain the real values from the samples.
+masked in the results. The written target payloads contain the real values from the samples unless you add
+`--mask`: then every value that is personal or card data by the row's risk (names, SSN, date of birth…), whose
+source or target name is sensitive (such as account number), or whose field the target profile marks sensitive
+keeps only its last four characters, e.g. `*****3456`, and is written as text. Business amounts stay readable. The
+checks always run on the real values.
 
 ## Usage
 
@@ -362,9 +388,34 @@ Settings (`appsettings.json`, or environment variables such as `MapWright__Datab
 | `MapWright:SeedPlaybooks` | `playbooks` | Imported when the store has no playbooks (relative to the app folder) |
 | `MapWright:RequireIndependentReview` | `true` | The submitter of a version cannot publish it |
 
-Writes need an `X-MapWright-User` header; the name is recorded in the audit trail. Errors come back as
-`{ title, status, detail, issues }` with 400 (invalid), 404 (not found) or 409 (conflict, e.g. editing a
-published version).
+Writes need a name for the audit trail. Without sign-in (the default, for local use) it is the
+`X-MapWright-User` header; with sign-in it is the verified caller (see below). Errors come back as
+`{ title, status, detail, issues }` with 400 (invalid), 401 (not signed in), 404 (not found) or 409 (conflict,
+e.g. editing a published version).
+
+### Sign-in
+
+Sign-in is off until you configure at least one method under `MapWright:Auth`. Once it is on, every `/api`
+request must be signed in (`/health`, `/swagger` and the UI files stay open), `X-MapWright-User` sent by the
+caller is ignored, and the verified name is recorded instead. The methods can be combined:
+
+| Method | Settings | The caller sends | Recorded name |
+|---|---|---|---|
+| API keys (scripts, CI) | `ApiKeys:0:Name`, `ApiKeys:0:Sha256` (hex SHA-256 of the key; add `:1:`, `:2:` … for more) | `X-Api-Key: <key>` or `Authorization: ApiKey <key>` | the key's `Name` |
+| OAuth / OpenID Connect bearer tokens | `Jwt:Authority` (issuer URL; keys come from its discovery document) and `Jwt:Audience`. For an issuer without discovery: `Jwt:SigningKey` (HMAC, ≥ 32 bytes) and `Jwt:Issuer` instead of `Authority`. `Jwt:NameClaims` changes the name claims | `Authorization: Bearer <token>` | first of `preferred_username`, `email`, `upn`, `name`, `sub` |
+| SSO through a sign-in proxy (web UI) | `Proxy:UserHeader` (e.g. `X-Forwarded-Email`) and `Proxy:Secret` (≥ 16 characters); `Proxy:SecretHeader` defaults to `X-MapWright-Proxy-Secret` | nothing; the proxy adds both headers after your SSO sign-in | the user header |
+
+Tokens are checked for signature, issuer, audience and expiry. API keys are stored only as hashes and compared
+in constant time. The API refuses to start if a method is half configured (for example a proxy without a secret).
+`GET /api/me` tells a caller who they are signed in as: `{ "name", "method", "signInRequired" }`.
+
+```bash
+KEY=$(openssl rand -hex 32); echo "key: $KEY"
+printf %s "$KEY" | sha256sum        # use the hash as MapWright__Auth__ApiKeys__0__Sha256
+MapWright__Auth__ApiKeys__0__Name=ci-bot MapWright__Auth__ApiKeys__0__Sha256=<hash> \
+  dotnet run --project src/MapWright.Api --urls http://localhost:5080
+curl localhost:5080/api/me -H "X-Api-Key: $KEY"
+```
 
 ### Playbooks
 
@@ -405,13 +456,14 @@ curl -X POST localhost:5080/api/playbooks -H 'X-MapWright-User: ana' -H 'Content
 | `GET /api/profiles` | List profiles |
 | `POST /api/profiles` | Build a profile from uploaded files (multipart `files`, plus `system`, and optional `id`, `version`, `description`, `root`, `noValues`, `replace`) |
 | `GET` / `PUT` / `DELETE /api/profiles/{id}` | Get, store (profile JSON, e.g. from the CLI) or delete a profile |
-| `POST /api/profiles/{id}/detect` | Which business concept the published playbooks recognise in each field |
+| `POST /api/profiles/{id}/detect` | Which business concept the published playbooks recognise in each field. The result is saved with `detectedAt` and `detectedBy`, replacing the profile's previous one |
+| `GET /api/profiles/{id}/detection` | The profile's latest saved detection (204 if detection hasn't run), with the AI suggestions' current status and `stale` reasons when the profile was saved again or the published playbooks changed since |
 | `GET /api/mappings` | List mappings |
-| `POST /api/mappings` | Generate a mapping: `{ "source": "<profile id>", "target": "<profile id>", "id": "…", "title": "…", "replace": false }` |
+| `POST /api/mappings` | Generate a mapping: `{ "source": "<profile id>", "target": "<profile id>", "id": "…", "title": "…", "replace": false, "useAi": false }`. With `useAi`, the mapping's `aiPass` gives the provider, the cap, the rows AI filled in (`suggestedRows`), the target fields still unmatched (`unmatched`) and the AI's `warnings`; it is stored with the mapping |
 | `GET` / `PUT` / `DELETE /api/mappings/{id}` | Get, store (mapping JSON) or delete a mapping |
 | `GET /api/mappings/{id}/summary` | Coverage, confidence bands, review status and validation counts |
-| `GET /api/mappings/{id}/export/{xlsx\|csv\|html}` | Download the mapping document |
-| `POST /api/mappings/{id}/replay` | Replay samples (multipart `files`, plus `target` profile id, optional `xmlNamespace`, `record`) |
+| `GET /api/mappings/{id}/export/{xlsx\|csv\|html\|pdf}` | Download the mapping document |
+| `POST /api/mappings/{id}/replay` | Replay samples (multipart `files`, plus `target` profile id, optional `xmlNamespace`, `record`, `mask`) |
 | `POST /api/mappings/{id}/rows/{rowId}/review` | `{ "decision": "approve" \| "reject" \| "override", "comment": "…", "row": { … } }` |
 | `GET /api/mappings/{id}/reviews` | Review decisions, oldest first |
 
@@ -447,13 +499,14 @@ need review. If the provider fails, the API returns 502 and saves nothing.
 | `POST /api/profiles/{id}/detect` with `{ "useAi": true }` | Asks AI about the fields no playbook recognised and files each answer in the inbox |
 | `POST /api/mappings` with `"useAi": true` | AI suggests sources for unmapped targets; those rows need review like any other |
 | `GET /api/suggestions?status=&profile=` | The inbox (`pending`, `approved`, `rejected`) |
-| `POST /api/suggestions/{id}/approve` | `{ "concept": "Concept.Attribute", "comment": "…" }`: adds the field's name as a vocabulary term to a draft of that concept's domain playbook |
+| `POST /api/suggestions/{id}/approve` | `{ "concept": "Concept.Attribute", "comment": "…", "create": false }`: adds the field's name as a vocabulary term to a draft of that concept's domain playbook. With `create: true`, a concept no published playbook defines becomes a new draft playbook `domain/<concept>` at 0.1.0 (a later approval for the same concept adds to that draft), and a missing attribute is added to a draft of the concept's playbook; the response's `created` says whether a playbook was created. Add signals and tests before submitting it |
 | `POST /api/suggestions/{id}/reject` | `{ "comment": "…" }` |
 
 Approving never publishes anything. It opens a draft (the next minor version, or the open draft if there is
 one) and the draft goes through test, review and publish as usual. `concept` defaults to the AI's answer; it is
 needed when the AI proposed a concept no playbook defines, or when two playbooks share the concept. A term that
-is already in the playbook, or a playbook that is in review, returns 409.
+is already in the playbook, or a playbook that is in review, returns 409. The draft change and the decision are
+saved in one database transaction: if either fails, neither is stored and the suggestion stays pending.
 
 ## Deployment
 
@@ -492,9 +545,10 @@ SQLite file and a `/health` check. Persistent disks need a paid instance type, w
    `vertex-key.json`. It is available at `/etc/secrets/vertex-key.json`, where `GOOGLE_APPLICATION_CREDENTIALS`
    already points. The account needs the Vertex AI User role.
 
-The API has no sign-in: `X-MapWright-User` is recorded for audit but not verified. Put it behind your own
-authentication (a gateway, VPN or Render private service) before exposing it. The same applies to the web UI:
-the name entered in its toolbar is only a label for the audit trail.
+Turn on [sign-in](#sign-in) before exposing the service: without it `X-MapWright-User` is recorded for audit but
+not verified. Set the `MapWright__Auth__…` variables in the service's environment (keep key hashes, signing keys
+and the proxy secret as secret values). For SSO in the web UI, put a sign-in proxy in front of the service and use
+the proxy settings.
 
 ## Web UI
 
@@ -512,7 +566,9 @@ dotnet run --project src/MapWright.Api --urls http://localhost:5080
 
 For UI development, run the API as above and `npm start` in `web/` (http://localhost:4200, with `/api`,
 `/health` and `/swagger` proxied to port 5080). Enter your name in the toolbar before making changes; it is
-sent as `X-MapWright-User`. Without a built UI the API serves only `/api`, `/health` and `/swagger`.
+sent as `X-MapWright-User`. When the API requires sign-in, the toolbar shows who you are signed in as (through
+the sign-in proxy), or asks for an API key, which is kept for the browser tab only and sent as `X-Api-Key`.
+Bearer-token sign-in is for API callers; the UI has no OAuth login of its own. Without a built UI the API serves only `/api`, `/health` and `/swagger`.
 API errors are shown with their `detail` and `issues`.
 
 Pages:
@@ -521,16 +577,18 @@ Pages:
   changes, publish, retire or draft a new version, see the audit history, and compare any two versions side by side.
 - **Profiles:** upload sample payloads and contracts to build a profile, browse its fields, findings and inputs, and
   run detection to see which business concepts the published playbooks recognise (optionally asking AI about the rest).
+  The latest result is kept and shown when you come back, with a warning when it may be out of date.
   A preset picks the kind of system: JSON REST API, SOAP/XML service, XML file or batch, Field spec, Data dictionary,
   PDF/Word spec, Samples only or Mixed/custom (the default, which accepts every input). Each preset says what to
   upload, limits the file picker to its file types, hints at Root and fills in a description you can change. A file
   outside the preset's types is flagged but still uploaded. The AI option appears only for PDF/Word files.
 - **Mappings:** generate a mapping from two profiles, see coverage and confidence, filter and search the rows, open a row
-  to see why it was mapped, approve, reject or override it, see the review history, and download Excel, CSV or HTML.
+  to see why it was mapped, approve, reject or override it, see the review history, and download Excel, CSV, HTML or PDF.
 - **Replay** (a tab on each mapping): upload source samples, pick the target profile, and see each sample's passed,
   failed and skipped checks and the target payload it produced; optionally save the runs on the mapping.
 - **AI suggestions:** the inbox of AI answers from detection. Approve one (optionally changing the concept) to add the
-  field name to a draft of the domain playbook, or reject it with a comment.
+  field name to a draft of the domain playbook, or reject it with a comment. **Create if missing** (ticked for
+  concepts the AI proposed) drafts a new domain playbook or attribute instead.
 
 ## Build and test
 

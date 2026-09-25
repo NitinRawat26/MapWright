@@ -1,4 +1,4 @@
-import { UpperCasePipe } from '@angular/common';
+import { DatePipe, UpperCasePipe } from '@angular/common';
 import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -15,7 +15,7 @@ import { UserService } from '../core/user';
 
 @Component({
   selector: 'app-profile-detail',
-  imports: [FormsModule, MatButtonModule, MatCheckboxModule, UpperCasePipe, MatFormFieldModule, MatInputModule, MatTabsModule, RouterLink],
+  imports: [DatePipe, FormsModule, MatButtonModule, MatCheckboxModule, UpperCasePipe, MatFormFieldModule, MatInputModule, MatTabsModule, RouterLink],
   templateUrl: './profile-detail.html',
 })
 export class ProfileDetail {
@@ -43,6 +43,7 @@ export class ProfileDetail {
       untracked(() => {
         this.detection.set(null);
         this.api.profile(id).subscribe((profile) => this.profile.set(profile));
+        this.api.detection(id).subscribe({ next: (saved) => this.detection.set(saved), error: () => undefined });
       });
     });
   }

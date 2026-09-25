@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:uw="urn:uwcore:intake:4.2"
+           targetNamespace="urn:uwcore:intake:4.2"
+           elementFormDefault="qualified">
+
+  <!-- The simple types (lengths, codes, dates, amounts) are in uw-core-simple-types.xsd. -->
+  <xs:include schemaLocation="uw-core-simple-types.xsd"/>
+
+  <xs:element name="UnderwritingRequest" type="uw:UnderwritingRequestType">
+    <xs:annotation><xs:documentation>Merchant application submitted for underwriting.</xs:documentation></xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="UnderwritingRequestType">
+    <xs:sequence>
+      <xs:element name="Merchant" type="uw:MerchantType"/>
+      <xs:element name="Officers">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="Officer" type="uw:OfficerType" maxOccurs="10"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="Processing" type="uw:ProcessingType"/>
+      <xs:element name="Settlement" type="uw:SettlementType"/>
+    </xs:sequence>
+    <xs:attribute name="sourceChannel" type="uw:Code20" use="required"/>
+    <xs:attribute name="requestId" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="MerchantType">
+    <xs:sequence>
+      <xs:element name="LegalName" type="uw:Name100">
+        <xs:annotation><xs:documentation>Registered legal name of the business.</xs:documentation></xs:annotation>
+      </xs:element>
+      <xs:element name="DoingBusinessAs" type="uw:Name100" minOccurs="0"/>
+      <xs:element name="TaxId">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="Number" type="uw:NineDigits"/>
+          </xs:sequence>
+          <xs:attribute name="type" use="required">
+            <xs:simpleType>
+              <xs:restriction base="xs:string">
+                <xs:enumeration value="EIN"/>
+                <xs:enumeration value="SSN"/>
+              </xs:restriction>
+            </xs:simpleType>
+          </xs:attribute>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="OwnershipType">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:enumeration value="C"/>
+            <xs:enumeration value="L"/>
+            <xs:enumeration value="P"/>
+            <xs:enumeration value="SP"/>
+            <xs:enumeration value="NP"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:element>
+      <xs:element name="MCC">
+        <xs:simpleType>
+          <xs:restriction base="xs:int">
+            <xs:minInclusive value="1"/>
+            <xs:maxInclusive value="9999"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:element>
+      <xs:element name="YearsInBusiness" type="xs:int" minOccurs="0"/>
+      <xs:element name="EstablishedDate" type="uw:UsDate" minOccurs="0"/>
+      <xs:element name="WebsiteUrl" type="xs:anyURI" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="OfficerType">
+    <xs:sequence>
+      <xs:element name="FullName" type="uw:Name100"/>
+      <xs:element name="Title" type="xs:string" minOccurs="0"/>
+      <xs:element name="SSN" type="uw:NineDigits"/>
+      <xs:element name="OwnershipPct">
+        <xs:simpleType>
+          <xs:restriction base="xs:int">
+            <xs:minInclusive value="0"/>
+            <xs:maxInclusive value="100"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:element>
+      <xs:element name="DateOfBirth" type="xs:date"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="ProcessingType">
+    <xs:sequence>
+      <xs:element name="MonthlyVolume" type="uw:Amount"/>
+      <xs:element name="AverageTicket" type="uw:Amount"/>
+      <xs:element name="HighTicket" type="uw:Amount" minOccurs="0"/>
+      <xs:element name="CardPresentPct" type="uw:Percent"/>
+      <xs:element name="CardNotPresentPct" type="uw:Percent"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="SettlementType">
+    <xs:sequence>
+      <xs:element name="RoutingNumber" type="uw:NineDigits"/>
+      <xs:element name="AccountNumber">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:minLength value="4"/>
+            <xs:maxLength value="17"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+</xs:schema>

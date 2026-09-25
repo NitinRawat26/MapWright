@@ -133,10 +133,12 @@ public static class TransformEngine
                 return first;
             case TransformationType.EnumMap:
                 return first is null ? null : Lookup(t, first) ?? throw new TransformException($"No value-map entry for '{Shown(row, first)}'.");
+            case TransformationType.Conditional when t.Cases is { Count: > 0 } cases:
+                return Decide(row, cases, inputs);
             case TransformationType.Conditional when inputs.Count == 1:
                 return first is null ? null : Lookup(t, first) ?? t.DefaultValue ?? throw new TransformException($"No condition covers '{Shown(row, first)}'.");
             case TransformationType.Conditional:
-                throw new TransformException("Conditions over several fields are not executable yet.");
+                throw new TransformException("A condition over several fields needs transformation.cases to run.");
             case TransformationType.Concat:
                 var parts = inputs.Select(i => i?.Value).Where(v => !string.IsNullOrWhiteSpace(v)).ToList();
                 return parts.Count == 0 ? null : string.Join(" ", parts);
@@ -181,6 +183,30 @@ public static class TransformEngine
 
         var result = Expressions.Evaluate(expr, bound).Number ?? throw new TransformException($"Expression '{t.Expression}' did not give a number.");
         return FormatNumber(row, result, scale, notes);
+    }
+
+    /// <summary>The first case whose clauses all hold, else the default; no value when none of the sources has one.</summary>
+    private static string? Decide(FieldMapping row, IReadOnlyList<ConditionalCase> cases, IReadOnlyList<SourceValue?> inputs)
+    {
+        if (inputs.All(i => i?.Value is null))
+        {
+            return null;
+        }
+
+        string? ValueOf(string path)
+        {
+            var index = row.Sources.ToList().FindIndex(f => f.Path == path);
+            return index < 0
+                ? throw new TransformException($"Condition uses '{path}', which is not one of the row's source fields.")
+                : inputs[index]?.Value;
+        }
+
+        bool Holds(ConditionalClause clause) => ValueOf(clause.Source) is { } value
+            && clause.In.Any(v => v == value || string.Equals(v, value.Trim(), StringComparison.OrdinalIgnoreCase));
+
+        return cases.FirstOrDefault(c => c.When.All(Holds))?.Then
+            ?? row.Transformation.DefaultValue
+            ?? throw new TransformException($"No condition covers {string.Join(", ", row.Sources.Select((s, i) => $"{s.Name} = '{(inputs[i]?.Value is { } v ? Shown(row, v) : "(none)")}'"))}.");
     }
 
     private static string? Lookup(Transformation t, string value) =>

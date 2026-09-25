@@ -3,6 +3,7 @@ import { Component, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -15,11 +16,12 @@ import { UserService } from '../core/user';
 interface Draft {
   concept: string;
   comment: string;
+  create: boolean;
 }
 
 @Component({
   selector: 'app-suggestion-list',
-  imports: [DatePipe, FormsModule, MatButtonModule, MatButtonToggleModule, MatFormFieldModule, MatInputModule, RouterLink],
+  imports: [DatePipe, FormsModule, MatButtonModule, MatButtonToggleModule, MatCheckboxModule, MatFormFieldModule, MatInputModule, RouterLink],
   templateUrl: './suggestion-list.html',
 })
 export class SuggestionList {
@@ -40,7 +42,13 @@ export class SuggestionList {
   }
 
   protected draft(s: Suggestion): Draft {
-    return this.drafts()[s.id] ?? { concept: s.content.businessConcept ?? s.content.proposedConcept ?? '', comment: '' };
+    return (
+      this.drafts()[s.id] ?? {
+        concept: s.content.businessConcept ?? s.content.proposedConcept ?? '',
+        comment: '',
+        create: !s.content.businessConcept && !!s.content.proposedConcept,
+      }
+    );
   }
 
   protected edit(s: Suggestion, change: Partial<Draft>): void {
@@ -58,12 +66,19 @@ export class SuggestionList {
     const concept = d.concept.trim();
     this.busy.set(s.id);
     this.api
-      .approveSuggestion(s.id, { concept: concept && concept !== s.content.businessConcept ? concept : undefined, comment: d.comment.trim() || undefined })
+      .approveSuggestion(s.id, {
+        concept: concept && concept !== s.content.businessConcept ? concept : undefined,
+        comment: d.comment.trim() || undefined,
+        create: d.create || undefined,
+      })
       .pipe(finalize(() => this.busy.set(null)))
       .subscribe({
         next: (result) => {
           this.replace(result.suggestion);
-          this.snackBar.open(`Added '${s.content.fieldName}' to draft ${result.playbookId}@${result.version}.`, undefined, { duration: 5000 });
+          const message = result.created
+            ? `Drafted new playbook ${result.playbookId}@${result.version} with '${s.content.fieldName}'.`
+            : `Added '${s.content.fieldName}' to draft ${result.playbookId}@${result.version}.`;
+          this.snackBar.open(message, undefined, { duration: 5000 });
         },
         error: () => undefined,
       });

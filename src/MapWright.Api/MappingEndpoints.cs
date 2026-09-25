@@ -25,7 +25,8 @@ public sealed record ReviewRequest(ReviewDecisionKind Decision, string? Comment 
 /// <param name="Payload">The target payload built from the sample. It holds the sample's real values.</param>
 public sealed record ReplaySample(string Sample, string Payload, ValidationRun Run);
 
-public sealed record ReplayResponse(IReadOnlyList<ReplaySample> Samples, bool Recorded);
+/// <param name="Masked">Sensitive values in the payloads are masked; the checks ran on the real values.</param>
+public sealed record ReplayResponse(IReadOnlyList<ReplaySample> Samples, bool Recorded, bool Masked);
 
 /// <summary>Generated mapping specs: generate, review row by row, export and replay samples through them.</summary>
 public static class MappingEndpoints
@@ -122,6 +123,7 @@ public static class MappingEndpoints
                 [FromForm] string? target,
                 [FromForm] string? xmlNamespace,
                 [FromForm] bool? record,
+                [FromForm] bool? mask,
                 MappingStore mappings, ProfileStore profiles, PlaybookStore playbooks, MapWrightDatabase database, HttpContext context,
                 [FromHeader(Name = ApiErrors.UserHeader)] string? user) =>
             {
@@ -150,7 +152,8 @@ public static class MappingEndpoints
                     }
 
                     var result = TransformEngine.Run(mapping, sample, targetProfile);
-                    var payload = TargetWriter.Write(result.Values, targetProfile, new() { XmlNamespace = xmlNamespace });
+                    var values = mask == true ? ReplayMasking.Mask(result.Values, mapping, targetProfile) : result.Values;
+                    var payload = TargetWriter.Write(values, targetProfile, new() { XmlNamespace = xmlNamespace });
                     var run = ReplayValidator.Validate(mapping, result, targetProfile, library, ReplayValidator.NextRunId(mapping, samples.Count), ranAt);
                     samples.Add(new(input.Name, payload, run));
                 }
@@ -160,10 +163,10 @@ public static class MappingEndpoints
                     mappings.Save(mapping with { ValidationRuns = [.. mapping.ValidationRuns, .. samples.Select(s => s.Run)] }, actor);
                 }
 
-                return new ReplayResponse(samples, actor is not null);
+                return new ReplayResponse(samples, actor is not null, mask == true);
             })
             .DisableAntiforgery()
-            .WithSummary("Run source samples through the mapping, build the target payloads and check them; record=true saves the runs.");
+            .WithSummary("Run source samples through the mapping, build the target payloads and check them; record=true saves the runs; mask=true masks sensitive values in the payloads.");
 
         group.MapPost("/{id}/rows/{rowId}/review", (
                 string id, string rowId, ReviewRequest body, MappingStore store, [FromHeader(Name = ApiErrors.UserHeader)] string? user) =>

@@ -43,7 +43,7 @@ public static class CliApp
           --format <list>   Comma-separated: {string.Join(",", MappingRenderers.All.Select(r => r.Format))} (default: all)
 
         Profile options:
-          <input|dir>       JSON or XML sample payloads, JSON Schema, OpenAPI (JSON), XSD, WSDL, field specs or
+          <input|dir>       JSON or XML sample payloads, JSON Schema, OpenAPI (JSON or YAML), XSD, WSDL, field specs or
                             data dictionaries (.csv, .xlsx) and PDF/Word (.pdf, .docx) specs with field tables; directories
                             contribute all of these
           --root <name>     XSD root element, WSDL operation, or OpenAPI operationId, "METHOD /path" or schema
@@ -74,6 +74,7 @@ public static class CliApp
           --playbooks       Playbooks whose validation rules are checked (default: ./playbooks)
           --out <dir>       Where the target payloads are written (default: replay/ next to the mapping)
           --xml-namespace   Namespace for XML target payloads (profile paths carry none)
+          --mask            Mask sensitive values in the written payloads (the checks still use the real values)
           --record          Add the validation runs to the mapping file (shown on the Validation tab)
           --strict          Exit with 1 when any check fails
 
@@ -694,6 +695,7 @@ public static class CliApp
         string? xmlNamespace = null;
         var record = false;
         var strict = false;
+        var mask = false;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -716,6 +718,9 @@ public static class CliApp
                     break;
                 case "--strict":
                     strict = true;
+                    break;
+                case "--mask":
+                    mask = true;
                     break;
                 case var arg when !arg.StartsWith("--", StringComparison.Ordinal):
                     inputs.Add(arg);
@@ -784,7 +789,7 @@ public static class CliApp
                 }
 
                 result = TransformEngine.Run(mapping, sample, target);
-                payload = TargetWriter.Write(result.Values, target, new() { XmlNamespace = xmlNamespace });
+                payload = TargetWriter.Write(mask ? ReplayMasking.Mask(result.Values, mapping, target) : result.Values, target, new() { XmlNamespace = xmlNamespace });
             }
             catch (Exception ex) when (ex is ProfileException or TransformException or IOException)
             {

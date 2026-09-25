@@ -12,6 +12,7 @@ import {
   MappingDocument,
   MappingListItem,
   MappingSummary,
+  Me,
   NewProfile,
   ReviewDecision,
   ReviewDecisionKind,
@@ -39,6 +40,10 @@ export class Api {
 
   health(): Observable<{ status: string }> {
     return this.http.get<{ status: string }>('/health');
+  }
+
+  me(): Observable<Me> {
+    return this.http.get<Me>('/api/me');
   }
 
   ai(): Observable<AiStatus> {
@@ -140,6 +145,11 @@ export class Api {
     return this.http.post<DetectResponse>(`/api/profiles/${encodeURIComponent(id)}/detect`, { useAi });
   }
 
+  /** The profile's latest saved detection, or null when detection hasn't run. */
+  detection(id: string): Observable<DetectResponse | null> {
+    return this.http.get<DetectResponse | null>(`/api/profiles/${encodeURIComponent(id)}/detection`);
+  }
+
   mappings(): Observable<MappingListItem[]> {
     return this.http.get<MappingListItem[]>('/api/mappings');
   }
@@ -160,7 +170,7 @@ export class Api {
     return this.http.get<MappingSummary>(`/api/mappings/${encodeURIComponent(id)}/summary`);
   }
 
-  exportUrl(id: string, format: 'xlsx' | 'csv' | 'html'): string {
+  exportUrl(id: string, format: 'xlsx' | 'csv' | 'html' | 'pdf'): string {
     return `/api/mappings/${encodeURIComponent(id)}/export/${format}`;
   }
 
@@ -180,7 +190,7 @@ export class Api {
     return this.http.get<Suggestion[]>('/api/suggestions', { params: status ? { status } : {} });
   }
 
-  approveSuggestion(id: number, request: { concept?: string; comment?: string }): Observable<ApprovedSuggestion> {
+  approveSuggestion(id: number, request: { concept?: string; comment?: string; create?: boolean }): Observable<ApprovedSuggestion> {
     return this.http.post<ApprovedSuggestion>(`/api/suggestions/${id}/approve`, request);
   }
 
@@ -189,7 +199,7 @@ export class Api {
   }
 
   /** Runs source samples through a mapping; with record the runs are saved on the mapping. */
-  replay(id: string, files: File[], request: { target: string; xmlNamespace?: string; record?: boolean }): Observable<ReplayResponse> {
+  replay(id: string, files: File[], request: { target: string; xmlNamespace?: string; record?: boolean; mask?: boolean }): Observable<ReplayResponse> {
     const form = new FormData();
     for (const file of files) {
       form.append('files', file, file.name);
@@ -202,6 +212,10 @@ export class Api {
 
     if (request.record) {
       form.append('record', 'true');
+    }
+
+    if (request.mask) {
+      form.append('mask', 'true');
     }
 
     return this.http.post<ReplayResponse>(`/api/mappings/${encodeURIComponent(id)}/replay`, form);

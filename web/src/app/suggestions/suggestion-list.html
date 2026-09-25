@@ -1,6 +1,6 @@
 <div class="page">
   <h1>AI suggestions</h1>
-  <p class="muted">When detection or mapping asks AI about a field no playbook recognises, its answer waits here. Approving adds the field name as a vocabulary term to a <b>draft</b> of the concept's domain playbook; the draft is then tested, reviewed and published like any other change. Rejecting changes nothing.</p>
+  <p class="muted">When detection or mapping asks AI about a field no playbook recognises, its answer waits here. Approving adds the field name as a vocabulary term to a <b>draft</b> of the concept's domain playbook; the draft is then tested, reviewed and published like any other change. For a concept or attribute no playbook has yet, tick <b>Create if missing</b>: approving then drafts a new domain playbook, or adds the attribute to a draft of the concept's playbook. Rejecting changes nothing.</p>
   <mat-button-toggle-group [value]="status()" (change)="status.set($event.value)" class="filters" data-testid="status-filter">
     <mat-button-toggle value="pending">Pending</mat-button-toggle>
     <mat-button-toggle value="approved">Approved</mat-button-toggle>
@@ -42,6 +42,7 @@
             <mat-label>Comment (optional)</mat-label>
             <input matInput [ngModel]="d.comment" (ngModelChange)="edit(s, { comment: $event })" data-testid="comment" />
           </mat-form-field>
+          <mat-checkbox [ngModel]="d.create" (ngModelChange)="edit(s, { create: $event })" data-testid="create">Create if missing</mat-checkbox>
           <button mat-flat-button type="button" [disabled]="!user.name() || busy() === s.id || !d.concept.trim()" (click)="approve(s)" data-testid="approve">Approve</button>
           <button mat-stroked-button type="button" [disabled]="!user.name() || busy() === s.id" (click)="reject(s)" data-testid="reject">Reject</button>
         </div>

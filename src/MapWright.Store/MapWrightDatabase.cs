@@ -161,6 +161,15 @@ public sealed partial class MapWrightDatabase : IDisposable
                 playbook_ref TEXT
             );
             CREATE INDEX IF NOT EXISTS ix_ai_suggestions_status ON ai_suggestions(status);
+            CREATE TABLE IF NOT EXISTS detections (
+                profile_id TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
+                json TEXT NOT NULL,
+                used_ai INTEGER NOT NULL,
+                playbooks TEXT NOT NULL,
+                profile_updated_at TEXT NOT NULL,
+                detected_at TEXT NOT NULL,
+                detected_by TEXT NOT NULL
+            );
             """;
         command.ExecuteNonQuery();
 

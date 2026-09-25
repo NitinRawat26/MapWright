@@ -77,6 +77,8 @@ public static class MappingSpecValidator
                 Error("MW020", at, "EnumMap transformation requires at least one valueMap entry.");
             }
 
+            ValidateCases(mapping, at, Error, Warn);
+
             if (mapping.Type == MappingType.Unmapped && mapping.Target.Required && string.IsNullOrWhiteSpace(mapping.SuggestedResolution))
             {
                 Warn("MW021", at, "Required target field is unmapped and has no suggestedResolution.");
@@ -128,6 +130,28 @@ public static class MappingSpecValidator
         }
 
         return issues;
+    }
+
+    private static void ValidateCases(FieldMapping mapping, string at, Action<string, string, string> error, Action<string, string, string> warn)
+    {
+        var t = mapping.Transformation;
+        if (t.Type == TransformationType.Conditional && mapping.Sources.Count > 1 && t.Cases is not { Count: > 0 })
+        {
+            warn("MW024", at, "Conditional over several source fields has no transformation.cases, so replay cannot run it.");
+        }
+
+        foreach (var (@case, index) in (t.Cases ?? []).Select((c, i) => (c, i)))
+        {
+            if (@case.When.Count == 0)
+            {
+                error("MW025", $"{at}.transformation.cases[{index}]", "A case needs at least one clause in when.");
+            }
+
+            foreach (var clause in @case.When.Where(c => mapping.Sources.All(s => s.Path != c.Source)))
+            {
+                error("MW025", $"{at}.transformation.cases[{index}]", $"Clause source '{clause.Source}' is not one of the row's sources.");
+            }
+        }
     }
 
     private static void ValidateCardinality(FieldMapping mapping, string at, Action<string, string, string> error)

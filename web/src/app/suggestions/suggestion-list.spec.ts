@@ -41,6 +41,29 @@ describe('SuggestionList', () => {
     expect([...root.querySelectorAll('[data-suggestion]')].map((s) => s.getAttribute('data-suggestion'))).toEqual(['2']);
   });
 
+  it('ticks create for a proposed concept and sends it', async () => {
+    const fixture = TestBed.createComponent(SuggestionList);
+    fixture.detectChanges();
+    await settle(fixture);
+    const proposed = suggestion(4);
+    respond('/api/suggestions?status=pending', [
+      { ...proposed, content: { ...proposed.content, businessConcept: undefined, domainPlaybook: undefined, proposedConcept: 'Merchant.Mcc' } },
+      suggestion(5),
+    ]);
+    await settle(fixture);
+    const root = fixture.nativeElement as HTMLElement;
+    const create = (id: number) => root.querySelector(`[data-suggestion="${id}"] [data-testid="create"] input`) as HTMLInputElement;
+    expect(create(4).checked).toBe(true);
+    expect(create(5).checked).toBe(false);
+
+    (root.querySelector('[data-suggestion="4"] [data-testid="approve"]') as HTMLButtonElement).click();
+    const approve = http().expectOne('/api/suggestions/4/approve');
+    expect(approve.request.body).toEqual({ concept: 'Merchant.Mcc', comment: undefined, create: true });
+    approve.flush({ suggestion: { ...suggestion(4, 'approved'), playbook: 'domain/merchant@0.1.0' }, playbookId: 'domain/merchant', version: '0.1.0', created: true });
+    await settle(fixture);
+    expect([...root.querySelectorAll('[data-suggestion]')].map((s) => s.getAttribute('data-suggestion'))).toEqual(['5']);
+  });
+
   it('sends a changed concept and a rejection comment, and shows decided suggestions', async () => {
     const { fixture, root } = await open();
     const second = root.querySelector('[data-suggestion="2"]') as HTMLElement;

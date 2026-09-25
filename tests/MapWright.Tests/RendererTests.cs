@@ -141,7 +141,8 @@ public class RendererTests
     public void Renderer_lookup_is_case_insensitive()
     {
         Assert.IsType<ExcelMappingRenderer>(MappingRenderers.Find("XLSX"));
-        Assert.Null(MappingRenderers.Find("pdf"));
+        Assert.IsType<PdfMappingRenderer>(MappingRenderers.Find("PDF"));
+        Assert.Null(MappingRenderers.Find("docx"));
     }
 
     [Fact]

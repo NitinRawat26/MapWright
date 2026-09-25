@@ -90,7 +90,7 @@ export class MappingDetail {
     });
   }
 
-  protected exportUrl(format: 'xlsx' | 'csv' | 'html'): string {
+  protected exportUrl(format: 'xlsx' | 'csv' | 'html' | 'pdf'): string {
     return this.api.exportUrl(this.id(), format);
   }
 

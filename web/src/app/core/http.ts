@@ -6,10 +6,20 @@ import { ApiProblem } from './models';
 import { UserService } from './user';
 
 export const UserHeader = 'X-MapWright-User';
+export const ApiKeyHeader = 'X-Api-Key';
 
 export const userInterceptor: HttpInterceptorFn = (request, next) => {
-  const user = inject(UserService).name();
-  return next(user && !request.headers.has(UserHeader) ? request.clone({ setHeaders: { [UserHeader]: user } }) : request);
+  const service = inject(UserService);
+  const headers: Record<string, string> = {};
+  const user = service.name();
+  const key = service.apiKey();
+  if (user && !request.headers.has(UserHeader)) {
+    headers[UserHeader] = user;
+  }
+  if (key && !request.headers.has(ApiKeyHeader)) {
+    headers[ApiKeyHeader] = key;
+  }
+  return next(Object.keys(headers).length ? request.clone({ setHeaders: headers }) : request);
 };
 
 /** Turns an error response into one readable message, using the API's problem body when there is one. */

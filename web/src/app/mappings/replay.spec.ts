@@ -44,6 +44,7 @@ describe('Replay', () => {
     const form = request.request.body as FormData;
     expect(form.get('target')).toBe('uw-core');
     expect(form.get('record')).toBe('true');
+    expect(form.get('mask')).toBe('true');
     expect((form.get('files') as File).name).toBe('corp.json');
     request.flush({
       recorded: true,
@@ -59,5 +60,29 @@ describe('Replay', () => {
     expect(root.querySelector('[data-testid="results-corp.json"]')?.textContent).toContain('Required target has no value.');
     expect(text(root, 'payload')).toBe('<UnderwritingRequest/>');
     expect(recorded).toBe(1);
+  });
+
+  it('sends real values only when masking is unticked', async () => {
+    const fixture = TestBed.createComponent(Replay);
+    fixture.componentRef.setInput('mapping', mapping);
+    fixture.detectChanges();
+    respond('/api/profiles', [{ id: 'uw-core', system: 'UW Core', format: 'xml', fieldCount: 30, createdAt: '', updatedAt: '', updatedBy: 'x' }]);
+    await settle(fixture);
+    const root = fixture.nativeElement as HTMLElement;
+    const mask = root.querySelector('[data-testid="mask"] input') as HTMLInputElement;
+    expect(mask.checked).toBe(true);
+    expect(root.querySelector('[data-testid="real-values"]')).toBeNull();
+
+    const picker = root.querySelector('[data-testid="replay-files"]') as HTMLInputElement;
+    Object.defineProperty(picker, 'files', { value: [new File(['{}'], 'corp.json')], configurable: true });
+    picker.dispatchEvent(new Event('change'));
+    mask.click();
+    await settle(fixture);
+    expect(root.querySelector('[data-testid="real-values"]')).not.toBeNull();
+    (root.querySelector('[data-testid="replay"]') as HTMLButtonElement).click();
+
+    const request = http().expectOne({ url: '/api/mappings/a__b/replay', method: 'POST' });
+    expect((request.request.body as FormData).get('mask')).toBeNull();
+    request.flush({ recorded: false, samples: [] });
   });
 });

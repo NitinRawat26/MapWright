@@ -28,7 +28,7 @@ public sealed class CliAppTests : IDisposable
     {
         Assert.Equal(CliApp.Success, Run("render", TestSpecs.SamplePath, "--out", _dir));
 
-        foreach (var ext in new[] { "xlsx", "csv", "html" })
+        foreach (var ext in new[] { "xlsx", "csv", "html", "pdf" })
         {
             Assert.True(new FileInfo(Path.Combine(_dir, $"sales-alpha__uw-core.{ext}")).Length > 0);
         }
@@ -67,7 +67,7 @@ public sealed class CliAppTests : IDisposable
     [Theory]
     [InlineData("frobnicate")]
     [InlineData("render")]
-    [InlineData("render", "x.json", "--format", "pdf")]
+    [InlineData("render", "x.json", "--format", "docx")]
     [InlineData("render", "x.json", "--bogus")]
     [InlineData("profile", "x.json")]
     [InlineData("profile", "--system", "S")]
@@ -284,6 +284,20 @@ public sealed class CliAppTests : IDisposable
         Assert.Equal("sole-prop.json", recorded.ValidationRuns[2].SamplePayload);
         Assert.DoesNotContain(MappingSpecValidator.Validate(recorded), i => i.Severity == IssueSeverity.Error);
         Assert.Equal(CliApp.Success, Run("render", mapping, "--out", _dir, "--format", "csv"));
+    }
+
+    [Fact]
+    public void Replay_mask_writes_payloads_without_the_real_sensitive_values()
+    {
+        var outDir = Path.Combine(_dir, "masked");
+
+        Assert.Equal(CliApp.Success, Run(
+            "replay", MappingSample("generated-mapping.json"), Path.Combine(SalesSamples, "sole-prop.json"), "--target", SystemProfile("uw-core"),
+            "--playbooks", StarterPlaybooks.Directory, "--out", outDir, "--mask"));
+
+        var payload = File.ReadAllText(Path.Combine(outDir, "sole-prop.xml"));
+        Assert.Contains("<SSN>*****5566</SSN>", payload);
+        Assert.DoesNotContain("900445566", payload);
     }
 
     [Fact]

@@ -35,6 +35,7 @@ export class Replay {
   protected readonly target = signal('');
   protected readonly xmlNamespace = signal('');
   protected readonly record = signal(false);
+  protected readonly mask = signal(true);
   protected readonly files = signal<File[]>([]);
   protected readonly busy = signal(false);
   protected readonly samples = signal<ReplaySample[]>([]);
@@ -63,7 +64,7 @@ export class Replay {
   protected run(): void {
     this.busy.set(true);
     this.api
-      .replay(this.mapping().id, this.files(), { target: this.target(), xmlNamespace: this.xmlNamespace().trim() || undefined, record: this.record() })
+      .replay(this.mapping().id, this.files(), { target: this.target(), xmlNamespace: this.xmlNamespace().trim() || undefined, record: this.record(), mask: this.mask() })
       .pipe(finalize(() => this.busy.set(false)))
       .subscribe({
         next: (response) => {

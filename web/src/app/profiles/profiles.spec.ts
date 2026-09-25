@@ -184,4 +184,41 @@ describe('Profiles', () => {
     expect(text(root, 'detected')).toBe('Recognised 1 of 2 fields');
     expect(root.textContent).toContain('LegalEntity.TaxId');
   });
+
+  it('shows the saved detection result and warns when it is out of date', async () => {
+    const fixture = TestBed.createComponent(ProfileDetail);
+    fixture.componentRef.setInput('id', 'salesalpha-crm');
+    fixture.detectChanges();
+    respond('/api/ai', { available: false, maxConfidence: 70 });
+    respond('/api/profiles/salesalpha-crm', profile);
+    respond('/api/profiles/salesalpha-crm/detection', {
+      system: 'SalesAlpha CRM',
+      recognised: [{ path: '$.account.taxId', detection: { playbook: 'domain/tax-id@1.0.0', concept: 'LegalEntity', businessConcept: 'LegalEntity.TaxId', score: 95, requiresReview: false } }],
+      suggestions: [],
+      remaining: ['$.applicationId'],
+      warnings: [],
+      usedAi: false,
+      detectedAt: '2026-09-25T10:00:00Z',
+      detectedBy: 'ben',
+      stale: ['The profile has been saved again since detection ran.'],
+    });
+    await settle(fixture);
+    const root = fixture.nativeElement as HTMLElement;
+
+    expect(text(root, 'detected')).toBe('Recognised 1 of 2 fields');
+    expect(text(root, 'detected-at')).toContain('by ben, playbooks only');
+    expect(text(root, 'stale')).toBe('The profile has been saved again since detection ran. Run detection again to update it.');
+  });
+
+  it('shows no result when detection has not run', async () => {
+    const fixture = TestBed.createComponent(ProfileDetail);
+    fixture.componentRef.setInput('id', 'salesalpha-crm');
+    fixture.detectChanges();
+    respond('/api/ai', { available: false, maxConfidence: 70 });
+    respond('/api/profiles/salesalpha-crm', profile);
+    respond('/api/profiles/salesalpha-crm/detection', null);
+    await settle(fixture);
+
+    expect(text(fixture.nativeElement as HTMLElement, 'detected')).toBe('');
+  });
 });

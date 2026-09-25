@@ -315,79 +315,269 @@ public static partial class PlaybookYaml
             return true;
         }
 
-        switch (node, old, updated)
+        var mark = edits.Count;
+        var applied = (node, old, updated) switch
         {
-            case (YamlMappingNode mapping, JsonObject from, JsonObject to):
-                if (!from.Select(p => p.Key).Order(StringComparer.Ordinal).SequenceEqual(to.Select(p => p.Key).Order(StringComparer.Ordinal), StringComparer.Ordinal))
-                {
-                    return false;
-                }
-
-                foreach (var (key, value) in to)
-                {
-                    if (JsonNode.DeepEquals(from[key], value))
-                    {
-                        continue;
-                    }
-
-                    // Keys the YAML leaves out (defaults, computed values such as the reference) are checked
-                    // when the result is read back.
-                    var child = mapping.Children.FirstOrDefault(c => c.Key is YamlScalarNode { Value: { } k } && k == key).Value;
-                    if (child is not null && !Diff(yaml, child, from[key], value, edits))
-                    {
-                        return false;
-                    }
-                }
-
-                return true;
-            case (YamlSequenceNode sequence, JsonArray from, JsonArray to):
-                if (to.Count < from.Count || sequence.Children.Count != from.Count)
-                {
-                    return false;
-                }
-
-                for (var i = 0; i < from.Count; i++)
-                {
-                    if (!Diff(yaml, sequence.Children[i], from[i], to[i], edits))
-                    {
-                        return false;
-                    }
-                }
-
-                return to.Count == from.Count || Append(yaml, sequence, [.. to.Skip(from.Count)], edits);
-            case (YamlScalarNode { Style: not (ScalarStyle.Literal or ScalarStyle.Folded) } scalar, JsonValue, JsonValue value):
-                if (Inline(value) is not { } text)
-                {
-                    return false;
-                }
-
-                edits.Add(new((int)scalar.Start.Index, (int)(scalar.End.Index - scalar.Start.Index), text));
-                return true;
-            default:
-                return false;
+            (YamlMappingNode mapping, JsonObject from, JsonObject to) => DiffMapping(yaml, mapping, from, to, edits),
+            (YamlSequenceNode sequence, JsonArray from, JsonArray to) => DiffSequence(yaml, sequence, from, to, edits),
+            (YamlScalarNode { Style: not (ScalarStyle.Literal or ScalarStyle.Folded) } scalar, JsonValue, JsonValue value) when Inline(value) is { } text =>
+                Add(edits, new((int)scalar.Start.Index, (int)(scalar.End.Index - scalar.Start.Index), text)),
+            _ => false,
+        };
+        if (!applied)
+        {
+            edits.RemoveRange(mark, edits.Count - mark);
         }
+
+        return applied;
     }
 
-    private static bool Append(string yaml, YamlSequenceNode sequence, JsonNode?[] items, List<Edit> edits)
+    private static bool Add(List<Edit> edits, Edit edit)
     {
-        if (sequence.Style == SequenceStyle.Flow || sequence.Children.Count == 0)
+        edits.Add(edit);
+        return true;
+    }
+
+    /// <summary>
+    /// Changed values are edited in place where possible and otherwise rewritten with their key; removed keys lose
+    /// their lines and new keys go after the last one. Keys the YAML leaves out (defaults, computed values such as
+    /// the reference) are checked when the result is read back.
+    /// </summary>
+    private static bool DiffMapping(string yaml, YamlMappingNode mapping, JsonObject from, JsonObject to, List<Edit> edits)
+    {
+        var block = mapping.Style != MappingStyle.Flow;
+        var children = new Dictionary<string, (YamlNode Key, YamlNode Value)>(StringComparer.Ordinal);
+        foreach (var (key, value) in mapping.Children)
+        {
+            if (key is YamlScalarNode { Value: { } name })
+            {
+                children[name] = (key, value);
+            }
+        }
+
+        var removed = from.Select(p => p.Key).Where(k => !to.ContainsKey(k) && children.ContainsKey(k)).ToHashSet(StringComparer.Ordinal);
+        var added = new JsonObject();
+        foreach (var (name, value) in to)
+        {
+            if (from.TryGetPropertyValue(name, out var before) && JsonNode.DeepEquals(before, value))
+            {
+                continue;
+            }
+
+            if (!children.TryGetValue(name, out var child))
+            {
+                added[name] = value?.DeepClone();
+            }
+            else if (!Diff(yaml, child.Value, before, value, edits) && !(block && ReplaceEntry(yaml, child.Key, child.Value, name, value, edits)))
+            {
+                return false;
+            }
+        }
+
+        if (removed.Count == 0 && added.Count == 0)
+        {
+            return true;
+        }
+
+        var kept = mapping.Children.Where(c => c.Key is not YamlScalarNode { Value: { } k } || !removed.Contains(k)).ToList();
+        if (!block || kept.Count == 0)
         {
             return false;
         }
 
-        var end = (int)End(sequence.Children[^1]);
-        while (end > 0 && char.IsWhiteSpace(yaml[end - 1]))
+        foreach (var name in removed)
+        {
+            var (key, value) = children[name];
+            var at = (int)key.Start.Index;
+            if (!StartsLine(yaml, at))
+            {
+                return false;
+            }
+
+            var start = LineStart(yaml, at);
+            edits.Add(new(start, NextLine(yaml, ContentEnd(yaml, key, value)) - start, ""));
+        }
+
+        if (added.Count > 0)
+        {
+            var first = (int)mapping.Children[0].Key.Start.Index;
+            var last = kept[^1];
+            var lineEnd = NextLine(yaml, ContentEnd(yaml, last.Key, last.Value));
+            var at = lineEnd > 0 && yaml[lineEnd - 1] == '\n' ? lineEnd - 1 : lineEnd;
+            edits.Add(new(at, 0, "\n" + Indented(Emit(added), first - LineStart(yaml, first), indentFirst: true)));
+        }
+
+        return true;
+    }
+
+    /// <summary>Items are matched by value, so an item added or removed in the middle leaves the others' comments.</summary>
+    private static bool DiffSequence(string yaml, YamlSequenceNode sequence, JsonArray from, JsonArray to, List<Edit> edits)
+    {
+        if (sequence.Children.Count != from.Count)
+        {
+            return false;
+        }
+
+        if (sequence.Style == SequenceStyle.Flow || from.Count == 0 || to.Count == 0)
+        {
+            return from.Count == to.Count && from.Count > 0 && Enumerable.Range(0, from.Count).All(i => Diff(yaml, sequence.Children[i], from[i], to[i], edits));
+        }
+
+        var anchors = Common(from, to);
+        anchors.Add((from.Count, to.Count));
+        var (f, t) = (0, 0);
+        foreach (var (anchorFrom, anchorTo) in anchors)
+        {
+            var paired = Math.Min(anchorFrom - f, anchorTo - t);
+            for (var k = 0; k < paired; k++, f++, t++)
+            {
+                if (!Diff(yaml, sequence.Children[f], from[f], to[t], edits) && !ReplaceItem(yaml, sequence.Children[f], to[t], edits))
+                {
+                    return false;
+                }
+            }
+
+            for (; f < anchorFrom; f++)
+            {
+                var dash = Dash(yaml, sequence.Children[f]);
+                if (dash < 0 || !StartsLine(yaml, dash))
+                {
+                    return false;
+                }
+
+                var start = LineStart(yaml, dash);
+                edits.Add(new(start, NextLine(yaml, ContentEnd(yaml, sequence.Children[f])) - start, ""));
+            }
+
+            if (t < anchorTo)
+            {
+                var items = Emit(new JsonArray([.. to.Skip(t).Take(anchorTo - t).Select(i => i?.DeepClone())]));
+                t = anchorTo;
+                if (anchorFrom < from.Count)
+                {
+                    var dash = Dash(yaml, sequence.Children[anchorFrom]);
+                    if (dash < 0 || !StartsLine(yaml, dash))
+                    {
+                        return false;
+                    }
+
+                    edits.Add(new(LineStart(yaml, dash), 0, Indented(items, dash - LineStart(yaml, dash), indentFirst: true) + "\n"));
+                }
+                else
+                {
+                    var lastDash = Dash(yaml, sequence.Children[^1]);
+                    if (lastDash < 0)
+                    {
+                        return false;
+                    }
+
+                    var lineEnd = NextLine(yaml, ContentEnd(yaml, sequence.Children[^1]));
+                    var at = lineEnd > 0 && yaml[lineEnd - 1] == '\n' ? lineEnd - 1 : lineEnd;
+                    edits.Add(new(at, 0, "\n" + Indented(items, lastDash - LineStart(yaml, lastDash), indentFirst: true)));
+                }
+            }
+
+            (f, t) = (anchorFrom + 1, anchorTo + 1);
+        }
+
+        return true;
+    }
+
+    /// <summary>Index pairs of the longest run of items that are equal in both lists, in order.</summary>
+    private static List<(int From, int To)> Common(JsonArray from, JsonArray to)
+    {
+        var lengths = new int[from.Count + 1, to.Count + 1];
+        for (var i = from.Count - 1; i >= 0; i--)
+        {
+            for (var j = to.Count - 1; j >= 0; j--)
+            {
+                lengths[i, j] = JsonNode.DeepEquals(from[i], to[j]) ? lengths[i + 1, j + 1] + 1 : Math.Max(lengths[i + 1, j], lengths[i, j + 1]);
+            }
+        }
+
+        var pairs = new List<(int, int)>();
+        for (int i = 0, j = 0; i < from.Count && j < to.Count;)
+        {
+            if (JsonNode.DeepEquals(from[i], to[j]))
+            {
+                pairs.Add((i++, j++));
+            }
+            else if (lengths[i + 1, j] >= lengths[i, j + 1])
+            {
+                i++;
+            }
+            else
+            {
+                j++;
+            }
+        }
+
+        return pairs;
+    }
+
+    /// <summary>Rewrites <c>key: value</c> in place; comments inside the old value are lost, the rest are kept.</summary>
+    private static bool ReplaceEntry(string yaml, YamlNode key, YamlNode value, string name, JsonNode? node, List<Edit> edits)
+    {
+        var start = (int)key.Start.Index;
+        var text = Indented(Emit(new JsonObject { [name] = node?.DeepClone() }), start - LineStart(yaml, start), indentFirst: false);
+        edits.Add(new(start, ContentEnd(yaml, key, value) - start, text));
+        return true;
+    }
+
+    private static bool ReplaceItem(string yaml, YamlNode item, JsonNode? node, List<Edit> edits)
+    {
+        var dash = Dash(yaml, item);
+        if (dash < 0)
+        {
+            return false;
+        }
+
+        var text = Indented(Emit(new JsonArray(node?.DeepClone())), dash - LineStart(yaml, dash), indentFirst: false);
+        edits.Add(new(dash, ContentEnd(yaml, item) - dash, text));
+        return true;
+    }
+
+    private static string Indented(string rendered, int indent, bool indentFirst)
+    {
+        var pad = new string(' ', indent);
+        var lines = rendered.TrimEnd('\n').Split('\n').Select((l, i) => l.Length == 0 || (i == 0 && !indentFirst) ? l : pad + l);
+        return string.Join('\n', lines);
+    }
+
+    /// <summary>Where the item's <c>-</c> is, or -1 when it has none (a flow sequence).</summary>
+    private static int Dash(string yaml, YamlNode item)
+    {
+        var i = (int)item.Start.Index - 1;
+        while (i >= 0 && yaml[i] is ' ' or '\t')
+        {
+            i--;
+        }
+
+        return i >= 0 && yaml[i] == '-' ? i : -1;
+    }
+
+    private static int LineStart(string yaml, int index) => index == 0 ? 0 : yaml.LastIndexOf('\n', index - 1) + 1;
+
+    private static bool StartsLine(string yaml, int index) => yaml.AsSpan(LineStart(yaml, index), index - LineStart(yaml, index)).IsWhiteSpace();
+
+    /// <summary>The start of the line after the one holding <paramref name="index"/>.</summary>
+    private static int NextLine(string yaml, int index)
+    {
+        var lineEnd = yaml.IndexOf('\n', index);
+        return lineEnd < 0 ? yaml.Length : lineEnd + 1;
+    }
+
+    /// <summary>Just past the last character of the nodes, without trailing whitespace such as a block scalar's newlines.</summary>
+    private static int ContentEnd(string yaml, params YamlNode[] nodes)
+    {
+        var start = (int)nodes[0].Start.Index;
+        var end = (int)nodes.Max(End);
+        while (end > start + 1 && char.IsWhiteSpace(yaml[end - 1]))
         {
             end--;
         }
 
-        var lineEnd = yaml.IndexOf('\n', end);
-        var at = lineEnd < 0 ? yaml.Length : lineEnd;
-        var indent = new string(' ', (int)sequence.Start.Column - 1);
-        var rendered = Emit(new JsonArray([.. items.Select(i => i?.DeepClone())]));
-        var lines = rendered.TrimEnd('\n').Split('\n').Select(l => l.Length == 0 ? l : indent + l);
-        edits.Add(new(at, 0, "\n" + string.Join('\n', lines)));
-        return true;
+        return end;
     }
 
     private static long End(YamlNode node) => node switch

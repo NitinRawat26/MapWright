@@ -1,7 +1,10 @@
 using System.Net;
 using MapWright.Core.Matching;
+using MapWright.Core.Playbooks;
 using MapWright.Core.Profile;
 using MapWright.Core.Spec;
+using MapWright.Store;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MapWright.Tests;
 
@@ -78,6 +81,39 @@ public sealed class MappingApiTests : IDisposable
     }
 
     [Fact]
+    public async Task Detection_results_are_saved_until_the_next_run_and_say_when_they_are_out_of_date()
+    {
+        var client = await WithProfiles();
+        Assert.Equal(HttpStatusCode.NoContent, (await client.GetAsync("/api/profiles/sales-alpha/detection")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/api/profiles/nope/detection")).StatusCode);
+
+        var run = await (await client.PostAsync("/api/profiles/sales-alpha/detect", null)).Node();
+        Assert.Equal("ana", run["detectedBy"].Text());
+        Assert.False(run["usedAi"]!.GetValue<bool>());
+
+        var saved = await (await client.GetAsync("/api/profiles/sales-alpha/detection")).Node();
+        Assert.Equal(run["recognised"]!.ToJsonString(), saved["recognised"]!.ToJsonString());
+        Assert.Equal(run["remaining"]!.ToJsonString(), saved["remaining"]!.ToJsonString());
+        Assert.Equal((run["detectedAt"].Text(), "ana"), (saved["detectedAt"].Text(), saved["detectedBy"].Text()));
+        Assert.Empty(saved["stale"]!.AsArray());
+
+        _api.Services.GetRequiredService<PlaybookStore>().Transition("domain/tax-id", "1.0.0", PlaybookStatus.Retired, "ana", "test");
+        Assert.Equal(HttpStatusCode.OK, (await client.PutJson("/api/profiles/sales-alpha", await File.ReadAllTextAsync(Systems("sales-alpha", "profile.json")))).StatusCode);
+        var stale = (await (await client.GetAsync("/api/profiles/sales-alpha/detection")).Node())["stale"]!.AsArray().Select(s => s.Text()).ToList();
+        Assert.Equal(2, stale.Count);
+        Assert.Contains("profile has been saved again", stale[0]);
+        Assert.Contains("domain/tax-id@1.0.0 is no longer published", stale[1]);
+
+        var again = await (await client.PostAsync("/api/profiles/sales-alpha/detect", null)).Node();
+        Assert.DoesNotContain(again["recognised"]!.AsArray(), r => r!["path"].Text() == "$.account.taxId");
+        Assert.Empty((await (await client.GetAsync("/api/profiles/sales-alpha/detection")).Node())["stale"]!.AsArray());
+
+        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync("/api/profiles/sales-alpha")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.PutJson("/api/profiles/sales-alpha", await File.ReadAllTextAsync(Systems("sales-alpha", "profile.json")))).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.GetAsync("/api/profiles/sales-alpha/detection")).StatusCode);
+    }
+
+    [Fact]
     public async Task Generated_mapping_matches_the_engine_and_exports()
     {
         var client = await WithProfiles();
@@ -101,7 +137,10 @@ public sealed class MappingApiTests : IDisposable
         Assert.True((await xlsx.Content.ReadAsByteArrayAsync()).Length > 1000);
         var csv = await client.GetAsync("/api/mappings/sales-alpha__uw-core/export/csv");
         Assert.Equal("text/csv", csv.Content.Headers.ContentType?.MediaType);
-        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/api/mappings/sales-alpha__uw-core/export/pdf")).StatusCode);
+        var pdf = await client.GetAsync("/api/mappings/sales-alpha__uw-core/export/pdf");
+        Assert.Equal("application/pdf", pdf.Content.Headers.ContentType?.MediaType);
+        Assert.StartsWith("%PDF", System.Text.Encoding.ASCII.GetString(await pdf.Content.ReadAsByteArrayAsync()));
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/api/mappings/sales-alpha__uw-core/export/docx")).StatusCode);
     }
 
     [Fact]
@@ -127,6 +166,17 @@ public sealed class MappingApiTests : IDisposable
 
         var stored = MappingSpecSerializer.Deserialize(await client.GetStringAsync("/api/mappings/sales-alpha__uw-core"));
         Assert.Equal(3, stored.ValidationRuns.Count);
+
+        var masked = await (await client.Upload(
+            "/api/mappings/sales-alpha__uw-core/replay", Files(Systems("sales-alpha", "samples")), ("target", "uw-core"), ("mask", "true"))).Node();
+        Assert.Equal((true, false), (masked["masked"]!.GetValue<bool>(), masked["recorded"]!.GetValue<bool>()));
+        var soleProp = masked["samples"]!.AsArray().Single(s => s!["sample"].Text() == "sole-prop.json")!;
+        Assert.Contains("<SSN>*****5566</SSN>", soleProp["payload"].Text());
+        Assert.DoesNotContain("900445566", soleProp["payload"].Text());
+        Assert.Equal(
+            samples.Select(s => s!["run"]!["results"]!.AsArray().Select(r => r!["outcome"].Text())),
+            masked["samples"]!.AsArray().Select(s => s!["run"]!["results"]!.AsArray().Select(r => r!["outcome"].Text())));
+        Assert.Equal(3, MappingSpecSerializer.Deserialize(await client.GetStringAsync("/api/mappings/sales-alpha__uw-core")).ValidationRuns.Count);
 
         var wrongTarget = await client.Upload("/api/mappings/sales-alpha__uw-core/replay", Files(Systems("sales-alpha", "samples")), ("target", "sales-alpha"));
         Assert.Equal(HttpStatusCode.BadRequest, wrongTarget.StatusCode);

@@ -8,6 +8,7 @@ public static class AiProviders
     public const string VertexModelVariable = "MAPWRIGHT_VERTEX_MODEL";
     public const string OllamaUrlVariable = "MAPWRIGHT_OLLAMA_URL";
     public const string OllamaModelVariable = "MAPWRIGHT_OLLAMA_MODEL";
+    public const string OllamaContextVariable = "MAPWRIGHT_OLLAMA_CONTEXT_TOKENS";
     public const string TimeoutVariable = "MAPWRIGHT_AI_TIMEOUT_SECONDS";
 
     public static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(180);
@@ -37,7 +38,19 @@ public static class AiProviders
                 throw new AiProviderException($"{OllamaUrlVariable} must be an http(s) URL.");
             }
 
-            providers.Add(new OllamaProvider(http, new() { BaseUrl = baseUrl, Model = Value(environment, OllamaModelVariable) ?? OllamaOptions.DefaultModel }));
+            var context = OllamaOptions.DefaultContextTokens;
+            if (Value(environment, OllamaContextVariable) is { } tokens && (!int.TryParse(tokens, out context) || context < 2048))
+            {
+                throw new AiProviderException($"{OllamaContextVariable} must be a whole number of tokens, at least 2048.");
+            }
+
+            providers.Add(new OllamaProvider(http, new()
+            {
+                BaseUrl = baseUrl,
+                Model = Value(environment, OllamaModelVariable) ?? OllamaOptions.DefaultModel,
+                ContextTokens = context,
+                MaxOutputTokens = Math.Min(OllamaOptions.DefaultMaxOutputTokens, context / 2),
+            }));
         }
 
         return providers.Count switch

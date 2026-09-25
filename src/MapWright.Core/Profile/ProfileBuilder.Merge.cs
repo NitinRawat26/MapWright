@@ -74,7 +74,7 @@ public static partial class ProfileBuilder
                 Format = c.Format,
                 Sha256 = c.Sha256,
                 Notes = c.Root is null ? null : $"Profiled {c.Root}.",
-            }))],
+            })).Concat(request.Contracts.SelectMany(c => c.Referenced)).DistinctBy(i => i.Name, StringComparer.OrdinalIgnoreCase)],
             Fields = merged,
             Findings = MergeFindings([.. observed?.Findings ?? [], .. request.Contracts.SelectMany(c => c.Findings), .. findings]),
         };

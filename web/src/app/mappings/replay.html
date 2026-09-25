@@ -24,6 +24,9 @@
     }
   </div>
   <div class="row">
+    <mat-checkbox [checked]="mask()" (change)="mask.set($event.checked)" data-testid="mask">Mask sensitive values in the target payloads</mat-checkbox>
+  </div>
+  <div class="row">
     <mat-checkbox [checked]="record()" (change)="record.set($event.checked)" data-testid="record">Save the results on the mapping (Validation tab of the report)</mat-checkbox>
   </div>
   <div class="row">
@@ -32,7 +35,11 @@
       <span class="muted">Enter your name in the toolbar to save the results.</span>
     }
   </div>
-  <p class="muted">The target payloads contain the real sample values; sensitive values are masked only in the check results.</p>
+  @if (mask()) {
+    <p class="muted">Sensitive values in the target payloads keep only their last four characters. The checks run on the real values.</p>
+  } @else {
+    <p class="muted" data-testid="real-values">The target payloads will contain the real sample values; sensitive values are masked only in the check results.</p>
+  }
 </div>
 
 @for (s of samples(); track s.sample) {
