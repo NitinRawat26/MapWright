@@ -1,0 +1,393 @@
+# Domain playbook: Channel Mix.
+# Edit a draft in the MapWright UI, or edit this file and check it with: mapwright playbook test playbooks
+# Values that look like numbers or dates (versions, dates, codes) are quoted so every YAML tool reads them as text.
+
+specVersion: "1.0"
+id: domain/channel-mix
+name: Channel Mix
+kind: domain
+version: "1.0.0"
+status: published
+owner: Underwriting BA team
+description: How card sales split across card-present, mail/telephone order (MOTO) and e-commerce.
+changeNotes:
+  - version: "1.0.0"
+    date: "2026-09-25"
+    author: MapWright starter set
+    description: Initial version.
+domain:
+  concept:
+    name: ChannelMix
+    description: Share of card sales by acceptance channel.
+    attributes:
+      - name: CardPresent
+        description: Card physically present (swiped, dipped, tapped).
+        dataType: decimal
+      - name: CardNotPresent
+        description: 'All card-not-present sales: MOTO plus e-commerce.'
+        dataType: decimal
+      - name: Moto
+        description: Mail order / telephone order.
+        dataType: decimal
+      - name: Ecommerce
+        description: Internet sales.
+        dataType: decimal
+  # Names systems use for the concept or one of its attributes; relation is equivalent unless stated.
+  vocabulary:
+    - term: channel mix
+    - term: sales channel
+    - term: transaction mix
+    - term: card mix
+    - term: acceptance method
+    - term: sales method
+    - term: processing
+      relation: related
+    - term: channels
+      relation: related
+    - term: card present
+      appliesTo: CardPresent
+    - term: cp
+      appliesTo: CardPresent
+    - term: swiped
+      appliesTo: CardPresent
+    - term: face to face
+      appliesTo: CardPresent
+    - term: in person
+      appliesTo: CardPresent
+    - term: card swipe
+      appliesTo: CardPresent
+    - term: chip
+      appliesTo: CardPresent
+    - term: retail
+      appliesTo: CardPresent
+      relation: related
+      note: Retail is usually card-present, but not always.
+    - term: keyed
+      appliesTo: CardPresent
+      relation: related
+      note: Keyed can be card-present (keyed at a terminal) or MOTO.
+    - term: card not present
+      appliesTo: CardNotPresent
+    - term: cnp
+      appliesTo: CardNotPresent
+    - term: non face to face
+      appliesTo: CardNotPresent
+    - term: remote
+      appliesTo: CardNotPresent
+    - term: mail order telephone order
+      appliesTo: Moto
+    - term: mail telephone order
+      appliesTo: Moto
+    - term: mail phone order
+      appliesTo: Moto
+    - term: mail order
+      appliesTo: Moto
+    - term: telephone order
+      appliesTo: Moto
+    - term: phone order
+      appliesTo: Moto
+    - term: mail
+      appliesTo: Moto
+      relation: related
+    - term: phone
+      appliesTo: Moto
+      relation: related
+    - term: ecommerce
+      appliesTo: Ecommerce
+    - term: ecomm
+      appliesTo: Ecommerce
+    - term: internet
+      appliesTo: Ecommerce
+    - term: online
+      appliesTo: Ecommerce
+    - term: web sales
+      appliesTo: Ecommerce
+    - term: web
+      appliesTo: Ecommerce
+      relation: related
+  qualifiers:
+    - name: unit
+      description: Share expressed as a percent (0–100) or a fraction (0–1).
+      values:
+        - value: fraction
+          terms:
+            - fraction
+            - ratio
+            - decimal share
+          minValue: 0
+          maxValue: 1
+        - value: percent
+          terms:
+            - percent
+            - pct
+            - percentage
+            - perc
+          minValue: 0
+          maxValue: 100
+  # Extra evidence: each matching signal adds its weight (negative weights count against a match).
+  signals:
+    - id: MIX-SIG-RANGE-CARDPRESENT
+      kind: valueRange
+      appliesTo: CardPresent
+      minValue: 0
+      maxValue: 100
+      weight: 10
+      note: a share between 0 and 100
+    - id: MIX-SIG-RANGE-CARDNOTPRESENT
+      kind: valueRange
+      appliesTo: CardNotPresent
+      minValue: 0
+      maxValue: 100
+      weight: 10
+      note: a share between 0 and 100
+    - id: MIX-SIG-RANGE-MOTO
+      kind: valueRange
+      appliesTo: Moto
+      minValue: 0
+      maxValue: 100
+      weight: 10
+      note: a share between 0 and 100
+    - id: MIX-SIG-RANGE-ECOMMERCE
+      kind: valueRange
+      appliesTo: Ecommerce
+      minValue: 0
+      maxValue: 100
+      weight: 10
+      note: a share between 0 and 100
+    - id: MIX-SIG-TEXT-CP
+      kind: dataType
+      appliesTo: CardPresent
+      pattern: string|date|dateTime|boolean
+      weight: -30
+      note: not a number, e.g. a yes/no flag
+  derivations:
+    - id: MIX-CNP-01
+      description: Card-not-present is MOTO plus e-commerce.
+      output:
+        attribute: CardNotPresent
+        qualifiers:
+          unit: percent
+      inputs:
+        - name: moto
+          attribute: Moto
+          qualifiers:
+            unit: percent
+        - name: ecomm
+          attribute: Ecommerce
+          qualifiers:
+            unit: percent
+      expression: moto + ecomm
+      transformation: aggregate
+      examples:
+        - inputs:
+            moto: 0
+            ecomm: 20
+          expected: 20
+        - inputs:
+            moto: 5
+            ecomm: 25
+          expected: 30
+    - id: MIX-CNP-02
+      description: Card-not-present is whatever is not card-present.
+      output:
+        attribute: CardNotPresent
+        qualifiers:
+          unit: percent
+      inputs:
+        - name: cp
+          attribute: CardPresent
+          qualifiers:
+            unit: percent
+      expression: "100 - cp"
+      transformation: derived
+      examples:
+        - inputs:
+            cp: 80
+          expected: 20
+    - id: MIX-SPLIT-01
+      description: Split card-not-present into e-commerce when the target needs MOTO and e-commerce separately.
+      output:
+        attribute: Ecommerce
+        qualifiers:
+          unit: percent
+      inputs:
+        - name: cnp
+          attribute: CardNotPresent
+          qualifiers:
+            unit: percent
+      expression: cnp
+      transformation: split
+      dataLoss: high
+      requiresReview: true
+      note: Assumes all card-not-present sales are e-commerce and MOTO is 0; confirm with the merchant.
+      examples:
+        - inputs:
+            cnp: 20
+          expected: 20
+    - id: MIX-UNIT-01
+      description: Fraction (0–1) to percent (0–100).
+      output:
+        attribute: CardPresent
+        qualifiers:
+          unit: percent
+      inputs:
+        - name: fraction
+          attribute: CardPresent
+          qualifiers:
+            unit: fraction
+      expression: fraction * 100
+      transformation: unitConversion
+      note: Applies the same way to every channel.
+      examples:
+        - inputs:
+            fraction: 0.8
+          expected: 80
+  validations:
+    - id: MIX-VAL-01
+      description: Card-present, MOTO and e-commerce add up to 100%.
+      inputs:
+        - name: cp
+          attribute: CardPresent
+          qualifiers:
+            unit: percent
+        - name: moto
+          attribute: Moto
+          qualifiers:
+            unit: percent
+        - name: ecomm
+          attribute: Ecommerce
+          qualifiers:
+            unit: percent
+      expression: abs(cp + moto + ecomm - 100) <= 0.5
+      examples:
+        - inputs:
+            cp: 80
+            moto: 0
+            ecomm: 20
+          expected: true
+        - inputs:
+            cp: 80
+            moto: 10
+            ecomm: 20
+          expected: false
+    - id: MIX-VAL-02
+      description: Card-present and card-not-present add up to 100%.
+      inputs:
+        - name: cp
+          attribute: CardPresent
+          qualifiers:
+            unit: percent
+        - name: cnp
+          attribute: CardNotPresent
+          qualifiers:
+            unit: percent
+      expression: abs(cp + cnp - 100) <= 0.5
+      examples:
+        - inputs:
+            cp: 90
+            cnp: 10
+          expected: true
+        - inputs:
+            cp: 90
+            cnp: 20
+          expected: false
+  confidence: {}
+  risks:
+    - id: MIX-RISK-SPLIT
+      appliesTo: Ecommerce
+      level: high
+      text: Splitting card-not-present into MOTO and e-commerce is an assumption, and card-not-present fraud risk differs by channel.
+  reviewGuidance:
+    - id: MIX-Q-SPLIT
+      appliesTo: Ecommerce
+      when: lossyDerivation
+      question: If the source only sends card-not-present, what share is MOTO versus e-commerce?
+    - id: MIX-Q-UNIT
+      when: qualifierConflict
+      question: Are channel shares sent as fractions (0–1) or percents (0–100)?
+    - id: MIX-Q-KEYED
+      appliesTo: CardPresent
+      when: nonEquivalentTerm
+      question: Are keyed transactions entered at a terminal with the card present, or taken over the phone?
+  aiGuidance: Channel mix splits card sales into card-present and card-not-present. Card-not-present is mail/telephone order (MOTO) plus e-commerce. Shares should add up to 100. Keyed can mean either card-present or MOTO.
+  # Fields this playbook must (or must not) recognise; a version can only be published when they pass.
+  tests:
+    - id: MIX-T-01
+      description: Card-present percent.
+      field:
+        name: cardPresentPercent
+        ancestors:
+          - processing
+          - $
+        dataType: integer
+        minValue: 70
+        maxValue: 90
+      expect: ChannelMix.CardPresent
+      expectQualifiers:
+        unit: percent
+      minScore: 90
+      expectReview: false
+    - id: MIX-T-02
+      description: Card-not-present is not card-present.
+      field:
+        name: CardNotPresentPct
+        ancestors:
+          - Processing
+          - UnderwritingRequest
+        dataType: integer
+        minValue: 10
+        maxValue: 20
+      expect: ChannelMix.CardNotPresent
+      expectQualifiers:
+        unit: percent
+      minScore: 90
+    - id: MIX-T-03
+      description: MOTO.
+      field:
+        name: motoPercent
+        ancestors:
+          - processing
+          - $
+        dataType: integer
+        minValue: 0
+        maxValue: 10
+      expect: ChannelMix.Moto
+      expectQualifiers:
+        unit: percent
+      minScore: 90
+    - id: MIX-T-04
+      description: E-commerce abbreviation.
+      field:
+        name: ecommPercent
+        ancestors:
+          - processing
+          - $
+        dataType: integer
+        minValue: 0
+        maxValue: 25
+      expect: ChannelMix.Ecommerce
+      minScore: 90
+    - id: MIX-T-05
+      description: E-commerce spelled out in camel case.
+      field:
+        name: eCommercePct
+        dataType: decimal
+        minValue: 0.1
+        maxValue: 0.4
+      expect: ChannelMix.Ecommerce
+      expectQualifiers:
+        unit: fraction
+    - id: MIX-T-06
+      description: Internet sales.
+      field:
+        name: internetSalesPct
+        ancestors:
+          - salesMethod
+        dataType: integer
+      expect: ChannelMix.Ecommerce
+    - id: MIX-T-07
+      description: A yes/no flag is not a share.
+      field:
+        name: acceptsCardPresent
+        dataType: boolean
+      expect: null

@@ -1,0 +1,123 @@
+# Process playbook: Onboard New System.
+# Edit a draft in the MapWright UI, or edit this file and check it with: mapwright playbook test playbooks
+# Values that look like numbers or dates (versions, dates, codes) are quoted so every YAML tool reads them as text.
+
+specVersion: "1.0"
+id: process/onboard-new-system
+name: Onboard New System
+kind: process
+version: "1.0.0"
+status: published
+owner: Integration team
+description: 'Map a new source system onto an existing target system: profile both, apply the domain playbooks, optionally ask AI about the rest, validate, review and publish.'
+changeNotes:
+  - version: "1.0.0"
+    date: "2026-09-25"
+    author: MapWright starter set
+    description: Initial version.
+process:
+  inputs:
+    - side: source
+      kinds:
+        - samplePayload
+        - jsonSchema
+        - xsd
+        - openApi
+        - wsdl
+        - metadataExport
+        - fieldSpec
+        - documentation
+      minCount: 1
+      note: At least one input; samples covering each entity type work best.
+    - side: target
+      kinds:
+        - samplePayload
+        - jsonSchema
+        - xsd
+        - openApi
+        - wsdl
+        - metadataExport
+        - fieldSpec
+        - documentation
+      minCount: 1
+  # Run in order; a gate stops the run, requires review or warns when its metric crosses the value.
+  steps:
+    - id: ingest
+      name: Ingest inputs
+      kind: ingest
+      description: Read every input for both systems and mask sensitive values.
+    - id: profile
+      name: Build system profiles
+      kind: profile
+      description: Build or refresh the source and target profiles.
+      gates:
+        - id: profile-conflicts
+          metric: unresolvedConflicts
+          operator: gt
+          value: 0
+          action: warn
+          message: Inputs disagree; conflicts are listed for review.
+    - id: match
+      name: Apply domain playbooks
+      kind: match
+      description: Recognise business concepts in both profiles and propose mappings with confidence, transforms and evidence.
+      uses:
+        - domain/principals
+        - domain/processing-volume
+        - domain/channel-mix
+        - domain/tax-id
+        - domain/entity-type
+    - id: ai-assist
+      name: Decode remaining fields with AI
+      kind: aiAssist
+      optional: true
+      maxConfidence: 70
+      description: 'Only when the user agrees and an AI provider is configured: send the masked, still-unmatched fields for suggestions. Suggestions always need review.'
+    - id: validate
+      name: Validate mapping
+      kind: validate
+      description: Replay samples through the mapping and run the playbooks' validation rules.
+      gates:
+        - id: validation-failures
+          metric: failedValidations
+          operator: gt
+          value: 0
+          action: stop
+          message: Fix failing validations before review.
+        - id: required-coverage
+          metric: requiredTargetCoverage
+          operator: lt
+          value: 100
+          action: requireReview
+          message: Some required target fields have no source.
+    - id: review
+      name: Human review
+      kind: review
+      reviewers:
+        - Integration BA
+        - Underwriting SME
+      description: Approve, correct or reject every mapping that was not auto-accepted.
+      gates:
+        - id: open-questions
+          metric: openQuestions
+          operator: gt
+          value: 0
+          action: stop
+        - id: sensitive-unreviewed
+          metric: unreviewedSensitiveMappings
+          operator: gt
+          value: 0
+          action: stop
+    - id: publish
+      name: Publish mapping
+      kind: publish
+      description: Version the mapping spec and render the documents.
+  thresholds:
+    autoAcceptAt: 90
+    reviewBelow: 90
+    rejectBelow: 30
+  outputs:
+    - json
+    - xlsx
+    - csv
+    - html

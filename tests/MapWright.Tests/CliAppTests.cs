@@ -78,6 +78,9 @@ public sealed class CliAppTests : IDisposable
     [InlineData("playbook", "test", "--bogus")]
     [InlineData("playbook", "detect")]
     [InlineData("playbook", "detect", "p.json", "--bogus")]
+    [InlineData("playbook", "convert", "p.json")]
+    [InlineData("playbook", "convert", "p.json", "--to", "xml")]
+    [InlineData("playbook", "convert", "--to", "yaml")]
     [InlineData("map")]
     [InlineData("map", "a.json")]
     [InlineData("map", "a.json", "b.json", "c.json")]
@@ -143,6 +146,30 @@ public sealed class CliAppTests : IDisposable
 
         Assert.Equal(CliApp.Success, Run("playbook", "test", StarterPlaybooks.Directory));
         Assert.Matches(@"(\d+) of \1 playbook test\(s\) passed", _out.ToString());
+    }
+
+    [Fact]
+    public void Playbook_convert_writes_the_other_format_and_keeps_the_playbook()
+    {
+        var yaml = Path.Combine(_dir, "tax-id.yaml");
+        File.Copy(Path.Combine(StarterPlaybooks.Directory, "domain", "tax-id.yaml"), yaml);
+        var json = Path.Combine(_dir, "json");
+
+        Assert.Equal(CliApp.Success, Run("playbook", "convert", yaml, "--to", "json", "--out", json));
+        var converted = File.ReadAllText(Path.Combine(json, "tax-id.json"));
+        Assert.StartsWith("{", converted, StringComparison.Ordinal);
+        Assert.Equal(PlaybookSerializer.Serialize(PlaybookSerializer.Load(yaml)), PlaybookSerializer.Serialize(PlaybookSerializer.Deserialize(converted)));
+
+        File.Delete(yaml);
+        Assert.Equal(CliApp.Success, Run("playbook", "convert", json, "--to", "yaml"));
+        Assert.Contains("Remove the original files", _out.ToString());
+        var back = Path.Combine(json, "tax-id.yaml");
+        Assert.Equal(PlaybookSerializer.Serialize(PlaybookSerializer.Deserialize(converted)), PlaybookSerializer.Serialize(PlaybookSerializer.Load(back)));
+
+        Assert.Equal(CliApp.Success, Run("playbook", "convert", back, "--to", "yaml"));
+        Assert.Contains("already YAML; skipped", _out.ToString());
+        Assert.Equal(CliApp.InvalidInput, Run("playbook", "convert", Path.Combine(json, "tax-id.json"), "--to", "yaml"));
+        Assert.Contains("already exists", _err.ToString());
     }
 
     [Fact]

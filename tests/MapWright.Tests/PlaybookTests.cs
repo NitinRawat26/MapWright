@@ -14,7 +14,7 @@ internal static class StarterPlaybooks
     public static Playbook Get(string id) => Library().All.Single(p => p.Id == id);
 
     public static IEnumerable<object[]> Files() =>
-        System.IO.Directory.EnumerateFiles(Directory, "*.json", SearchOption.AllDirectories)
+        System.IO.Directory.EnumerateFiles(Directory, "*.yaml", SearchOption.AllDirectories)
             .Order(StringComparer.Ordinal)
             .Select(f => new object[] { Path.GetRelativePath(Directory, f) });
 }
@@ -358,18 +358,18 @@ public sealed class PlaybookSerializerTests
     [Fact]
     public void Unknown_properties_are_rejected()
     {
-        var json = File.ReadAllText(Path.Combine(StarterPlaybooks.Directory, "domain", "tax-id.json")).Replace("\"owner\":", "\"ownr\":", StringComparison.Ordinal);
+        var yaml = File.ReadAllText(Path.Combine(StarterPlaybooks.Directory, "domain", "tax-id.yaml")).Replace("\nowner:", "\nownr:", StringComparison.Ordinal);
 
-        var ex = Assert.Throws<PlaybookException>(() => PlaybookSerializer.Deserialize(json));
+        var ex = Assert.Throws<PlaybookException>(() => PlaybookSerializer.Deserialize(yaml));
         Assert.Contains("ownr", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Unknown_enum_values_are_rejected()
     {
-        var json = File.ReadAllText(Path.Combine(StarterPlaybooks.Directory, "domain", "tax-id.json")).Replace("\"status\": \"published\"", "\"status\": \"live\"", StringComparison.Ordinal);
+        var yaml = File.ReadAllText(Path.Combine(StarterPlaybooks.Directory, "domain", "tax-id.yaml")).Replace("\nstatus: published", "\nstatus: live", StringComparison.Ordinal);
 
-        Assert.Throws<PlaybookException>(() => PlaybookSerializer.Deserialize(json));
+        Assert.Throws<PlaybookException>(() => PlaybookSerializer.Deserialize(yaml));
     }
 
     [Fact]

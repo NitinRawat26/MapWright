@@ -30,6 +30,7 @@ public static class CliApp
                             [--root <name>] [--out <profile.json>] [--no-values]
           mapwright playbook validate <playbook|dir>...
           mapwright playbook test <playbook|dir>...
+          mapwright playbook convert <playbook|dir>... --to yaml|json [--out <dir>]
           mapwright playbook detect <profile.json> [--playbooks <playbook|dir>]... [--ai ask|yes|no]
                             [--out <report.json>]
           mapwright map <source-profile.json> <target-profile.json> [--playbooks <playbook|dir>]...
@@ -54,6 +55,7 @@ public static class CliApp
           validate          Check playbooks and the references between them
           test              Validate, then run each playbook's tests and rule examples
           detect            Show which business concept each profile field is recognised as
+          convert           Write each playbook in the other format (YAML or JSON) next to it, or into --out
           --playbooks       Playbook files or directories for detect (default: ./playbooks)
           --ai <mode>       After the playbooks, offer AI for the remaining fields: ask (default), yes or no
           --out <file>      Write playbook matches, AI suggestions and remaining fields as JSON
@@ -284,7 +286,7 @@ public static class CliApp
     {
         if (args.Length == 0)
         {
-            return Fail(stderr, "playbook expects validate, test or detect.");
+            return Fail(stderr, "playbook expects validate, test, detect or convert.");
         }
 
         return args[0] switch
@@ -293,6 +295,7 @@ public static class CliApp
                 ValidatePlaybooks(args[1..], runTests: args[0] == "test", stdout, stderr),
             "validate" or "test" => Fail(stderr, $"playbook {args[0]} expects playbook files or directories."),
             "detect" => Detect(args[1..], stdin, stdout, stderr, ai),
+            "convert" => ConvertPlaybooks(args[1..], stdout, stderr),
             _ => Fail(stderr, $"Unknown playbook command '{args[0]}'."),
         };
     }
@@ -318,6 +321,86 @@ public static class CliApp
         var failed = results.Count(r => !r.Passed);
         (failed == 0 ? stdout : stderr).WriteLine($"{results.Count - failed} of {results.Count} playbook test(s) passed.");
         return failed == 0 ? Success : InvalidInput;
+    }
+
+    private static int ConvertPlaybooks(string[] args, TextWriter stdout, TextWriter stderr)
+    {
+        var inputs = new List<string>();
+        PlaybookFormat? to = null;
+        string? outDir = null;
+        for (var i = 0; i < args.Length; i++)
+        {
+            switch (args[i])
+            {
+                case "--to" when i + 1 < args.Length:
+                    to = args[++i].ToLowerInvariant() switch
+                    {
+                        "yaml" or "yml" => PlaybookFormat.Yaml,
+                        "json" => PlaybookFormat.Json,
+                        _ => null,
+                    };
+                    if (to is null)
+                    {
+                        return Fail(stderr, $"--to expects yaml or json, not '{args[i]}'.");
+                    }
+
+                    break;
+                case "--out" when i + 1 < args.Length:
+                    outDir = args[++i];
+                    break;
+                case var option when option.StartsWith("--", StringComparison.Ordinal):
+                    return Fail(stderr, $"Unknown or incomplete option '{option}'.");
+                default:
+                    inputs.Add(args[i]);
+                    break;
+            }
+        }
+
+        if (inputs.Count == 0 || to is not { } format)
+        {
+            return Fail(stderr, "playbook convert expects playbook files or directories and --to yaml|json.");
+        }
+
+        var besideOriginal = 0;
+        try
+        {
+            var extension = format == PlaybookFormat.Yaml ? ".yaml" : ".json";
+            foreach (var file in PlaybookLibrary.Files(inputs))
+            {
+                var text = File.ReadAllText(file);
+                if (PlaybookSerializer.Detect(text) == format)
+                {
+                    stdout.WriteLine($"{file}: already {extension[1..].ToUpperInvariant()}; skipped.");
+                    continue;
+                }
+
+                var converted = format == PlaybookFormat.Yaml ? PlaybookYaml.FromJson(text) : PlaybookYaml.ToJson(text);
+                var directory = outDir ?? Path.GetDirectoryName(file) ?? ".";
+                var target = Path.Combine(directory, Path.GetFileNameWithoutExtension(file) + extension);
+                if (File.Exists(target))
+                {
+                    stderr.WriteLine($"{target} already exists; not overwritten.");
+                    return InvalidInput;
+                }
+
+                Directory.CreateDirectory(directory);
+                File.WriteAllText(target, converted.EndsWith('\n') ? converted : converted + Environment.NewLine);
+                stdout.WriteLine($"Wrote {target}");
+                besideOriginal += outDir is null ? 1 : 0;
+            }
+        }
+        catch (Exception ex) when (ex is PlaybookException or IOException)
+        {
+            stderr.WriteLine(ex.Message);
+            return InvalidInput;
+        }
+
+        if (besideOriginal > 0)
+        {
+            stdout.WriteLine("Remove the original files so each playbook is loaded only once.");
+        }
+
+        return Success;
     }
 
     private static int Detect(string[] args, TextReader stdin, TextWriter stdout, TextWriter stderr, IAiProvider? ai)

@@ -15,15 +15,22 @@ public sealed class PlaybookLibrary(IReadOnlyList<Playbook> playbooks)
 
     public IEnumerable<Playbook> Domains => Active.Where(p => p.Domain is not null);
 
-    /// <summary>Loads every *.json file under the given files or directories.</summary>
-    public static PlaybookLibrary Load(IEnumerable<string> paths)
+    /// <summary>Loads every playbook file (.yaml, .yml, .json) under the given files or directories.</summary>
+    public static PlaybookLibrary Load(IEnumerable<string> paths) => new([.. Read(paths).Select(f => f.Playbook)]);
+
+    public static IReadOnlyList<PlaybookFile> Read(IEnumerable<string> paths) => [.. Files(paths).Select(PlaybookSerializer.Read)];
+
+    /// <summary>The given files, plus every .yaml, .yml and .json file under the given directories.</summary>
+    public static IReadOnlyList<string> Files(IEnumerable<string> paths)
     {
         var files = new List<string>();
         foreach (var path in paths)
         {
             if (Directory.Exists(path))
             {
-                files.AddRange(Directory.EnumerateFiles(path, "*.json", SearchOption.AllDirectories).Order(StringComparer.Ordinal));
+                files.AddRange(Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)
+                    .Where(f => PlaybookSerializer.Extensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
+                    .Order(StringComparer.Ordinal));
             }
             else if (File.Exists(path))
             {
@@ -35,7 +42,7 @@ public sealed class PlaybookLibrary(IReadOnlyList<Playbook> playbooks)
             }
         }
 
-        return new([.. files.Select(PlaybookSerializer.Load)]);
+        return files;
     }
 
     /// <summary>The best match across all active domain playbooks, or null.</summary>

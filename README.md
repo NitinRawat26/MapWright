@@ -97,8 +97,21 @@ seen in, and the source of each attribute.
 
 ## Playbooks
 
-Playbooks are versioned JSON files that hold the domain knowledge the engine applies. `playbooks/` holds a
+Playbooks are versioned YAML files that hold the domain knowledge the engine applies. `playbooks/` holds a
 starter set.
+
+YAML is the file format because business analysts write and review playbooks: it allows `#` comments and
+multi-line text, and changes read cleanly in a pull request. JSON with the same property names still works;
+MapWright reads `.yaml`, `.yml` and `.json` files (JSON when the text starts with `{`).
+
+- Plain values follow YAML's core schema: `null`, `true`/`false` and numbers are typed, anything else is text.
+  Where a playbook expects text, an unquoted number is kept as written, so `version: 1.0` means `"1.0"`.
+  Quote versions, dates and codes anyway, so every YAML tool reads them as text.
+- Anchors and aliases (`&`, `*`), several documents in one file, and tags other than `!!str` are rejected.
+- Errors name the YAML line, e.g. `Invalid playbook at '$.process.steps[0].kind' (line 19)`.
+- `mapwright playbook convert <playbook|dir>... --to yaml|json [--out <dir>]` writes each file in the other
+  format, next to it or into `--out`. It keeps the properties as written; comments are dropped when
+  converting to JSON.
 
 | Playbook | Knows about |
 |---|---|
@@ -247,6 +260,7 @@ dotnet run --project src/MapWright.Cli -- profile samples/systems/uw-core/contra
 ```bash
 dotnet run --project src/MapWright.Cli -- playbook validate playbooks
 dotnet run --project src/MapWright.Cli -- playbook test playbooks
+dotnet run --project src/MapWright.Cli -- playbook convert my-playbooks --to yaml
 dotnet run --project src/MapWright.Cli -- playbook detect samples/systems/uw-core/profile.json --playbooks playbooks
 dotnet run --project src/MapWright.Cli -- playbook detect samples/systems/sales-alpha/profile.json --ai yes --out out/sales-alpha.decode.json
 ```

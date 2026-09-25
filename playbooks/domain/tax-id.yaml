@@ -1,0 +1,226 @@
+# Domain playbook: Tax ID.
+# Edit a draft in the MapWright UI, or edit this file and check it with: mapwright playbook test playbooks
+# Values that look like numbers or dates (versions, dates, codes) are quoted so every YAML tool reads them as text.
+
+specVersion: "1.0"
+id: domain/tax-id
+name: Tax ID
+kind: domain
+version: "1.0.0"
+status: published
+owner: Underwriting BA team
+description: The merchant's taxpayer identification number and its type (EIN, SSN or ITIN), which depends on the entity type.
+changeNotes:
+  - version: "1.0.0"
+    date: "2026-09-25"
+    author: MapWright starter set
+    description: Initial version.
+domain:
+  concept:
+    name: LegalEntity
+    description: The business being boarded.
+    attributes:
+      - name: TaxId
+        description: Taxpayer identification number of the business.
+        dataType: string
+        sensitivity: sensitivePii
+      - name: TaxIdType
+        description: Which kind of number the tax ID is.
+        dataType: string
+  # Names systems use for the concept or one of its attributes; relation is equivalent unless stated.
+  vocabulary:
+    - term: merchant
+    - term: legal entity
+    - term: business
+    - term: company
+    - term: account
+      relation: related
+    - term: organization
+      relation: related
+    - term: customer
+      relation: related
+    - term: tax id
+      appliesTo: TaxId
+    - term: tin
+      appliesTo: TaxId
+    - term: taxpayer id
+      appliesTo: TaxId
+    - term: tax identification number
+      appliesTo: TaxId
+    - term: federal tax id
+      appliesTo: TaxId
+    - term: tax number
+      appliesTo: TaxId
+    - term: tax id number
+      appliesTo: TaxId
+    - term: fein
+      appliesTo: TaxId
+      relation: narrower
+    - term: ein
+      appliesTo: TaxId
+      relation: narrower
+    - term: employer identification number
+      appliesTo: TaxId
+      relation: narrower
+    - term: itin
+      appliesTo: TaxId
+      relation: narrower
+    - term: tax id type
+      appliesTo: TaxIdType
+    - term: tin type
+      appliesTo: TaxIdType
+    - term: tax id kind
+      appliesTo: TaxIdType
+    - term: taxpayer id type
+      appliesTo: TaxIdType
+    - term: tax type
+      appliesTo: TaxIdType
+      relation: related
+  # Extra evidence: each matching signal adds its weight (negative weights count against a match).
+  signals:
+    - id: TAX-SIG-SHAPE
+      kind: valueShape
+      appliesTo: TaxId
+      pattern: ^(999-?99-?9999|99-?9999999)$
+      weight: 10
+      note: nine digits, SSN or EIN layout
+    - id: TAX-SIG-PERSON
+      kind: ancestorNamePattern
+      appliesTo: TaxId
+      pattern: owner|officer|principal|signer|guarantor
+      weight: -40
+      note: belongs to a person, see the principals playbook
+    - id: TAX-SIG-TYPE-CODES
+      kind: valueInMap
+      appliesTo: TaxIdType
+      pattern: TAX-ID-TYPES
+      weight: 20
+      note: values are tax-id type codes
+  conditions:
+    - id: TIN-TYPE-01
+      description: Sole proprietors usually use the owner's SSN; every other entity type uses an EIN.
+      output:
+        attribute: TaxIdType
+      cases:
+        - when:
+            - concept: LegalEntity.EntityType
+              in:
+                - SOLE_PROPRIETORSHIP
+          then: SSN
+      otherwise: EIN
+      examples:
+        - given:
+            LegalEntity.EntityType: SOLE_PROPRIETORSHIP
+          expected: SSN
+        - given:
+            LegalEntity.EntityType: LLC
+          expected: EIN
+        - given:
+            LegalEntity.EntityType: CORPORATION
+          expected: EIN
+  valueMaps:
+    - id: TAX-ID-TYPES
+      attribute: TaxIdType
+      values:
+        - code: EIN
+          label: Employer Identification Number
+          aliases:
+            - FEIN
+            - E
+            - FEDERAL
+        - code: SSN
+          label: Social Security Number
+          aliases:
+            - S
+            - SOCIAL
+        - code: ITIN
+          label: Individual Taxpayer Identification Number
+          aliases:
+            - I
+  confidence: {}
+  risks:
+    - id: TAX-RISK-SSN
+      appliesTo: TaxId
+      level: medium
+      text: For sole proprietors the tax ID may be a personal SSN; keep it masked.
+  reviewGuidance:
+    - id: TAX-Q-TYPE
+      appliesTo: TaxIdType
+      when: conditionalValue
+      question: One system has no tax-id type. Is deriving it from the entity type (SSN for sole proprietors, EIN otherwise) correct for this source?
+    - id: TAX-Q-NARROW
+      appliesTo: TaxId
+      when: nonEquivalentTerm
+      question: The field is named for one kind of number (e.g. EIN). Can it hold an SSN for sole proprietors?
+  aiGuidance: The business tax ID is an EIN for most entities, but a sole proprietor may use the owner's SSN. A person's SSN inside an owner or officer record belongs to the principals playbook, not here.
+  # Fields this playbook must (or must not) recognise; a version can only be published when they pass.
+  tests:
+    - id: TAX-T-01
+      description: Business tax ID.
+      field:
+        name: taxId
+        ancestors:
+          - account
+          - $
+        valueShapes:
+          - "999999999"
+          - "999-99-9999"
+      expect: LegalEntity.TaxId
+      minScore: 90
+    - id: TAX-T-02
+      description: Generic leaf under a TaxId element.
+      field:
+        name: Number
+        ancestors:
+          - TaxId
+          - Merchant
+          - UnderwritingRequest
+        valueShapes:
+          - "999999999"
+      expect: LegalEntity.TaxId
+      minScore: 90
+    - id: TAX-T-03
+      description: Type attribute on a TaxId element.
+      field:
+        name: '@type'
+        ancestors:
+          - TaxId
+          - Merchant
+        values:
+          - EIN
+          - SSN
+      expect: LegalEntity.TaxIdType
+      minScore: 90
+      expectReview: false
+    - id: TAX-T-04
+      description: A principal's SSN is not the business tax ID.
+      field:
+        name: ssn
+        ancestors:
+          - owners
+          - $
+        valueShapes:
+          - "999-99-9999"
+      expect: null
+    - id: TAX-T-05
+      description: An EIN-named field is a narrower term and is reviewed.
+      field:
+        name: fein
+        ancestors:
+          - business
+        valueShapes:
+          - "99-9999999"
+      expect: LegalEntity.TaxId
+      expectReview: true
+    - id: TAX-T-06
+      description: The TaxId element itself is not a value.
+      field:
+        name: TaxId
+        ancestors:
+          - Merchant
+        kind: object
+        dataType: object
+        children:
+          - Number
+          - '@type'
+      expect: null
