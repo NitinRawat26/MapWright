@@ -390,10 +390,10 @@ is already in the playbook, or a playbook that is in review, returns 409.
 ```bash
 docker build -t mapwright-api .
 docker run -p 8080:8080 -v mapwright-data:/var/data mapwright-api
-# http://localhost:8080/swagger, http://localhost:8080/health
+# UI: http://localhost:8080/   Swagger: http://localhost:8080/swagger   Health: http://localhost:8080/health
 ```
 
-The image seeds the starter playbooks into an empty store and keeps the SQLite file at
+The image builds the web UI (Node.js 24) and the API (.NET 10), and the API serves the UI at `/`. The image seeds the starter playbooks into an empty store and keeps the SQLite file at
 `/var/data/mapwright.db`, so mount a volume there. Any setting can be overridden with an environment variable,
 e.g. `-e MapWright__RequireIndependentReview=false`. To use AI, pass the provider variables
 (`MAPWRIGHT_VERTEX_PROJECT`, `MAPWRIGHT_OLLAMA_URL`, ...) and, for Vertex AI, mount the service-account key and
@@ -421,7 +421,8 @@ SQLite file and a `/health` check. Persistent disks need a paid instance type, w
    already points. The account needs the Vertex AI User role.
 
 The API has no sign-in: `X-MapWright-User` is recorded for audit but not verified. Put it behind your own
-authentication (a gateway, VPN or Render private service) before exposing it.
+authentication (a gateway, VPN or Render private service) before exposing it. The same applies to the web UI:
+the name entered in its toolbar is only a label for the audit trail.
 
 ## Web UI
 

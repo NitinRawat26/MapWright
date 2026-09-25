@@ -3,6 +3,10 @@
 out/
 data/
 tests/
+web/node_modules/
+web/.angular/
+web/dist/
+src/MapWright.Api/wwwroot/
 .git/
 .vs/
 .vscode/
