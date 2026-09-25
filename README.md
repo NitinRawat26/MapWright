@@ -158,7 +158,7 @@ survive new versions, status changes and edits. Playbooks that arrived as JSON g
 | In Review | Published | Valid, tests pass, and published by someone other than the submitter; the previous published version is retired |
 | Published / Draft | Retired | No longer applied (a retired draft is abandoned) |
 
-A new version copies an existing one (next minor version by default) and adds a change note. The same store
+A new version copies an existing one (next unused minor version by default) and adds a change note. The same store
 holds system profiles, mapping specs and reviewers' decisions on mapping rows (approve, reject or override,
 also written to the row's review block and the mapping's change log). It is a store for mapping work, not for
 merchant data.

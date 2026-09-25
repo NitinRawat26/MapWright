@@ -195,13 +195,18 @@ public sealed class PlaybookStore(MapWrightDatabase database)
         return updated;
     }
 
-    /// <summary>Copies a version into a new draft (next minor version by default) with a change note.</summary>
+    /// <summary>Copies a version into a new draft (next unused minor version by default) with a change note.</summary>
     public Playbook DraftNewVersion(string id, string fromVersion, string? newVersion, string actor, string? note)
     {
         using var connection = database.Open();
         using var transaction = connection.BeginTransaction();
         var (source, sourceYaml) = FindWithYaml(connection, transaction, id, fromVersion) ?? throw StoreException.NotFound($"Playbook '{id}@{fromVersion}'");
         var version = newVersion ?? NextMinor(source.Version);
+        while (newVersion is null && Find(connection, transaction, id, version) is not null)
+        {
+            version = NextMinor(version);
+        }
+
         if (Find(connection, transaction, id, version) is not null)
         {
             throw new StoreException(StoreError.Conflict, $"Playbook '{id}@{version}' already exists.");

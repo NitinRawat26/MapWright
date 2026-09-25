@@ -111,6 +111,19 @@ public sealed class StoreTests : IDisposable
     }
 
     [Fact]
+    public void Default_new_version_skips_versions_that_already_exist()
+    {
+        var store = Imported();
+        Assert.Equal("1.1.0", store.DraftNewVersion("domain/tax-id", "1.0.0", null, "ana", null).Version);
+        store.Transition("domain/tax-id", "1.1.0", PlaybookStatus.Retired, "ana", "Abandoned.");
+
+        Assert.Equal("1.2.0", store.DraftNewVersion("domain/tax-id", "1.0.0", null, "ana", null).Version);
+        store.Transition("domain/tax-id", "1.2.0", PlaybookStatus.Retired, "ana", "Abandoned.");
+
+        Assert.Equal("1.3.0", store.DraftNewVersion("domain/tax-id", "1.1.0", null, "ana", null).Version);
+    }
+
+    [Fact]
     public void Invalid_playbooks_and_failing_tests_are_rejected_with_their_issues()
     {
         var store = Imported();
