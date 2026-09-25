@@ -9,6 +9,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { Router, RouterLink } from '@angular/router';
 import { Observable, finalize } from 'rxjs';
+import { parse as parseYaml } from 'yaml';
 import { Api } from '../core/api';
 import { changeCount, sideBySide } from '../core/diff';
 import { Playbook, PlaybookEvent, PlaybookStatus, PlaybookSummary, TestResponse, ValidationResponse } from '../core/models';
@@ -54,7 +55,7 @@ export class PlaybookDetail {
   protected readonly classes = statusClass;
   protected readonly id = computed(() => `${this.kind()}/${this.slug()}`);
 
-  /** The stored JSON, and the editor's copy of it (only drafts can be saved). */
+  /** The stored YAML (comments included), and the editor's copy of it (only drafts can be saved). */
   protected readonly saved = signal('');
   protected readonly edited = signal('');
   protected readonly versions = signal<PlaybookSummary[]>([]);
@@ -65,18 +66,17 @@ export class PlaybookDetail {
   protected readonly note = signal('');
   protected readonly newVersion = signal('');
   protected readonly compareWith = signal('');
-  protected readonly compareJson = signal('');
+  protected readonly compareYaml = signal('');
   protected readonly tab = signal(0);
 
-  protected readonly playbook = computed(() => parse(this.saved()));
-  protected readonly editedPlaybook = computed(() => parse(this.edited()));
-  protected readonly parseError = computed(() => (this.edited() && !this.editedPlaybook() ? 'Not valid JSON.' : ''));
+  protected readonly playbook = computed(() => read(this.saved()).playbook);
+  protected readonly parseError = computed(() => read(this.edited()).error);
   protected readonly isDraft = computed(() => this.playbook()?.status === 'draft');
   protected readonly dirty = computed(() => this.isDraft() && this.edited() !== this.saved());
   protected readonly actions = computed(() => transitions[this.playbook()?.status ?? 'retired']);
   protected readonly canWrite = computed(() => !!this.user.name() && !this.busy());
   protected readonly others = computed(() => this.versions().filter((v) => v.version !== this.version()));
-  protected readonly diff = computed(() => (this.compareJson() ? sideBySide(this.compareJson(), this.edited()) : []));
+  protected readonly diff = computed(() => (this.compareYaml() ? sideBySide(this.compareYaml(), this.edited()) : []));
   protected readonly changes = computed(() => changeCount(this.diff()));
   protected readonly failedTests = computed(() => this.tests()?.results.filter((r) => !r.passed).length ?? 0);
 
@@ -106,9 +106,9 @@ export class PlaybookDetail {
   }
 
   protected save(): void {
-    this.run(this.api.updateDraft(this.id(), this.version(), this.edited()), (json) => {
-      this.saved.set(json);
-      this.edited.set(json);
+    this.run(this.api.updateDraft(this.id(), this.version(), this.edited()), (yaml) => {
+      this.saved.set(yaml);
+      this.edited.set(yaml);
       this.loadHistory();
       this.snackBar.open('Draft saved.', undefined, { duration: 3000 });
     });
@@ -130,10 +130,10 @@ export class PlaybookDetail {
   }
 
   protected transition(to: PlaybookStatus): void {
-    this.run(this.api.changeStatus(this.id(), this.version(), to, this.note().trim() || undefined), (json) => {
+    this.run(this.api.changeStatus(this.id(), this.version(), to, this.note().trim() || undefined), (yaml) => {
       this.note.set('');
-      this.saved.set(json);
-      this.edited.set(json);
+      this.saved.set(yaml);
+      this.edited.set(yaml);
       this.loadVersions();
       this.loadHistory();
       this.snackBar.open(`Now ${statusLabels[to].toLowerCase()}.`, undefined, { duration: 3000 });
@@ -152,9 +152,9 @@ export class PlaybookDetail {
 
   protected compare(version: string): void {
     this.compareWith.set(version);
-    this.compareJson.set('');
+    this.compareYaml.set('');
     if (version) {
-      this.api.playbookJson(this.id(), version).subscribe((json) => this.compareJson.set(json));
+      this.api.playbookYaml(this.id(), version).subscribe((yaml) => this.compareYaml.set(yaml));
     }
   }
 
@@ -162,9 +162,9 @@ export class PlaybookDetail {
     this.validation.set(null);
     this.tests.set(null);
     this.compare('');
-    this.api.playbookJson(id, version).subscribe((json) => {
-      this.saved.set(json);
-      this.edited.set(json);
+    this.api.playbookYaml(id, version).subscribe((yaml) => {
+      this.saved.set(yaml);
+      this.edited.set(yaml);
     });
     this.loadVersions();
     this.loadHistory();
@@ -192,10 +192,18 @@ export class PlaybookDetail {
   }
 }
 
-function parse(json: string): Playbook | null {
+/** Reads playbook YAML (or JSON, which is also YAML) for display; the API does the real validation. */
+function read(text: string): { playbook: Playbook | null; error: string } {
+  if (!text.trim()) {
+    return { playbook: null, error: '' };
+  }
+
   try {
-    return json ? (JSON.parse(json) as Playbook) : null;
-  } catch {
-    return null;
+    const value: unknown = parseYaml(text);
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? { playbook: value as Playbook, error: '' }
+      : { playbook: null, error: 'Not a playbook: expected fields such as id, name and kind.' };
+  } catch (e) {
+    return { playbook: null, error: `Not valid YAML: ${e instanceof Error ? e.message : String(e)}` };
   }
 }

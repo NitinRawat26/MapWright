@@ -40,7 +40,7 @@ export class PlaybookList {
   protected readonly status = signal<PlaybookStatus | ''>('');
   protected readonly search = signal('');
   protected readonly all = signal<PlaybookSummary[]>([]);
-  protected readonly importJson = signal('');
+  protected readonly importText = signal('');
 
   protected readonly rows = computed(() => {
     const term = this.search().trim().toLowerCase();
@@ -59,15 +59,15 @@ export class PlaybookList {
   protected async readFile(input: HTMLInputElement): Promise<void> {
     const file = input.files?.[0];
     if (file) {
-      this.importJson.set(await file.text());
+      this.importText.set(await file.text());
     }
     input.value = '';
   }
 
   protected create(): void {
-    this.api.createPlaybook(this.importJson()).subscribe((created) => {
+    this.api.createPlaybook(this.importText()).subscribe((created) => {
       const playbook = JSON.parse(created) as Playbook;
-      this.importJson.set('');
+      this.importText.set('');
       void this.router.navigate(['/playbooks', ...playbook.id.split('/'), playbook.version]);
     });
   }

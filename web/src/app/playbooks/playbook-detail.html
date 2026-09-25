@@ -116,13 +116,13 @@
         </div>
       </mat-tab>
 
-      <mat-tab label="JSON">
+      <mat-tab label="YAML">
         <div class="tab">
           @if (!isDraft()) {
             <p class="muted">{{ labels[p.status] }} versions are read-only. Draft a new version to change it.</p>
           }
           @if (parseError()) {
-            <p class="error">{{ parseError() }}</p>
+            <p class="error" data-testid="parse-error">{{ parseError() }}</p>
           }
           <textarea class="mono editor" spellcheck="false" [readOnly]="!isDraft()" [ngModel]="edited()" (ngModelChange)="edited.set($event)" data-testid="editor"></textarea>
         </div>
@@ -191,13 +191,13 @@
                 }
               </mat-select>
             </mat-form-field>
-            @if (compareJson()) {
+            @if (compareYaml()) {
               <span data-testid="changes">{{ changes() }} changed line(s): {{ compareWith() }} on the left, {{ version() }}{{ dirty() ? ' (unsaved)' : '' }} on the right</span>
             } @else if (!others().length) {
               <span class="muted">This is the only version.</span>
             }
           </div>
-          @if (compareJson()) {
+          @if (compareYaml()) {
             <table class="diff mono" data-testid="diff">
               @for (r of diff(); track $index) {
                 @if (r.kind === 'skipped') {

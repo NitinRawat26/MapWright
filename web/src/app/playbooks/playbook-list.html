@@ -57,16 +57,16 @@
 
   <mat-expansion-panel class="import">
     <mat-expansion-panel-header><mat-panel-title>Add a playbook</mat-panel-title></mat-expansion-panel-header>
-    <p class="muted">Paste or load a playbook file. It is stored as a new draft; to change an existing playbook, open it and draft a new version.</p>
+    <p class="muted">Paste or load a playbook file (YAML, or JSON from older versions). It is stored as a new draft; to change an existing playbook, open it and draft a new version.</p>
     <div class="row">
-      <input #file type="file" accept=".json,application/json" hidden (change)="readFile(file)" />
+      <input #file type="file" accept=".yaml,.yml,.json,application/yaml,application/json" hidden (change)="readFile(file)" />
       <button mat-stroked-button type="button" (click)="file.click()">Load file…</button>
     </div>
     <mat-form-field appearance="outline" class="json">
-      <mat-label>Playbook JSON</mat-label>
-      <textarea matInput rows="12" class="mono" [ngModel]="importJson()" (ngModelChange)="importJson.set($event)" data-testid="import-json"></textarea>
+      <mat-label>Playbook YAML</mat-label>
+      <textarea matInput rows="12" class="mono" [ngModel]="importText()" (ngModelChange)="importText.set($event)" data-testid="import-text"></textarea>
     </mat-form-field>
-    <button mat-flat-button type="button" [disabled]="!importJson().trim() || !user.name()" (click)="create()" data-testid="import">Create draft</button>
+    <button mat-flat-button type="button" [disabled]="!importText().trim() || !user.name()" (click)="create()" data-testid="import">Create draft</button>
     @if (!user.name()) {
       <span class="muted"> Enter your name in the toolbar first.</span>
     }

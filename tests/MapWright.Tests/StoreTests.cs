@@ -136,6 +136,77 @@ public sealed class StoreTests : IDisposable
     }
 
     [Fact]
+    public void Yaml_comments_survive_new_versions_status_changes_and_edits()
+    {
+        var store = Playbooks;
+        store.Import(PlaybookLibrary.Read([StarterPlaybooks.Directory]), "seed");
+        var file = File.ReadAllText(Path.Combine(StarterPlaybooks.Directory, "domain", "tax-id.yaml"));
+        Assert.Equal(file, store.GetYaml("domain/tax-id", "1.0.0"));
+
+        store.DraftNewVersion("domain/tax-id", "1.0.0", null, "ana", "Add VAT.");
+        var drafted = store.GetYaml("domain/tax-id", "1.1.0");
+        Assert.StartsWith("# Domain playbook: Tax ID.", drafted, StringComparison.Ordinal);
+        Assert.Equal(PlaybookSerializer.Serialize(store.Get("domain/tax-id", "1.1.0")), PlaybookSerializer.Serialize(PlaybookSerializer.Deserialize(drafted)));
+
+        var edited = drafted.Replace("# Names systems use", "# Reviewed by ana.\n  # Names systems use", StringComparison.Ordinal)
+            .Replace("\nstatus: draft", "\nstatus: published", StringComparison.Ordinal);
+        var saved = store.UpdateDraft("domain/tax-id", "1.1.0", PlaybookSerializer.Deserialize(edited), "ana", edited);
+        Assert.Equal(PlaybookStatus.Draft, saved.Status);
+        var stored = store.GetYaml("domain/tax-id", "1.1.0");
+        Assert.Contains("# Reviewed by ana.", stored, StringComparison.Ordinal);
+        Assert.Contains("\nstatus: draft\n", stored, StringComparison.Ordinal);
+
+        store.Transition("domain/tax-id", "1.1.0", PlaybookStatus.InReview, "ana", null);
+        store.Transition("domain/tax-id", "1.1.0", PlaybookStatus.Published, "ben", null);
+        Assert.Contains("# Reviewed by ana.", store.GetYaml("domain/tax-id", "1.1.0"), StringComparison.Ordinal);
+        Assert.Contains("\nstatus: published\n", store.GetYaml("domain/tax-id", "1.1.0"), StringComparison.Ordinal);
+        Assert.Contains("\nstatus: retired\n", store.GetYaml("domain/tax-id", "1.0.0"), StringComparison.Ordinal);
+        Assert.StartsWith("# Domain playbook: Tax ID.", store.GetYaml("domain/tax-id", "1.0.0"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Playbooks_without_yaml_are_served_as_generated_yaml()
+    {
+        var store = Imported();
+
+        var yaml = store.GetYaml("domain/principals", "1.0.0");
+
+        Assert.DoesNotContain("#", yaml.Split('\n')[0], StringComparison.Ordinal);
+        Assert.Equal(PlaybookSerializer.Serialize(store.Get("domain/principals", "1.0.0")), PlaybookSerializer.Serialize(PlaybookSerializer.Deserialize(yaml)));
+    }
+
+    [Fact]
+    public void Databases_from_before_yaml_gain_the_yaml_column()
+    {
+        var path = Path.Combine(Directory.CreateTempSubdirectory("mapwright-db-").FullName, "old.db");
+        try
+        {
+            using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={path}"))
+            {
+                connection.Open();
+                using var command = connection.CreateCommand();
+                command.CommandText = """
+                    CREATE TABLE playbook_versions (
+                        id TEXT NOT NULL, version TEXT NOT NULL, kind TEXT NOT NULL, name TEXT NOT NULL, status TEXT NOT NULL,
+                        owner TEXT, json TEXT NOT NULL, created_at TEXT NOT NULL, created_by TEXT NOT NULL,
+                        updated_at TEXT NOT NULL, updated_by TEXT NOT NULL, PRIMARY KEY (id, version));
+                    """;
+                command.ExecuteNonQuery();
+            }
+
+            using var database = new MapWrightDatabase(new() { DatabasePath = path }, _time);
+            var store = new PlaybookStore(database);
+            store.Import(PlaybookLibrary.Read([StarterPlaybooks.Directory]), "seed");
+            Assert.StartsWith("# Domain playbook: Tax ID.", store.GetYaml("domain/tax-id", "1.0.0"), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            Directory.Delete(Path.GetDirectoryName(path)!, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Database_file_keeps_data_between_connections()
     {
         var path = Path.Combine(Directory.CreateTempSubdirectory("mapwright-db-").FullName, "nested", "mapwright.db");

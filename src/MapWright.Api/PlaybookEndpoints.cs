@@ -15,15 +15,26 @@ public sealed record TestResponse(bool Passed, IReadOnlyList<PlaybookTestResult>
 
 /// <summary>
 /// Playbooks are addressed as /api/playbooks/{kind}/{slug}/{version}, e.g. /api/playbooks/domain/tax-id/1.0.0.
-/// Bodies and responses use the same JSON as the files in playbooks/.
+/// Bodies are the same YAML or JSON as the files in playbooks/ (JSON when the text starts with '{'). Responses are
+/// JSON unless the request asks for YAML with <c>?format=yaml</c> or an <c>Accept</c> header naming YAML; the YAML
+/// is the text the version was written in, comments included.
 /// </summary>
 public static class PlaybookEndpoints
 {
     private const string Kind = "{kind:regex(^(domain|process)$)}";
 
+    private const string YamlType = "application/yaml";
+
+    private static readonly string[] BodyTypes = ["application/json", YamlType];
+
     public static void MapPlaybookEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/playbooks").WithTags("Playbooks");
+        group.AddEndpointFilter((context, next) =>
+        {
+            WantsYaml(context.HttpContext.Request);
+            return next(context);
+        });
 
         group.MapGet("/", (PlaybookStore store, string? status) => store.List(ParseStatus(status)))
             .WithSummary("List playbook versions, optionally by status.");
@@ -31,19 +42,20 @@ public static class PlaybookEndpoints
         group.MapPost("/", async (HttpRequest request, PlaybookStore store, [FromHeader(Name = ApiErrors.UserHeader)] string? user) =>
             {
                 var actor = ApiErrors.Actor(user);
-                var playbook = store.Create(await Read(request), actor);
-                return Json(playbook, StatusCodes.Status201Created, request.HttpContext, Address(playbook));
+                var (body, yaml) = await Read(request);
+                var playbook = store.Create(body, actor, yaml);
+                return Respond(request.HttpContext, store, playbook, StatusCodes.Status201Created, Address(playbook));
             })
-            .Accepts<Playbook>("application/json")
-            .Produces<Playbook>(StatusCodes.Status201Created)
-            .WithSummary("Create a new draft playbook.");
+            .Accepts<Playbook>(BodyTypes[0], BodyTypes[1..])
+            .Produces<Playbook>(StatusCodes.Status201Created, BodyTypes[0], BodyTypes[1..])
+            .WithSummary("Create a new draft playbook from YAML or JSON.");
 
-        group.MapPost("/validate", async (HttpRequest request, PlaybookStore store) => Validate(store, await Read(request)))
-            .Accepts<Playbook>("application/json")
+        group.MapPost("/validate", async (HttpRequest request, PlaybookStore store) => Validate(store, (await Read(request)).Playbook))
+            .Accepts<Playbook>(BodyTypes[0], BodyTypes[1..])
             .WithSummary("Validate an unsaved playbook against the published library.");
 
-        group.MapPost("/test", async (HttpRequest request) => Test(await Read(request)))
-            .Accepts<Playbook>("application/json")
+        group.MapPost("/test", async (HttpRequest request) => Test((await Read(request)).Playbook))
+            .Accepts<Playbook>(BodyTypes[0], BodyTypes[1..])
             .WithSummary("Run an unsaved playbook's detection tests and rule examples.");
 
         group.MapGet($"/{Kind}/{{slug}}", (string kind, string slug, PlaybookStore store) => store.Versions($"{kind}/{slug}"))
@@ -52,20 +64,21 @@ public static class PlaybookEndpoints
         group.MapGet($"/{Kind}/{{slug}}/history", (string kind, string slug, PlaybookStore store) => store.History($"{kind}/{slug}"))
             .WithSummary("Every change and status transition of a playbook.");
 
-        group.MapGet($"/{Kind}/{{slug}}/{{version}}", (string kind, string slug, string version, PlaybookStore store) =>
-                Json(store.Get($"{kind}/{slug}", version)))
-            .Produces<Playbook>()
-            .WithSummary("Get one playbook version.");
+        group.MapGet($"/{Kind}/{{slug}}/{{version}}", (string kind, string slug, string version, PlaybookStore store, HttpContext context) =>
+                Respond(context, store, store.Get($"{kind}/{slug}", version)))
+            .Produces<Playbook>(StatusCodes.Status200OK, BodyTypes[0], BodyTypes[1..])
+            .WithSummary("Get one playbook version (add ?format=yaml for YAML).");
 
         group.MapPut($"/{Kind}/{{slug}}/{{version}}", async (
                 string kind, string slug, string version, HttpRequest request, PlaybookStore store,
                 [FromHeader(Name = ApiErrors.UserHeader)] string? user) =>
             {
                 var actor = ApiErrors.Actor(user);
-                return Json(store.UpdateDraft($"{kind}/{slug}", version, await Read(request), actor));
+                var (body, yaml) = await Read(request);
+                return Respond(request.HttpContext, store, store.UpdateDraft($"{kind}/{slug}", version, body, actor, yaml));
             })
-            .Accepts<Playbook>("application/json")
-            .Produces<Playbook>()
+            .Accepts<Playbook>(BodyTypes[0], BodyTypes[1..])
+            .Produces<Playbook>(StatusCodes.Status200OK, BodyTypes[0], BodyTypes[1..])
             .WithSummary("Replace a draft playbook version.");
 
         group.MapPost($"/{Kind}/{{slug}}/{{version}}/versions", (
@@ -73,16 +86,16 @@ public static class PlaybookEndpoints
                 [FromHeader(Name = ApiErrors.UserHeader)] string? user) =>
             {
                 var draft = store.DraftNewVersion($"{kind}/{slug}", version, body.Version, ApiErrors.Actor(user), body.Note);
-                return Json(draft, StatusCodes.Status201Created, context, Address(draft));
+                return Respond(context, store, draft, StatusCodes.Status201Created, Address(draft));
             })
-            .Produces<Playbook>(StatusCodes.Status201Created)
+            .Produces<Playbook>(StatusCodes.Status201Created, BodyTypes[0], BodyTypes[1..])
             .WithSummary("Draft a new version from this one (next minor version by default).");
 
         group.MapPost($"/{Kind}/{{slug}}/{{version}}/status", (
-                string kind, string slug, string version, StatusChangeRequest body, PlaybookStore store,
+                string kind, string slug, string version, StatusChangeRequest body, PlaybookStore store, HttpContext context,
                 [FromHeader(Name = ApiErrors.UserHeader)] string? user) =>
-                Json(store.Transition($"{kind}/{slug}", version, body.Status, ApiErrors.Actor(user), body.Note)))
-            .Produces<Playbook>()
+                Respond(context, store, store.Transition($"{kind}/{slug}", version, body.Status, ApiErrors.Actor(user), body.Note)))
+            .Produces<Playbook>(StatusCodes.Status200OK, BodyTypes[0], BodyTypes[1..])
             .WithSummary("Move a version through Draft → InReview → Published → Retired.");
 
         group.MapGet($"/{Kind}/{{slug}}/{{version}}/validate", (string kind, string slug, string version, PlaybookStore store) =>
@@ -113,19 +126,33 @@ public static class PlaybookEndpoints
 
     private static string Address(Playbook playbook) => $"/api/playbooks/{playbook.Id}/{playbook.Version}";
 
-    private static async Task<Playbook> Read(HttpRequest request)
+    /// <summary>The playbook in the body, and the body itself when it is YAML.</summary>
+    private static async Task<(Playbook Playbook, string? Yaml)> Read(HttpRequest request)
     {
         using var reader = new StreamReader(request.Body);
-        return PlaybookSerializer.Deserialize(await reader.ReadToEndAsync(request.HttpContext.RequestAborted));
+        var text = await reader.ReadToEndAsync(request.HttpContext.RequestAborted);
+        return (PlaybookSerializer.Deserialize(text), PlaybookSerializer.Detect(text) == PlaybookFormat.Yaml ? text : null);
     }
 
-    private static IResult Json(Playbook playbook, int status = StatusCodes.Status200OK, HttpContext? context = null, string? location = null)
+    private static bool WantsYaml(HttpRequest request) =>
+        request.Query["format"].ToString().ToLowerInvariant() switch
+        {
+            "yaml" or "yml" => true,
+            "json" => false,
+            "" => request.Headers.Accept.ToString().Contains("yaml", StringComparison.OrdinalIgnoreCase),
+            var other => throw new StoreException(StoreError.Invalid, $"Unknown format '{other}'; use json or yaml."),
+        };
+
+    private static IResult Respond(HttpContext context, PlaybookStore store, Playbook playbook, int status = StatusCodes.Status200OK, string? location = null)
     {
-        if (context is not null && location is not null)
+        var yaml = WantsYaml(context.Request);
+        if (location is not null)
         {
             context.Response.Headers.Location = location;
         }
 
-        return Results.Text(PlaybookSerializer.Serialize(playbook), "application/json", statusCode: status);
+        return yaml
+            ? Results.Text(store.GetYaml(playbook.Id, playbook.Version), YamlType, statusCode: status)
+            : Results.Text(PlaybookSerializer.Serialize(playbook), "application/json", statusCode: status);
     }
 }
