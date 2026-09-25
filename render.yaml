@@ -1,0 +1,31 @@
+# Render Blueprint for the MapWright API: a Docker web service with a persistent disk for the SQLite store.
+# Vertex AI is optional: add the service-account key as a secret file named vertex-key.json and set
+# MAPWRIGHT_VERTEX_PROJECT. Without it, set MAPWRIGHT_OLLAMA_URL or leave both empty (playbooks only).
+services:
+  - type: web
+    name: mapwright-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    healthCheckPath: /health
+    disk:
+      name: mapwright-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: MapWright__DatabasePath
+        value: /var/data/mapwright.db
+      - key: MapWright__RequireIndependentReview
+        value: "true"
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/secrets/vertex-key.json
+      - key: MAPWRIGHT_VERTEX_PROJECT
+        sync: false
+      - key: MAPWRIGHT_VERTEX_LOCATION
+        sync: false
+      - key: MAPWRIGHT_VERTEX_MODEL
+        sync: false
+      - key: MAPWRIGHT_OLLAMA_URL
+        sync: false

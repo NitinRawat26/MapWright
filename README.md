@@ -130,6 +130,25 @@ attributes, qualifiers, value maps and other playbooks, regexes and expressions,
 one published version per ID). `playbook test` also runs every detection test and rule example; a published
 domain playbook must have tests.
 
+### Stored playbooks (lifecycle)
+
+`MapWright.Store` keeps playbooks in SQLite with the same JSON shape as the files, one row per version, plus an
+audit trail of every change. The files in `playbooks/` can be imported as the starting set.
+
+| From | To | Rule |
+|---|---|---|
+| (new) | Draft | New playbooks and new versions start as drafts; only one open (draft or in-review) version per ID |
+| Draft | Draft | Only drafts are editable |
+| Draft | In Review | The playbook is valid and all its tests and rule examples pass |
+| In Review | Draft | Changes requested |
+| In Review | Published | Valid, tests pass, and published by someone other than the submitter; the previous published version is retired |
+| Published / Draft | Retired | No longer applied (a retired draft is abandoned) |
+
+A new version copies an existing one (next minor version by default) and adds a change note. The same store
+holds system profiles, mapping specs and reviewers' decisions on mapping rows (approve, reject or override,
+also written to the row's review block and the mapping's change log). It is a store for mapping work, not for
+merchant data.
+
 ## AI assist (optional)
 
 Playbooks always run first. When fields are left unrecognised, `playbook detect` asks
@@ -260,6 +279,150 @@ and plain XML applications) hold synthetic sample payloads and the profiles gene
 `contracts/` folders hold matching synthetic contracts: a JSON Schema, an OpenAPI document and a CSV field
 spec for SalesAlpha, and an XSD and WSDL for UW Core.
 
+## API
+
+`src/MapWright.Api` is an ASP.NET Core API over the same engine and the SQLite store. Run it with:
+
+```bash
+dotnet run --project src/MapWright.Api --urls http://localhost:5080
+# Swagger UI: http://localhost:5080/swagger
+```
+
+Settings (`appsettings.json`, or environment variables such as `MapWright__DatabasePath`):
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `MapWright:DatabasePath` | `data/mapwright.db` | SQLite file (`:memory:` for a throw-away store) |
+| `MapWright:SeedPlaybooks` | `playbooks` | Imported when the store has no playbooks (relative to the app folder) |
+| `MapWright:RequireIndependentReview` | `true` | The submitter of a version cannot publish it |
+
+Writes need an `X-MapWright-User` header; the name is recorded in the audit trail. Errors come back as
+`{ title, status, detail, issues }` with 400 (invalid), 404 (not found) or 409 (conflict, e.g. editing a
+published version).
+
+### Playbooks
+
+Playbooks are addressed as `/api/playbooks/{kind}/{slug}/{version}`, e.g. `/api/playbooks/domain/tax-id/1.0.0`.
+Bodies and responses use the playbook file format.
+
+| Method and path | Does |
+|---|---|
+| `GET /api/playbooks?status=` | List versions (`draft`, `inReview`, `published`, `retired`) |
+| `POST /api/playbooks` | Create a draft |
+| `POST /api/playbooks/validate`, `POST /api/playbooks/test` | Validate or test an unsaved playbook |
+| `GET /api/playbooks/{kind}/{slug}` | Versions of one playbook |
+| `GET /api/playbooks/{kind}/{slug}/history` | Audit trail |
+| `GET` / `PUT /api/playbooks/{kind}/{slug}/{version}` | Get a version; replace a draft |
+| `POST .../{version}/versions` | Draft a new version: `{ "version": "1.1.0", "note": "…" }` (both optional) |
+| `POST .../{version}/status` | Change status: `{ "status": "inReview", "note": "…" }` |
+| `GET .../{version}/validate`, `GET .../{version}/test` | Validate or test a stored version |
+
+```bash
+curl -X POST localhost:5080/api/playbooks/domain/tax-id/1.0.0/versions -H 'X-MapWright-User: ana' \
+  -H 'Content-Type: application/json' -d '{"note":"Add TIN as a term"}'
+curl -X POST localhost:5080/api/playbooks/domain/tax-id/1.1.0/status -H 'X-MapWright-User: ana' \
+  -H 'Content-Type: application/json' -d '{"status":"inReview"}'
+curl -X POST localhost:5080/api/playbooks/domain/tax-id/1.1.0/status -H 'X-MapWright-User: ben' \
+  -H 'Content-Type: application/json' -d '{"status":"published"}'
+```
+
+### Profiles, mappings and replay
+
+| Method and path | Does |
+|---|---|
+| `GET /api/profiles` | List profiles |
+| `POST /api/profiles` | Build a profile from uploaded files (multipart `files`, plus `system`, and optional `id`, `version`, `description`, `root`, `noValues`, `replace`) |
+| `GET` / `PUT` / `DELETE /api/profiles/{id}` | Get, store (profile JSON, e.g. from the CLI) or delete a profile |
+| `POST /api/profiles/{id}/detect` | Which business concept the published playbooks recognise in each field |
+| `GET /api/mappings` | List mappings |
+| `POST /api/mappings` | Generate a mapping: `{ "source": "<profile id>", "target": "<profile id>", "id": "…", "title": "…", "replace": false }` |
+| `GET` / `PUT` / `DELETE /api/mappings/{id}` | Get, store (mapping JSON) or delete a mapping |
+| `GET /api/mappings/{id}/summary` | Coverage, confidence bands, review status and validation counts |
+| `GET /api/mappings/{id}/export/{xlsx\|csv\|html}` | Download the mapping document |
+| `POST /api/mappings/{id}/replay` | Replay samples (multipart `files`, plus `target` profile id, optional `xmlNamespace`, `record`) |
+| `POST /api/mappings/{id}/rows/{rowId}/review` | `{ "decision": "approve" \| "reject" \| "override", "comment": "…", "row": { … } }` |
+| `GET /api/mappings/{id}/reviews` | Review decisions, oldest first |
+
+Generation uses the published playbooks only, so drafts never change a mapping until they are published.
+Replay responses contain the built target payloads, which hold the samples' real values; `record=true` also
+saves the validation runs in the mapping.
+
+```bash
+curl -X POST localhost:5080/api/profiles -H 'X-MapWright-User: ana' \
+  -F system="SalesAlpha CRM" -F id=sales-alpha -F root=submitApplication \
+  -F files=@samples/systems/sales-alpha/samples/sole-prop.json \
+  -F files=@samples/systems/sales-alpha/contracts/sales-alpha-application.schema.json
+curl -X PUT localhost:5080/api/profiles/uw-core -H 'X-MapWright-User: ana' \
+  -H 'Content-Type: application/json' --data-binary @samples/systems/uw-core/profile.json
+curl -X POST localhost:5080/api/mappings -H 'X-MapWright-User: ana' \
+  -H 'Content-Type: application/json' -d '{"source":"sales-alpha","target":"uw-core"}'
+curl -X POST localhost:5080/api/mappings/sales-alpha__uw-core/replay \
+  -F target=uw-core -F files=@samples/systems/sales-alpha/samples/sole-prop.json
+curl -o mapping.xlsx localhost:5080/api/mappings/sales-alpha__uw-core/export/xlsx
+```
+
+### AI and the suggestions inbox
+
+AI never runs unless a request asks for it with `"useAi": true`, and it only looks at what the playbooks left
+over. The provider comes from the same variables as the CLI: `MAPWRIGHT_VERTEX_PROJECT` (Vertex AI, first choice),
+`MAPWRIGHT_OLLAMA_URL` (fallback). With neither set, `useAi: true` returns 400 and everything else works with
+playbooks only. Answers are capped at the process playbook's AI confidence (70% in the starter set) and always
+need review. If the provider fails, the API returns 502 and saves nothing.
+
+| Method and path | Does |
+|---|---|
+| `GET /api/ai` | Whether a provider is configured, its name and the confidence cap |
+| `POST /api/profiles/{id}/detect` with `{ "useAi": true }` | Asks AI about the fields no playbook recognised and files each answer in the inbox |
+| `POST /api/mappings` with `"useAi": true` | AI suggests sources for unmapped targets; those rows need review like any other |
+| `GET /api/suggestions?status=&profile=` | The inbox (`pending`, `approved`, `rejected`) |
+| `POST /api/suggestions/{id}/approve` | `{ "concept": "Concept.Attribute", "comment": "…" }`: adds the field's name as a vocabulary term to a draft of that concept's domain playbook |
+| `POST /api/suggestions/{id}/reject` | `{ "comment": "…" }` |
+
+Approving never publishes anything. It opens a draft (the next minor version, or the open draft if there is
+one) and the draft goes through test, review and publish as usual. `concept` defaults to the AI's answer; it is
+needed when the AI proposed a concept no playbook defines, or when two playbooks share the concept. A term that
+is already in the playbook, or a playbook that is in review, returns 409.
+
+## Deployment
+
+### Docker
+
+```bash
+docker build -t mapwright-api .
+docker run -p 8080:8080 -v mapwright-data:/var/data mapwright-api
+# http://localhost:8080/swagger, http://localhost:8080/health
+```
+
+The image seeds the starter playbooks into an empty store and keeps the SQLite file at
+`/var/data/mapwright.db`, so mount a volume there. Any setting can be overridden with an environment variable,
+e.g. `-e MapWright__RequireIndependentReview=false`. To use AI, pass the provider variables
+(`MAPWRIGHT_VERTEX_PROJECT`, `MAPWRIGHT_OLLAMA_URL`, ...) and, for Vertex AI, mount the service-account key and
+point `GOOGLE_APPLICATION_CREDENTIALS` at it:
+
+```bash
+docker run -p 8080:8080 -v mapwright-data:/var/data \
+  -v "$PWD/secrets/vertex-key.json:/etc/secrets/vertex-key.json:ro" \
+  -e GOOGLE_APPLICATION_CREDENTIALS=/etc/secrets/vertex-key.json \
+  -e MAPWRIGHT_VERTEX_PROJECT=<gcp-project> mapwright-api
+```
+
+Keep key files out of git: `secrets/` and `*-key.json` are ignored by both `.gitignore` and `.dockerignore`.
+
+### Render
+
+`render.yaml` is a Render Blueprint: a Docker web service with a 1 GB persistent disk at `/var/data` for the
+SQLite file and a `/health` check. Persistent disks need a paid instance type, which is why the plan is `starter`.
+
+1. In Render, choose **New > Blueprint** and pick this repository.
+2. When asked, fill in `MAPWRIGHT_VERTEX_PROJECT` (and optionally `MAPWRIGHT_VERTEX_LOCATION`, `MAPWRIGHT_VERTEX_MODEL`),
+   or `MAPWRIGHT_OLLAMA_URL`, or leave them empty to run with playbooks only.
+3. For Vertex AI, add the service-account key under **Environment > Secret Files** with the file name
+   `vertex-key.json`. It is available at `/etc/secrets/vertex-key.json`, where `GOOGLE_APPLICATION_CREDENTIALS`
+   already points. The account needs the Vertex AI User role.
+
+The API has no sign-in: `X-MapWright-User` is recorded for audit but not verified. Put it behind your own
+authentication (a gateway, VPN or Render private service) before exposing it.
+
 ## Build and test
 
 Requires the .NET 10 SDK.
@@ -278,8 +441,11 @@ src/MapWright.Core     Mapping spec model, system profiles, sample and contract 
 src/MapWright.Output   Report model, Excel / CSV / HTML renderers and the Excel field-spec reader
 src/MapWright.Ai       Optional AI assist: Vertex AI and Ollama providers, fallback, masked field prompts
 src/MapWright.Cli      `mapwright` command-line tool
-tests/MapWright.Tests  Unit tests
+src/MapWright.Api      ASP.NET Core API (Swagger at /swagger) over the engine and the store
+src/MapWright.Store    SQLite store: playbook versions and lifecycle, profiles, mappings, review decisions, AI suggestions
+tests/MapWright.Tests  Unit and API tests
 samples/mappings       Example mapping specs
 samples/systems        Example sample payloads, contracts and generated system profiles
 playbooks              Starter domain and process playbooks
+Dockerfile, render.yaml  API container image and Render Blueprint
 ```

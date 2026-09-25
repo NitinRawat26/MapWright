@@ -3,7 +3,6 @@ using MapWright.Core;
 using MapWright.Core.Matching;
 using MapWright.Core.Playbooks;
 using MapWright.Core.Profile;
-using MapWright.Core.Profile.Contracts;
 using MapWright.Core.Profile.Samples;
 using MapWright.Core.Replay;
 using MapWright.Core.Spec;
@@ -240,28 +239,7 @@ public static class CliApp
         SystemProfile profile;
         try
         {
-            var samples = new List<SampleInput>();
-            var contracts = new List<ContractDocument>();
-            foreach (var file in files)
-            {
-                var name = Path.GetFileName(file);
-                if (Path.GetExtension(file).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
-                {
-                    contracts.Add(FieldSpecWorkbook.Read(name, File.ReadAllBytes(file)));
-                    continue;
-                }
-
-                var content = File.ReadAllText(file);
-                if (ContractReader.Detect(name, content) is { } kind)
-                {
-                    contracts.Add(ContractReader.Read(name, content, kind, root));
-                }
-                else
-                {
-                    samples.Add(new(name, content));
-                }
-            }
-
+            var (samples, contracts) = ProfileInputs.Split(files.Select(f => new InputFile(Path.GetFileName(f), File.ReadAllBytes(f))), root);
             profile = ProfileBuilder.Build(
                 new()
                 {
@@ -756,7 +734,7 @@ public static class CliApp
     }
 
     private static readonly string[] SampleExtensions = [".json", ".xml"];
-    private static readonly string[] ProfileExtensions = [".json", ".xml", ".xsd", ".wsdl", ".csv", ".xlsx", ".yaml", ".yml"];
+    private static readonly string[] ProfileExtensions = [.. ProfileInputs.Extensions];
 
     private static string Sources(SystemProfile profile)
     {

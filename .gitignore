@@ -480,3 +480,13 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# MapWright API SQLite database
+*.db
+*.db-shm
+*.db-wal
+
+# Credentials (e.g. the Vertex AI service-account key)
+secrets/
+*-key.json
+*.patch
