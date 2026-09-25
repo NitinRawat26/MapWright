@@ -371,6 +371,7 @@
       "transformation": {
         "type": "typeCast",
         "rule": "Reformat 999-99-9999 → 999999999",
+        "pattern": "999999999",
         "valueMap": []
       },
       "confidencePercent": 95,
@@ -679,6 +680,10 @@
       "transformation": {
         "type": "concat",
         "rule": "Full name is first name, a space, then last name. (PRN-NAME-01: first = $.owners[*].firstName, last = $.owners[*].lastName)",
+        "inputs": {
+          "first": "$.owners[*].firstName",
+          "last": "$.owners[*].lastName"
+        },
         "valueMap": []
       },
       "confidencePercent": 85,
@@ -824,6 +829,7 @@
       "transformation": {
         "type": "typeCast",
         "rule": "Reformat 999-99-9999 → 999999999",
+        "pattern": "999999999",
         "valueMap": []
       },
       "confidencePercent": 95,
@@ -891,6 +897,9 @@
         "type": "unitConversion",
         "rule": "Fraction (0–1) to percent (0–100). (PRN-PCT-01: fraction = $.owners[*].ownershipPercent)",
         "expression": "fraction * 100",
+        "inputs": {
+          "fraction": "$.owners[*].ownershipPercent"
+        },
         "valueMap": []
       },
       "confidencePercent": 95,
@@ -1033,6 +1042,9 @@
         "type": "periodConversion",
         "rule": "Annual volume to monthly volume. (VOL-PERIOD-01: annual = $.processing.annualCardVolume)",
         "expression": "annual / 12",
+        "inputs": {
+          "annual": "$.processing.annualCardVolume"
+        },
         "valueMap": []
       },
       "confidencePercent": 95,
@@ -1292,6 +1304,10 @@
         "type": "aggregate",
         "rule": "Card-not-present is MOTO plus e-commerce. (MIX-CNP-01: moto = $.processing.motoPercent, ecomm = $.processing.ecommPercent)",
         "expression": "moto + ecomm",
+        "inputs": {
+          "moto": "$.processing.motoPercent",
+          "ecomm": "$.processing.ecommPercent"
+        },
         "valueMap": []
       },
       "confidencePercent": 95,

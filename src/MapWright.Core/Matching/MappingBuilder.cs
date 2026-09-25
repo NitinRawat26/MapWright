@@ -109,7 +109,12 @@ internal sealed class MappingBuilder(IReadOnlyList<RecognisedField> sources, Pla
 
         if (ShapeChange(source, target) is { } reshape)
         {
-            return new() { Type = TransformationType.TypeCast, Rule = reshape };
+            return new()
+            {
+                Type = TransformationType.TypeCast,
+                Rule = reshape,
+                Pattern = target.Field.ValueShapes is [var shape] ? shape : null,
+            };
         }
 
         if (from.DataType != to.DataType && from.DataType != FieldDataType.Unknown && to.DataType != FieldDataType.Unknown)
@@ -312,6 +317,7 @@ internal sealed class MappingBuilder(IReadOnlyList<RecognisedField> sources, Pla
                 Type = rule.Transformation,
                 Rule = $"{rule.Description} ({rule.Id}: {string.Join(", ", rule.Inputs.Zip(inputs).Select(p => $"{p.First.Name} = {p.Second.Path}"))})",
                 Expression = rule.Expression,
+                Inputs = rule.Inputs.Zip(inputs).ToDictionary(p => p.First.Name, p => p.Second.Path, StringComparer.Ordinal),
             },
         };
 
