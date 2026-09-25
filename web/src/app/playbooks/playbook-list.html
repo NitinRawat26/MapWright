@@ -1,0 +1,74 @@
+<div class="page">
+  <h1>Playbooks</h1>
+  <p class="muted">
+    Domain playbooks hold the business knowledge used to recognise and map fields; process playbooks describe the
+    mapping workflow. Only published versions are used when mapping.
+  </p>
+
+  <div class="row filters">
+    <mat-button-toggle-group [value]="status()" (change)="filter($event.value)" data-testid="status-filter" hideSingleSelectionIndicator>
+      <mat-button-toggle value="">All</mat-button-toggle>
+      <mat-button-toggle value="draft">Draft</mat-button-toggle>
+      <mat-button-toggle value="inReview">In review</mat-button-toggle>
+      <mat-button-toggle value="published">Published</mat-button-toggle>
+      <mat-button-toggle value="retired">Retired</mat-button-toggle>
+    </mat-button-toggle-group>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Search</mat-label>
+      <input matInput [ngModel]="search()" (ngModelChange)="search.set($event)" />
+    </mat-form-field>
+  </div>
+
+  <table mat-table [dataSource]="rows()" data-testid="playbooks">
+    <ng-container matColumnDef="id">
+      <th mat-header-cell *matHeaderCellDef>Id</th>
+      <td mat-cell *matCellDef="let p"><a [routerLink]="link(p)" class="mono">{{ p.id }}</a></td>
+    </ng-container>
+    <ng-container matColumnDef="version">
+      <th mat-header-cell *matHeaderCellDef>Version</th>
+      <td mat-cell *matCellDef="let p">{{ p.version }}</td>
+    </ng-container>
+    <ng-container matColumnDef="name">
+      <th mat-header-cell *matHeaderCellDef>Name</th>
+      <td mat-cell *matCellDef="let p">{{ p.name }}</td>
+    </ng-container>
+    <ng-container matColumnDef="kind">
+      <th mat-header-cell *matHeaderCellDef>Kind</th>
+      <td mat-cell *matCellDef="let p">{{ p.kind }}</td>
+    </ng-container>
+    <ng-container matColumnDef="status">
+      <th mat-header-cell *matHeaderCellDef>Status</th>
+      <td mat-cell *matCellDef="let p"><span class="chip" [class]="classes[p.status]">{{ labels[p.status] }}</span></td>
+    </ng-container>
+    <ng-container matColumnDef="owner">
+      <th mat-header-cell *matHeaderCellDef>Owner</th>
+      <td mat-cell *matCellDef="let p">{{ p.owner }}</td>
+    </ng-container>
+    <ng-container matColumnDef="updated">
+      <th mat-header-cell *matHeaderCellDef>Updated</th>
+      <td mat-cell *matCellDef="let p">{{ p.updatedAt | date: 'medium' }} · {{ p.updatedBy }}</td>
+    </ng-container>
+    <tr mat-header-row *matHeaderRowDef="columns"></tr>
+    <tr mat-row *matRowDef="let row; columns: columns"></tr>
+    <tr class="mat-mdc-row" *matNoDataRow>
+      <td class="mat-mdc-cell muted" [attr.colspan]="columns.length">No playbooks match.</td>
+    </tr>
+  </table>
+
+  <mat-expansion-panel class="import">
+    <mat-expansion-panel-header><mat-panel-title>Add a playbook</mat-panel-title></mat-expansion-panel-header>
+    <p class="muted">Paste or load a playbook file. It is stored as a new draft; to change an existing playbook, open it and draft a new version.</p>
+    <div class="row">
+      <input #file type="file" accept=".json,application/json" hidden (change)="readFile(file)" />
+      <button mat-stroked-button type="button" (click)="file.click()">Load file…</button>
+    </div>
+    <mat-form-field appearance="outline" class="json">
+      <mat-label>Playbook JSON</mat-label>
+      <textarea matInput rows="12" class="mono" [ngModel]="importJson()" (ngModelChange)="importJson.set($event)" data-testid="import-json"></textarea>
+    </mat-form-field>
+    <button mat-flat-button type="button" [disabled]="!importJson().trim() || !user.name()" (click)="create()" data-testid="import">Create draft</button>
+    @if (!user.name()) {
+      <span class="muted"> Enter your name in the toolbar first.</span>
+    }
+  </mat-expansion-panel>
+</div>

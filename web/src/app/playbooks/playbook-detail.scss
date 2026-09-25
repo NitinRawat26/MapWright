@@ -1,0 +1,112 @@
+.back {
+  text-decoration: none;
+}
+
+.header {
+  margin-top: 8px;
+}
+
+.header h1 {
+  margin: 0;
+}
+
+.versions {
+  margin: 12px 0;
+}
+
+.versions a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.versions a.current {
+  outline: 2px solid var(--mat-sys-primary);
+}
+
+.actions {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+}
+
+.note {
+  width: 320px;
+}
+
+.version {
+  width: 130px;
+}
+
+.tab {
+  padding: 16px 4px;
+}
+
+.terms {
+  gap: 6px;
+}
+
+.editor {
+  width: 100%;
+  min-height: 60vh;
+  box-sizing: border-box;
+  padding: 8px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 4px;
+}
+
+.error {
+  color: var(--mat-sys-error);
+}
+
+table.plain {
+  border-collapse: collapse;
+}
+
+table.plain td,
+table.plain th {
+  text-align: left;
+  padding: 4px 12px 4px 0;
+  vertical-align: top;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+tr.failed {
+  color: var(--mat-sys-error);
+}
+
+table.diff {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+table.diff td {
+  white-space: pre-wrap;
+  word-break: break-all;
+  padding: 0 6px;
+}
+
+table.diff td.no {
+  width: 40px;
+  text-align: right;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+tr.changed td.left,
+tr.removed td.left {
+  background: #ffe4e1;
+}
+
+tr.changed td.right,
+tr.added td.right {
+  background: #dcf5df;
+}
+
+tr.skipped td {
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+  background: var(--mat-sys-surface-container);
+}

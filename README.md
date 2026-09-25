@@ -442,6 +442,11 @@ For UI development, run the API as above and `npm start` in `web/` (http://local
 sent as `X-MapWright-User`. Without a built UI the API serves only `/api`, `/health` and `/swagger`.
 API errors are shown with their `detail` and `issues`.
 
+Pages:
+- **Playbooks:** filter by status, search, add a playbook as a draft. Each version shows its concept,
+  vocabulary and rules; drafts are edited as JSON and validated and tested before saving. Submit, request
+  changes, publish, retire or draft a new version, see the audit history, and compare any two versions side by side.
+
 ## Build and test
 
 Requires the .NET 10 SDK.

@@ -1,0 +1,218 @@
+<div class="page">
+  <a routerLink="/playbooks" class="muted back">← Playbooks</a>
+  @if (playbook(); as p) {
+    <div class="row header">
+      <h1>{{ p.name }}</h1>
+      <span class="chip" [class]="classes[p.status]" data-testid="status">{{ labels[p.status] }}</span>
+    </div>
+    <div class="row muted">
+      <span class="mono">{{ p.id }}&#64;{{ p.version }}</span>
+      <span>{{ p.kind }} playbook</span>
+      @if (p.owner) {
+        <span>Owner: {{ p.owner }}</span>
+      }
+    </div>
+    <div class="row versions" data-testid="versions">
+      Versions:
+      @for (v of versions(); track v.version) {
+        <a [routerLink]="['/playbooks', kind(), slug(), v.version]" class="chip" [class]="classes[v.status]" [class.current]="v.version === version()">
+          {{ v.version }} · {{ labels[v.status] }}
+        </a>
+      }
+    </div>
+
+    <div class="actions">
+      <div class="row">
+        @if (isDraft()) {
+          <button mat-flat-button type="button" [disabled]="!dirty() || !!parseError() || !canWrite()" (click)="save()" data-testid="save">Save draft</button>
+          <button mat-stroked-button type="button" [disabled]="!dirty()" (click)="revert()">Discard changes</button>
+        }
+        <button mat-stroked-button type="button" [disabled]="busy() || !!parseError()" (click)="validate(); tab.set(2)" data-testid="validate">Validate</button>
+        <button mat-stroked-button type="button" [disabled]="busy() || !!parseError()" (click)="test(); tab.set(2)" data-testid="test">Run tests</button>
+      </div>
+      <div class="row">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="note">
+          <mat-label>Note for the history (optional)</mat-label>
+          <input matInput [ngModel]="note()" (ngModelChange)="note.set($event)" />
+        </mat-form-field>
+        @for (a of actions(); track a.to) {
+          @if (a.primary) {
+            <button mat-flat-button type="button" [disabled]="!canWrite() || dirty()" (click)="transition(a.to)" [attr.data-testid]="'to-' + a.to">{{ a.label }}</button>
+          } @else {
+            <button mat-stroked-button type="button" [disabled]="!canWrite() || dirty()" (click)="transition(a.to)" [attr.data-testid]="'to-' + a.to">{{ a.label }}</button>
+          }
+        }
+        @if (p.status === 'published' || p.status === 'retired') {
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="version">
+            <mat-label>New version</mat-label>
+            <input matInput placeholder="next minor" [ngModel]="newVersion()" (ngModelChange)="newVersion.set($event)" />
+          </mat-form-field>
+          <button mat-flat-button type="button" [disabled]="!canWrite()" (click)="draftNewVersion()" data-testid="new-version">Draft new version</button>
+        }
+      </div>
+      @if (!user.name()) {
+        <div class="muted">Enter your name in the toolbar to save or change status.</div>
+      } @else if (dirty()) {
+        <div class="muted">Save or discard your changes before changing the status.</div>
+      } @else if (p.status === 'inReview') {
+        <div class="muted">Publishing needs passing tests and a reviewer other than the one who submitted it.</div>
+      }
+    </div>
+
+    <mat-tab-group [selectedIndex]="tab()" (selectedIndexChange)="tab.set($event)" animationDuration="0ms">
+      <mat-tab label="Overview">
+        <div class="tab">
+          @if (p.description) {
+            <p>{{ p.description }}</p>
+          }
+          @if (p.domain; as d) {
+            <h2>Concept: {{ d.concept.name }}</h2>
+            @if (d.concept.description) {
+              <p class="muted">{{ d.concept.description }}</p>
+            }
+            <table class="plain">
+              <tr><th>Attribute</th><th>Type</th><th>Sensitivity</th><th>Description</th></tr>
+              @for (a of d.concept.attributes; track a.name) {
+                <tr><td class="mono">{{ a.name }}</td><td>{{ a.dataType ?? 'string' }}</td><td>{{ a.sensitivity ?? 'none' }}</td><td>{{ a.description }}</td></tr>
+              }
+            </table>
+            <h2>Vocabulary</h2>
+            <div class="row terms">
+              @for (t of d.vocabulary ?? []; track $index) {
+                <span class="chip" [title]="(t.appliesTo ?? d.concept.name) + ' · ' + (t.relation ?? 'equivalent')">{{ t.term }}</span>
+              }
+            </div>
+            <h2>Contents</h2>
+            <div class="row">
+              @for (c of counts(); track c[0]) {
+                <span class="chip">{{ c[0] }}: {{ c[1] }}</span>
+              }
+            </div>
+            @if (d.risks?.length) {
+              <h2>Risks</h2>
+              <ul>
+                @for (r of d.risks; track r.id) {
+                  <li><b>{{ r.level }}</b> {{ r.text }}</li>
+                }
+              </ul>
+            }
+          }
+          @if (p.process?.steps; as steps) {
+            <h2>Steps</h2>
+            <ol>
+              @for (s of steps; track s.id) {
+                <li><b>{{ s.name }}</b> <span class="muted">({{ s.kind }})</span> {{ s.description }}</li>
+              }
+            </ol>
+          }
+          @if (p.changeNotes?.length) {
+            <h2>Change notes</h2>
+            <ul>
+              @for (c of p.changeNotes; track $index) {
+                <li><span class="mono">{{ c.version }}</span> {{ c.date }} {{ c.author }}: {{ c.description }}</li>
+              }
+            </ul>
+          }
+        </div>
+      </mat-tab>
+
+      <mat-tab label="JSON">
+        <div class="tab">
+          @if (!isDraft()) {
+            <p class="muted">{{ labels[p.status] }} versions are read-only. Draft a new version to change it.</p>
+          }
+          @if (parseError()) {
+            <p class="error">{{ parseError() }}</p>
+          }
+          <textarea class="mono editor" spellcheck="false" [readOnly]="!isDraft()" [ngModel]="edited()" (ngModelChange)="edited.set($event)" data-testid="editor"></textarea>
+        </div>
+      </mat-tab>
+
+      <mat-tab label="Checks">
+        <div class="tab">
+          @if (isDraft() && dirty()) {
+            <p class="muted">Checks run on your unsaved changes.</p>
+          }
+          <h2>Validation</h2>
+          @if (validation(); as v) {
+            @if (v.valid && !v.issues.length) {
+              <p class="chip good" data-testid="valid">Valid</p>
+            } @else {
+              <p class="chip" [class]="v.valid ? 'warn' : 'bad'" data-testid="valid">{{ v.valid ? 'Valid with warnings' : 'Invalid' }}</p>
+              <table class="plain">
+                @for (i of v.issues; track $index) {
+                  <tr><td>{{ i.severity }}</td><td class="mono">{{ i.code }}</td><td class="mono">{{ i.location }}</td><td>{{ i.message }}</td></tr>
+                }
+              </table>
+            }
+          } @else {
+            <p class="muted">Not run yet.</p>
+          }
+          <h2>Tests</h2>
+          @if (tests(); as t) {
+            <p class="chip" [class]="t.passed ? 'good' : 'bad'" data-testid="tests">
+              {{ t.results.length - failedTests() }} of {{ t.results.length }} passed
+            </p>
+            <table class="plain">
+              @for (r of t.results; track $index) {
+                <tr [class.failed]="!r.passed">
+                  <td>{{ r.passed ? 'Pass' : 'Fail' }}</td><td>{{ r.kind }}</td><td class="mono">{{ r.id }}</td><td>{{ r.message }}</td>
+                </tr>
+              }
+            </table>
+          } @else {
+            <p class="muted">Not run yet.</p>
+          }
+        </div>
+      </mat-tab>
+
+      <mat-tab label="History">
+        <div class="tab">
+          <table class="plain" data-testid="history">
+            <tr><th>When</th><th>Who</th><th>Version</th><th>Action</th><th>Status</th><th>Note</th></tr>
+            @for (e of history(); track e.sequence) {
+              <tr>
+                <td>{{ e.occurredAt | date: 'medium' }}</td><td>{{ e.actor }}</td><td class="mono">{{ e.version }}</td><td>{{ e.action }}</td>
+                <td>{{ e.from ? labels[e.from] + ' → ' : '' }}{{ labels[e.to] }}</td><td>{{ e.note }}</td>
+              </tr>
+            }
+          </table>
+        </div>
+      </mat-tab>
+
+      <mat-tab label="Compare">
+        <div class="tab">
+          <div class="row">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Compare with</mat-label>
+              <mat-select [value]="compareWith()" (selectionChange)="compare($event.value)" data-testid="compare-with">
+                @for (v of others(); track v.version) {
+                  <mat-option [value]="v.version">{{ v.version }} ({{ labels[v.status] }})</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            @if (compareJson()) {
+              <span data-testid="changes">{{ changes() }} changed line(s): {{ compareWith() }} on the left, {{ version() }}{{ dirty() ? ' (unsaved)' : '' }} on the right</span>
+            } @else if (!others().length) {
+              <span class="muted">This is the only version.</span>
+            }
+          </div>
+          @if (compareJson()) {
+            <table class="diff mono" data-testid="diff">
+              @for (r of diff(); track $index) {
+                @if (r.kind === 'skipped') {
+                  <tr class="skipped"><td colspan="4">… {{ r.skipped }} unchanged line(s)</td></tr>
+                } @else {
+                  <tr [class]="r.kind">
+                    <td class="no">{{ r.left?.number }}</td><td class="left">{{ r.left?.text }}</td>
+                    <td class="no">{{ r.right?.number }}</td><td class="right">{{ r.right?.text }}</td>
+                  </tr>
+                }
+              }
+            </table>
+          }
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  }
+</div>

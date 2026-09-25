@@ -60,3 +60,81 @@ export interface MappingListItem {
 }
 
 export type SuggestionStatus = 'pending' | 'approved' | 'rejected';
+
+export interface PlaybookEvent {
+  sequence: number;
+  id: string;
+  version: string;
+  actor: string;
+  action: string;
+  from?: PlaybookStatus;
+  to: PlaybookStatus;
+  note?: string;
+  occurredAt: string;
+}
+
+export interface ValidationResponse {
+  valid: boolean;
+  issues: SpecIssue[];
+}
+
+export interface PlaybookTestResult {
+  playbook: string;
+  kind: string;
+  id: string;
+  passed: boolean;
+  message?: string;
+}
+
+export interface TestResponse {
+  passed: boolean;
+  results: PlaybookTestResult[];
+}
+
+export interface ConceptAttribute {
+  name: string;
+  description?: string;
+  dataType?: string;
+  sensitivity?: string;
+}
+
+export interface VocabularyTerm {
+  term: string;
+  appliesTo?: string;
+  relation?: string;
+}
+
+export interface DomainDefinition {
+  concept: { name: string; description?: string; cardinality?: string; attributes: ConceptAttribute[] };
+  vocabulary?: VocabularyTerm[];
+  qualifiers?: unknown[];
+  signals?: unknown[];
+  derivations?: unknown[];
+  conditions?: unknown[];
+  valueMaps?: unknown[];
+  validations?: unknown[];
+  risks?: { id: string; appliesTo?: string; level: string; text: string }[];
+  tests?: unknown[];
+}
+
+export interface ProcessStep {
+  id: string;
+  name: string;
+  kind: string;
+  description?: string;
+}
+
+/** A playbook in the file format; only the parts the UI shows are typed. */
+export interface Playbook {
+  specVersion: string;
+  id: string;
+  name: string;
+  kind: PlaybookKind;
+  version: string;
+  status: PlaybookStatus;
+  owner?: string;
+  description?: string;
+  changeNotes?: { version: string; date: string; author: string; description: string }[];
+  domain?: DomainDefinition;
+  process?: { steps?: ProcessStep[] };
+}

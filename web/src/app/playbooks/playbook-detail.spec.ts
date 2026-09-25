@@ -1,0 +1,126 @@
+import { TestBed } from '@angular/core/testing';
+import { UserService } from '../core/user';
+import { apiProviders, http, respond, settle, text } from '../testing';
+import { PlaybookDetail } from './playbook-detail';
+
+const playbook = (version: string, status: string, description: string) =>
+  JSON.stringify(
+    {
+      specVersion: '1.0', id: 'domain/tax-id', name: 'Tax ID', kind: 'domain', version, status, description,
+      domain: { concept: { name: 'LegalEntity', attributes: [{ name: 'TaxId' }] }, vocabulary: [{ term: 'tin' }] },
+    },
+    null,
+    2,
+  );
+
+const versions = [
+  { id: 'domain/tax-id', version: '1.0.0', status: 'published' },
+  { id: 'domain/tax-id', version: '1.1.0', status: 'draft' },
+];
+
+async function open(version: string, status: string) {
+  const fixture = TestBed.createComponent(PlaybookDetail);
+  fixture.componentRef.setInput('kind', 'domain');
+  fixture.componentRef.setInput('slug', 'tax-id');
+  fixture.componentRef.setInput('version', version);
+  fixture.detectChanges();
+  respond(`/api/playbooks/domain/tax-id/${version}`, playbook(version, status, 'Tax IDs.'));
+  respond('/api/playbooks/domain/tax-id', versions);
+  respond('/api/playbooks/domain/tax-id/history', [
+    { sequence: 1, id: 'domain/tax-id', version: '1.0.0', actor: 'seed', action: 'imported', to: 'published', occurredAt: '2026-09-25T00:00:00Z' },
+  ]);
+  respond('/api/playbooks/domain/tax-id/1.0.0', playbook('1.0.0', 'published', 'Tax IDs.'));
+  respond('/api/playbooks/domain/tax-id/1.1.0', playbook('1.1.0', 'draft', 'Tax IDs.'));
+  await settle(fixture);
+  return { fixture, root: fixture.nativeElement as HTMLElement };
+}
+
+function edit(root: HTMLElement, value: string) {
+  const editor = root.querySelector('[data-testid="editor"]') as HTMLTextAreaElement | null;
+  if (!editor) {
+    throw new Error('editor not rendered');
+  }
+  editor.value = value;
+  editor.dispatchEvent(new Event('input'));
+}
+
+function click(root: HTMLElement, testId: string) {
+  (root.querySelector(`[data-testid="${testId}"]`) as HTMLButtonElement).click();
+}
+
+describe('PlaybookDetail', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    TestBed.configureTestingModule({ imports: [PlaybookDetail], providers: apiProviders() });
+    TestBed.inject(UserService).set('ana');
+  });
+
+  it('shows a published version read-only with retire and new-version actions', async () => {
+    const { root } = await open('1.0.0', 'published');
+
+    expect(text(root, 'status')).toBe('Published');
+    expect(root.querySelector('[data-testid="save"]')).toBeNull();
+    expect(root.querySelector('[data-testid="to-retired"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="versions"]')?.textContent).toContain('1.1.0 · Draft');
+
+    click(root, 'new-version');
+    const request = http().expectOne({ url: '/api/playbooks/domain/tax-id/1.0.0/versions', method: 'POST' });
+    expect(request.request.body).toEqual({ version: undefined, note: undefined });
+  });
+
+  it('edits, checks unsaved changes, saves and submits a draft', async () => {
+    const { fixture, root } = await open('1.1.0', 'draft');
+    const tabs = root.querySelectorAll('[role="tab"]');
+    (tabs[1] as HTMLElement).click();
+    await settle(fixture);
+
+    const changed = playbook('1.1.0', 'draft', 'Tax IDs incl. TIN.');
+    edit(root, changed);
+    await settle(fixture);
+    expect((root.querySelector('[data-testid="to-inReview"]') as HTMLButtonElement).disabled).toBe(true);
+
+    click(root, 'validate');
+    const validate = http().expectOne({ url: '/api/playbooks/validate', method: 'POST' });
+    expect(validate.request.body).toBe(changed);
+    validate.flush({ valid: false, issues: [{ severity: 'error', code: 'PB010', location: '$.domain', message: 'Bad.' }] });
+    await settle(fixture);
+    expect(text(root, 'valid')).toBe('Invalid');
+
+    (root.querySelectorAll('[role="tab"]')[1] as HTMLElement).click();
+    await settle(fixture);
+    click(root, 'save');
+    const save = http().expectOne({ url: '/api/playbooks/domain/tax-id/1.1.0', method: 'PUT' });
+    expect(save.request.body).toBe(changed);
+    expect(save.request.headers.get('X-MapWright-User')).toBe('ana');
+    save.flush(changed);
+    respond('/api/playbooks/domain/tax-id/history', []);
+    await settle(fixture);
+
+    click(root, 'to-inReview');
+    const submit = http().expectOne({ url: '/api/playbooks/domain/tax-id/1.1.0/status', method: 'POST' });
+    expect(submit.request.body).toEqual({ status: 'inReview', note: undefined });
+    submit.flush(playbook('1.1.0', 'inReview', 'Tax IDs incl. TIN.'));
+    await settle(fixture);
+    expect(text(root, 'status')).toBe('In review');
+    expect(root.querySelector('[data-testid="to-published"]')).not.toBeNull();
+  });
+
+  it('compares the draft side by side with the previous version', async () => {
+    const { fixture, root } = await open('1.1.0', 'draft');
+    (root.querySelectorAll('[role="tab"]')[1] as HTMLElement).click();
+    await settle(fixture);
+    edit(root, playbook('1.1.0', 'draft', 'Changed.'));
+    (root.querySelectorAll('[role="tab"]')[4] as HTMLElement).click();
+    await settle(fixture);
+
+    expect(text(root, 'changes')).toContain('3 changed line(s): 1.0.0 on the left, 1.1.0 (unsaved) on the right');
+    const changed = [...root.querySelectorAll('[data-testid="diff"] tr.changed')].map((r) =>
+      [...r.querySelectorAll('td')].map((c) => c.textContent?.trim()).join(' | '),
+    );
+    expect(changed).toEqual([
+      '6 | "version": "1.0.0", | 6 | "version": "1.1.0",',
+      '7 | "status": "published", | 7 | "status": "draft",',
+      '8 | "description": "Tax IDs.", | 8 | "description": "Changed.",',
+    ]);
+  });
+});
