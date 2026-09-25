@@ -1,4 +1,6 @@
-# Render Blueprint for the MapWright API: a Docker web service with a persistent disk for the SQLite store.
+# Render Blueprint for the MapWright API: a Docker web service on the free plan.
+# The free plan has no persistent disk, so the SQLite store at /var/data is reset on every deploy or restart
+# (the starter playbooks are seeded again). To keep data, use plan: starter and add a disk mounted at /var/data.
 # Vertex AI is optional: add the service-account key as a secret file named vertex-key.json and set
 # MAPWRIGHT_VERTEX_PROJECT. Without it, set MAPWRIGHT_OLLAMA_URL or leave both empty (playbooks only).
 services:
@@ -6,12 +8,8 @@ services:
     name: mapwright-api
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: starter
+    plan: free
     healthCheckPath: /health
-    disk:
-      name: mapwright-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: PORT
         value: "8080"
