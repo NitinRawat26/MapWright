@@ -1,0 +1,51 @@
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.card {
+  padding: 12px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+}
+
+.card .value {
+  font: var(--mat-sys-headline-small);
+}
+
+tr.clickable {
+  cursor: pointer;
+}
+
+tr.clickable:hover,
+tr.selected {
+  background: var(--mat-sys-surface-container);
+}
+
+.detail {
+  padding: 12px;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.detail dl {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 4px 12px;
+  margin: 0 0 12px;
+}
+
+.detail dt {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.detail dd {
+  margin: 0;
+}
+
+.override {
+  width: 100%;
+  min-height: 280px;
+  box-sizing: border-box;
+}

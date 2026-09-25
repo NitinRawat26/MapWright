@@ -1,0 +1,167 @@
+@use '@angular/material' as mat;
+
+html {
+  color-scheme: light;
+  @include mat.theme((
+    color: mat.$azure-palette,
+    typography: (plain-family: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif', brand-family: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif'),
+    density: -1,
+  ));
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font: var(--mat-sys-body-medium);
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+}
+
+h1 {
+  font: var(--mat-sys-headline-small);
+  margin: 0 0 16px;
+}
+
+h2 {
+  font: var(--mat-sys-title-medium);
+  margin: 16px 0 8px;
+}
+
+code,
+pre,
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.page {
+  padding: 24px;
+  max-width: 1400px;
+}
+
+.muted {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+table.mat-mdc-table {
+  width: 100%;
+}
+
+.chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  background: var(--mat-sys-surface-container-high);
+  white-space: nowrap;
+}
+
+.chip.good {
+  background: #d7f5dd;
+  color: #0b5a1f;
+}
+
+.chip.warn {
+  background: #fff0c2;
+  color: #6b4d00;
+}
+
+.chip.bad {
+  background: #ffdad6;
+  color: #8c1d18;
+}
+
+.problem {
+  white-space: pre-line;
+}
+
+.back {
+  text-decoration: none;
+}
+
+.actions {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+}
+
+.form {
+  display: grid;
+  gap: 12px;
+  max-width: 1000px;
+}
+
+.tab {
+  padding: 16px 4px;
+}
+
+.terms {
+  gap: 6px;
+}
+
+.error {
+  color: var(--mat-sys-error);
+}
+
+.warn-text {
+  color: #6b4d00;
+}
+
+.wide {
+  width: 100%;
+}
+
+button.link {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 0 0 0 4px;
+  font: inherit;
+}
+
+table.plain {
+  border-collapse: collapse;
+}
+
+table.plain td,
+table.plain th {
+  text-align: left;
+  padding: 4px 12px 4px 0;
+  vertical-align: top;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+pre.payload {
+  max-height: 480px;
+  overflow: auto;
+  padding: 12px;
+  background: var(--mat-sys-surface-container-low);
+  border-radius: 4px;
+}
+
+.suggestion {
+  margin-bottom: 12px;
+}
+
+.note {
+  width: 320px;
+}
+
+.filters {
+  margin-bottom: 12px;
+}

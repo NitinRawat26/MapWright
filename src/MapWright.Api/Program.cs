@@ -44,12 +44,19 @@ SeedPlaybooks(app);
 app.UseApiErrors();
 app.UseSwagger();
 app.UseSwaggerUI();
+app.UseDefaultFiles();
+app.UseStaticFiles();
+app.UseRouting();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).ExcludeFromDescription();
 app.MapPlaybookEndpoints();
 app.MapProfileEndpoints();
 app.MapMappingEndpoints();
 app.MapSuggestionEndpoints();
+if (app.Environment.WebRootFileProvider.GetFileInfo("index.html").Exists)
+{
+    app.MapFallbackToFile("{*path:regex(^(?!api/|swagger/|health$).*$)}", "index.html");
+}
 
 app.Run();
 

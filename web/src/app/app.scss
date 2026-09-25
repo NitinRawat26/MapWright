@@ -1,0 +1,49 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.toolbar {
+  gap: 12px;
+  background: var(--mat-sys-primary-container);
+  color: var(--mat-sys-on-primary-container);
+}
+
+.brand {
+  color: inherit;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.user {
+  width: 200px;
+  font-size: 14px;
+}
+
+.hint {
+  font-size: 12px;
+}
+
+.container {
+  flex: 1;
+}
+
+.nav {
+  width: 190px;
+  padding-top: 8px;
+}
+
+nav a {
+  display: block;
+  padding: 10px 20px;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 0 20px 20px 0;
+  margin-right: 8px;
+}
+
+nav a.active {
+  background: var(--mat-sys-secondary-container);
+  font-weight: 600;
+}

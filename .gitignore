@@ -490,3 +490,6 @@ $RECYCLE.BIN/
 secrets/
 *-key.json
 *.patch
+
+# Web UI build output (npm run build in web/)
+src/MapWright.Api/wwwroot/

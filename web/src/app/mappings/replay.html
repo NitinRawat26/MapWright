@@ -1,0 +1,71 @@
+<p class="muted">Run source sample payloads through this mapping. MapWright builds the target payload for each sample and checks every row against the target profile and the playbooks' validation rules.</p>
+<div class="form">
+  <div class="row">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Target profile</mat-label>
+      <mat-select [value]="target()" (selectionChange)="target.set($event.value)" data-testid="replay-target">
+        @for (p of targets(); track p.id) {
+          <mat-option [value]="p.id">{{ p.system }} ({{ p.id }})</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    @if (mapping().target.format === 'xml') {
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>XML namespace (optional)</mat-label>
+        <input matInput [ngModel]="xmlNamespace()" (ngModelChange)="xmlNamespace.set($event)" />
+      </mat-form-field>
+    }
+  </div>
+  <div class="row">
+    <input #picker type="file" multiple [accept]="extension()" hidden (change)="pick(picker)" data-testid="replay-files" />
+    <button mat-stroked-button type="button" (click)="picker.click()">Add {{ mapping().source.format | uppercase }} samples</button>
+    @for (f of files(); track f) {
+      <span class="chip">{{ f.name }} <button type="button" class="link" (click)="remove(f)" [attr.aria-label]="'Remove ' + f.name">×</button></span>
+    }
+  </div>
+  <div class="row">
+    <mat-checkbox [checked]="record()" (change)="record.set($event.checked)" data-testid="record">Save the results on the mapping (Validation tab of the report)</mat-checkbox>
+  </div>
+  <div class="row">
+    <button mat-flat-button type="button" [disabled]="!files().length || !target() || busy() || (record() && !user.name())" (click)="run()" data-testid="replay">Replay</button>
+    @if (record() && !user.name()) {
+      <span class="muted">Enter your name in the toolbar to save the results.</span>
+    }
+  </div>
+  <p class="muted">The target payloads contain the real sample values; sensitive values are masked only in the check results.</p>
+</div>
+
+@for (s of samples(); track s.sample) {
+  @let c = counts(s.run);
+  <h2 class="row">
+    <button type="button" class="link" (click)="open.set(open() === s.sample ? null : s.sample)">{{ open() === s.sample ? '▾' : '▸' }} {{ s.sample }}</button>
+    <span class="chip good">{{ c.pass }} passed</span>
+    <span class="chip" [class.bad]="c.fail > 0" [attr.data-testid]="'failed-' + s.sample">{{ c.fail }} failed</span>
+    <span class="chip">{{ c.skipped }} skipped</span>
+    <span class="muted mono">{{ s.run.id }}</span>
+    <button mat-button type="button" (click)="download(s)">Download target</button>
+  </h2>
+  @if (open() === s.sample) {
+    <table class="plain wide" [attr.data-testid]="'results-' + s.sample">
+      <tr><th>Row / rule</th><th>Outcome</th><th>Expected</th><th>Actual</th><th>Message</th></tr>
+      @for (r of s.run.results; track $index) {
+        <tr [class.error]="r.outcome === 'fail'">
+          <td class="mono">{{ r.mappingId }}</td><td>{{ r.outcome }}</td><td class="mono">{{ r.expected }}</td><td class="mono">{{ r.actual }}</td><td>{{ r.message }}</td>
+        </tr>
+      }
+    </table>
+    <h2>Target payload</h2>
+    <pre class="payload" data-testid="payload">{{ s.payload }}</pre>
+  }
+}
+
+@if (mapping().validationRuns?.length) {
+  <h2>Saved runs</h2>
+  <table class="plain wide" data-testid="saved-runs">
+    <tr><th>Run</th><th>When</th><th>Sample</th><th>Passed</th><th>Failed</th><th>Skipped</th></tr>
+    @for (run of mapping().validationRuns; track run.id) {
+      @let c = counts(run);
+      <tr><td class="mono">{{ run.id }}</td><td>{{ run.ranAt | date: 'medium' }}</td><td>{{ run.samplePayload }}</td><td>{{ c.pass }}</td><td>{{ c.fail }}</td><td>{{ c.skipped }}</td></tr>
+    }
+  </table>
+}

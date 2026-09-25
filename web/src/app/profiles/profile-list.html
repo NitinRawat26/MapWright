@@ -1,0 +1,62 @@
+<div class="page">
+  <h1>Profiles</h1>
+  <p class="muted">A profile describes one system's payload: every field with its type, how often it repeats, whether it is required, and sample values (masked when sensitive).</p>
+
+  <table class="plain wide" data-testid="profiles">
+    <tr><th>ID</th><th>System</th><th>Format</th><th>Fields</th><th>Updated</th><th></th></tr>
+    @for (p of profiles(); track p.id) {
+      <tr>
+        <td><a class="mono" [routerLink]="['/profiles', p.id]">{{ p.id }}</a></td>
+        <td>{{ p.system }}</td><td>{{ p.format }}</td><td>{{ p.fieldCount }}</td>
+        <td>{{ p.updatedAt | date: 'medium' }} · {{ p.updatedBy }}</td>
+        <td><button mat-button type="button" (click)="drop(p)">Delete</button></td>
+      </tr>
+    } @empty {
+      <tr><td colspan="6" class="muted">No profiles yet. Build one below.</td></tr>
+    }
+  </table>
+
+  <h2>Build a profile</h2>
+  <p class="muted">Upload sample payloads (JSON or XML) and any contracts: JSON Schema, OpenAPI (JSON), XSD, WSDL, or a CSV/Excel field spec. Contracts decide types and requiredness; samples add observed values.</p>
+  <div class="form">
+    <div class="row">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>System name</mat-label>
+        <input matInput required [ngModel]="request().system" (ngModelChange)="patch({ system: $event })" data-testid="system" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>ID (optional)</mat-label>
+        <input matInput placeholder="from the name" [ngModel]="request().id" (ngModelChange)="patch({ id: $event })" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Version (optional)</mat-label>
+        <input matInput [ngModel]="request().version" (ngModelChange)="patch({ version: $event })" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Root (optional)</mat-label>
+        <input matInput placeholder="operation, schema or element" [ngModel]="request().root" (ngModelChange)="patch({ root: $event })" />
+      </mat-form-field>
+    </div>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="wide">
+      <mat-label>Description (optional)</mat-label>
+      <input matInput [ngModel]="request().description" (ngModelChange)="patch({ description: $event })" />
+    </mat-form-field>
+    <div class="row">
+      <input #picker type="file" multiple [accept]="extensions" hidden (change)="pick(picker)" data-testid="files" />
+      <button mat-stroked-button type="button" (click)="picker.click()">Add files</button>
+      @for (f of files(); track f) {
+        <span class="chip">{{ f.name }} <button type="button" class="link" (click)="remove(f)" [attr.aria-label]="'Remove ' + f.name">×</button></span>
+      }
+    </div>
+    <div class="row">
+      <mat-checkbox [ngModel]="request().noValues" (ngModelChange)="patch({ noValues: $event })">Don't keep sample values</mat-checkbox>
+      <mat-checkbox [ngModel]="request().replace" (ngModelChange)="patch({ replace: $event })">Replace an existing profile with this ID</mat-checkbox>
+    </div>
+    <div class="row">
+      <button mat-flat-button type="button" [disabled]="!user.name() || !request().system.trim() || !files().length || busy()" (click)="build()" data-testid="build">Build profile</button>
+      @if (!user.name()) {
+        <span class="muted">Enter your name in the toolbar first.</span>
+      }
+    </div>
+  </div>
+</div>

@@ -1,0 +1,169 @@
+<div class="page">
+  <a routerLink="/mappings" class="muted back">← Mappings</a>
+  @if (mapping(); as m) {
+    <h1>{{ m.title }}</h1>
+    <div class="row muted">
+      <span class="mono">{{ m.id }}</span><span>Version {{ m.version }}</span>
+      <span>{{ m.source.name }} ({{ m.source.format | uppercase }}) → {{ m.target.name }} ({{ m.target.format | uppercase }})</span>
+      <span class="spacer"></span>
+      <a mat-stroked-button [href]="exportUrl('xlsx')" download data-testid="export-xlsx">Excel</a>
+      <a mat-stroked-button [href]="exportUrl('csv')" download>CSV</a>
+      <a mat-stroked-button [href]="exportUrl('html')" target="_blank">HTML report</a>
+    </div>
+
+    @if (summary(); as s) {
+      <div class="cards" data-testid="summary">
+        <div class="card"><div class="muted">Target fields mapped</div><div class="value">{{ s.mappedTargetFields }} / {{ s.totalTargetFields }}</div></div>
+        <div class="card"><div class="muted">Required coverage</div><div class="value">{{ s.requiredCoveragePercent }}%</div><div class="muted">{{ s.requiredTargetFieldsMapped }} of {{ s.requiredTargetFields }}</div></div>
+        <div class="card"><div class="muted">Confidence</div><div class="value">{{ s.byConfidenceBand.high }} · {{ s.byConfidenceBand.medium }} · {{ s.byConfidenceBand.low }}</div><div class="muted">high · medium · low</div></div>
+        <div class="card"><div class="muted">Needs review</div><div class="value" data-testid="needs-review">{{ s.byReviewStatus.needsReview }}</div><div class="muted">{{ s.byReviewStatus.approved + s.byReviewStatus.overridden }} approved, {{ s.byReviewStatus.rejected }} rejected</div></div>
+        <div class="card"><div class="muted">Findings</div><div class="value">{{ s.conflicts + s.assumptions }}</div><div class="muted">{{ s.conflicts }} conflicts, {{ s.assumptions }} assumptions</div></div>
+        <div class="card"><div class="muted">Unused source fields</div><div class="value">{{ s.orphanSourceFields }}</div></div>
+      </div>
+    }
+
+    <mat-tab-group animationDuration="0ms" (selectedIndexChange)="$event === 3 && loadReviews()">
+      <mat-tab label="Rows">
+        <div class="tab">
+          <div class="row">
+            <mat-button-toggle-group [value]="filter()" (change)="filter.set($event.value)" data-testid="filter">
+              <mat-button-toggle value="all">All</mat-button-toggle>
+              <mat-button-toggle value="open">Needs review</mat-button-toggle>
+              <mat-button-toggle value="unmapped">Unmapped</mat-button-toggle>
+              <mat-button-toggle value="decided">Decided</mat-button-toggle>
+            </mat-button-toggle-group>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Search</mat-label>
+              <input matInput [ngModel]="search()" (ngModelChange)="search.set($event)" />
+            </mat-form-field>
+            <span class="muted">{{ rows().length }} row(s)</span>
+          </div>
+          <table class="plain wide" data-testid="rows">
+            <tr><th>ID</th><th>Target</th><th>Source</th><th>Transformation</th><th>Confidence</th><th>Review</th></tr>
+            @for (r of rows(); track r.id) {
+              <tr class="clickable" [class.selected]="selected() === r.id" (click)="select(r)" [attr.data-row]="r.id">
+                <td class="mono">{{ r.id }}</td>
+                <td class="mono">{{ r.target.path }}@if (r.target.required) {<b> *</b>}</td>
+                <td class="mono">
+                  @for (s of r.sources; track s.path) {
+                    <div>{{ s.path }}</div>
+                  } @empty {
+                    <span class="muted">none</span>
+                  }
+                </td>
+                <td>{{ r.type === 'unmapped' ? '—' : (r.transformation.rule ?? r.transformation.type) }}</td>
+                <td>{{ r.confidencePercent }}%</td>
+                <td><span class="chip" [class]="classes[r.review.status]">{{ labels[r.review.status] }}</span></td>
+              </tr>
+              @if (selected() === r.id) {
+                <tr>
+                  <td colspan="6" class="detail" data-testid="row-detail">
+                    <dl>
+                      <dt>Why</dt><dd>{{ r.reasoning }}</dd>
+                      @if (r.businessConcept) {
+                        <dt>Concept</dt><dd>{{ r.businessConcept }} <span class="muted mono">{{ r.domainPlaybook }}</span></dd>
+                      }
+                      <dt>Transformation</dt>
+                      <dd>
+                        {{ r.transformation.type }}
+                        @if (r.transformation.expression) {
+                          <span class="mono">{{ r.transformation.expression }}</span>
+                        }
+                        @if (r.transformation.condition) {
+                          <div class="mono">{{ r.transformation.condition }}</div>
+                        }
+                        @for (v of r.transformation.valueMap ?? []; track $index) {
+                          <div class="mono">{{ v.sourceValue }} → {{ v.targetValue }} <span class="muted">{{ v.notes }}</span></div>
+                        }
+                      </dd>
+                      <dt>Target</dt><dd>{{ r.target.dataType }}{{ r.target.format ? ' (' + r.target.format + ')' : '' }}{{ r.target.required ? ', required' : '' }}{{ r.target.sampleValue ? ', e.g. ' + r.target.sampleValue : '' }}</dd>
+                      @for (e of r.evidence ?? []; track $index) {
+                        <dt>{{ $first ? 'Evidence' : '' }}</dt><dd>{{ e.kind }}: {{ e.reference }} <span class="muted">{{ e.detail }}</span></dd>
+                      }
+                      @if (r.risk; as risk) {
+                        <dt>Risk</dt><dd>Data loss {{ risk.dataLoss }}{{ risk.dataLossNote ? ' (' + risk.dataLossNote + ')' : '' }}, sensitivity {{ risk.sensitivity }}. {{ risk.targetValidationRules?.join('; ') }}</dd>
+                      }
+                      @if (r.suggestedResolution) {
+                        <dt>Suggested</dt><dd>{{ r.suggestedResolution }}</dd>
+                      }
+                      @if (r.review.openQuestion) {
+                        <dt>Open question</dt><dd>{{ r.review.openQuestion }}</dd>
+                      }
+                      @if (r.review.reviewer) {
+                        <dt>Reviewed</dt><dd>{{ labels[r.review.status] }} by {{ r.review.reviewer }} on {{ r.review.reviewedOn }}{{ r.review.comments ? ': ' + r.review.comments : '' }}</dd>
+                      }
+                    </dl>
+                    <div class="row">
+                      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="wide">
+                        <mat-label>Comment (optional)</mat-label>
+                        <input matInput [ngModel]="comment()" (ngModelChange)="comment.set($event)" data-testid="comment" />
+                      </mat-form-field>
+                    </div>
+                    <div class="row">
+                      <button mat-flat-button type="button" [disabled]="!user.name() || busy()" (click)="decide('approve')" data-testid="approve">Approve</button>
+                      <button mat-stroked-button type="button" [disabled]="!user.name() || busy()" (click)="decide('reject')" data-testid="reject">Reject</button>
+                      @if (!override()) {
+                        <button mat-stroked-button type="button" (click)="editOverride(r)" data-testid="edit-override">Override…</button>
+                      }
+                      @if (!user.name()) {
+                        <span class="muted">Enter your name in the toolbar to review.</span>
+                      }
+                    </div>
+                    @if (override()) {
+                      <p class="muted">Edit the row (sources, transformation, confidence, reasoning). The ID and target path must stay the same.</p>
+                      <textarea class="mono override" spellcheck="false" [ngModel]="override()" (ngModelChange)="override.set($event)" data-testid="override"></textarea>
+                      @if (overrideError()) {
+                        <p class="error">{{ overrideError() }}</p>
+                      }
+                      <div class="row">
+                        <button mat-flat-button type="button" [disabled]="!user.name() || busy() || !!overrideError()" (click)="decide('override')" data-testid="save-override">Save override</button>
+                        <button mat-button type="button" (click)="override.set('')">Cancel</button>
+                      </div>
+                    }
+                  </td>
+                </tr>
+              }
+            }
+          </table>
+        </div>
+      </mat-tab>
+      <mat-tab [label]="'Findings (' + (m.findings?.length ?? 0) + ')'">
+        <div class="tab">
+          <table class="plain wide">
+            @for (f of m.findings ?? []; track f.id) {
+              <tr><td class="mono">{{ f.id }}</td><td>{{ f.kind }}</td><td>{{ f.description }}@if (f.resolution) {<div class="muted">{{ f.resolution }}</div>}</td><td class="mono">{{ f.mappingIds?.join(', ') }}</td></tr>
+            } @empty {
+              <tr><td class="muted">No findings.</td></tr>
+            }
+          </table>
+        </div>
+      </mat-tab>
+      <mat-tab [label]="'Unused source fields (' + (m.orphanSourceFields?.length ?? 0) + ')'">
+        <div class="tab">
+          <table class="plain wide">
+            @for (o of m.orphanSourceFields ?? []; track o.field.path) {
+              <tr><td class="mono">{{ o.field.path }}</td><td>{{ o.field.dataType }}</td><td>{{ o.suggestedResolution }}</td></tr>
+            }
+          </table>
+        </div>
+      </mat-tab>
+      <mat-tab label="Replay">
+        <div class="tab">
+          <app-replay [mapping]="m" (recorded)="reload()" />
+        </div>
+      </mat-tab>
+      <mat-tab label="Review history">
+        <div class="tab">
+          <table class="plain wide" data-testid="reviews">
+            <tr><th>When</th><th>Who</th><th>Row</th><th>Decision</th><th>Was</th><th>Comment</th></tr>
+            @for (d of reviews(); track d.sequence) {
+              <tr><td>{{ d.decidedAt | date: 'medium' }}</td><td>{{ d.reviewer }}</td><td class="mono">{{ d.rowId }}</td><td>{{ d.decision }}</td><td>{{ labels[d.previousStatus] }}</td><td>{{ d.comment }}</td></tr>
+            } @empty {
+              <tr><td colspan="6" class="muted">No decisions yet.</td></tr>
+            }
+          </table>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  }
+</div>

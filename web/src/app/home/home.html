@@ -1,0 +1,59 @@
+<div class="page">
+  <h1>MapWright</h1>
+  <p class="muted">Profile two systems, apply the business playbooks and review the generated mapping.</p>
+
+  <div class="row status">
+    @switch (healthy()) {
+      @case (true) { <span class="chip good" data-testid="health">API connected</span> }
+      @case (false) { <span class="chip bad" data-testid="health">API not reachable</span> }
+      @default { <span class="chip" data-testid="health">Checking API…</span> }
+    }
+    @if (ai(); as ai) {
+      @if (ai.available) {
+        <span class="chip good" data-testid="ai">AI: {{ ai.provider }} (capped at {{ ai.maxConfidence }}%)</span>
+      } @else {
+        <span class="chip" data-testid="ai">AI not configured: playbooks only</span>
+      }
+    }
+  </div>
+
+  <div class="cards">
+    <mat-card appearance="outlined" routerLink="/playbooks">
+      <mat-card-header><mat-card-title>Playbooks</mat-card-title></mat-card-header>
+      <mat-card-content>
+        <div class="big" data-testid="playbooks">{{ count('published') }}</div>
+        <div class="muted">published · {{ count('draft') }} draft · {{ count('inReview') }} in review</div>
+      </mat-card-content>
+    </mat-card>
+    <mat-card appearance="outlined" routerLink="/profiles">
+      <mat-card-header><mat-card-title>System profiles</mat-card-title></mat-card-header>
+      <mat-card-content>
+        <div class="big" data-testid="profiles">{{ profiles()?.length ?? 0 }}</div>
+        <div class="muted">systems profiled</div>
+      </mat-card-content>
+    </mat-card>
+    <mat-card appearance="outlined" routerLink="/mappings">
+      <mat-card-header><mat-card-title>Mappings</mat-card-title></mat-card-header>
+      <mat-card-content>
+        <div class="big" data-testid="mappings">{{ mappings()?.length ?? 0 }}</div>
+        <div class="muted">generated mappings</div>
+      </mat-card-content>
+    </mat-card>
+    <mat-card appearance="outlined" routerLink="/suggestions">
+      <mat-card-header><mat-card-title>AI suggestions</mat-card-title></mat-card-header>
+      <mat-card-content>
+        <div class="big" data-testid="pending">{{ pending()?.length ?? 0 }}</div>
+        <div class="muted">waiting for review</div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <h2>How it works</h2>
+  <ol class="steps">
+    <li><b>Profiles:</b> upload samples, schemas or field specs for each system.</li>
+    <li><b>Mapping:</b> pick a source and a target; published playbooks decide each field, AI helps only if you ask.</li>
+    <li><b>Replay:</b> run real samples through the mapping and check the target payloads.</li>
+    <li><b>Review:</b> approve, reject or override rows, then export to Excel, CSV or HTML.</li>
+    <li><b>Playbooks:</b> improve the business knowledge in drafts; publishing needs passing tests and a second reviewer.</li>
+  </ol>
+</div>

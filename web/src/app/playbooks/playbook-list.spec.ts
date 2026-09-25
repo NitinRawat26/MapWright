@@ -1,0 +1,57 @@
+import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
+import { UserService } from '../core/user';
+import { apiProviders, http, respond, settle } from '../testing';
+import { PlaybookList } from './playbook-list';
+
+const summary = (id: string, version: string, status: string) => ({
+  id, version, status, name: id, kind: id.split('/')[0], createdAt: '2026-09-25T00:00:00Z', createdBy: 'seed',
+  updatedAt: '2026-09-25T00:00:00Z', updatedBy: 'seed', reference: `${id}@${version}`,
+});
+
+describe('PlaybookList', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    TestBed.configureTestingModule({ imports: [PlaybookList], providers: apiProviders() });
+  });
+
+  it('lists playbooks, filters by status on the server and searches locally', async () => {
+    const fixture = TestBed.createComponent(PlaybookList);
+    fixture.detectChanges();
+    respond('/api/playbooks', [summary('domain/tax-id', '1.0.0', 'published'), summary('process/onboard-new-system', '1.0.0', 'published')]);
+    await settle(fixture);
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelectorAll('tr.mat-mdc-row').length).toBe(2);
+    expect(root.querySelector('a.mono')?.getAttribute('href')).toBe('/playbooks/domain/tax-id/1.0.0');
+
+    (root.querySelectorAll('mat-button-toggle button')[1] as HTMLButtonElement).click();
+    respond('/api/playbooks?status=draft', [summary('domain/tax-id', '1.1.0', 'draft')]);
+    await settle(fixture);
+    expect(root.querySelector('tbody')?.textContent).toContain('1.1.0');
+    expect(root.querySelector('tbody')?.textContent).toContain('Draft');
+  });
+
+  it('creates a draft from pasted JSON once a name is set', async () => {
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const fixture = TestBed.createComponent(PlaybookList);
+    fixture.detectChanges();
+    respond('/api/playbooks', []);
+    await settle(fixture);
+    const root = fixture.nativeElement as HTMLElement;
+    const textarea = root.querySelector('[data-testid="import-json"]') as HTMLTextAreaElement;
+    textarea.value = '{"id":"domain/fees"}';
+    textarea.dispatchEvent(new Event('input'));
+    await settle(fixture);
+    const button = root.querySelector('[data-testid="import"]') as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+
+    TestBed.inject(UserService).set('ana');
+    await settle(fixture);
+    button.click();
+    const request = http().expectOne({ url: '/api/playbooks', method: 'POST' });
+    expect(request.request.body).toBe('{"id":"domain/fees"}');
+    expect(request.request.headers.get('X-MapWright-User')).toBe('ana');
+    request.flush(JSON.stringify({ id: 'domain/fees', version: '1.0.0' }));
+    expect(navigate).toHaveBeenCalledWith(['/playbooks', 'domain', 'fees', '1.0.0']);
+  });
+});

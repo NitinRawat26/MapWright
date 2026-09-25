@@ -1,0 +1,107 @@
+<div class="page">
+  <a routerLink="/profiles" class="muted back">← Profiles</a>
+  @if (profile(); as p) {
+    <h1>{{ p.system }}</h1>
+    <div class="row muted">
+      <span class="mono">{{ id() }}</span><span>{{ p.format | uppercase }}</span>
+      @if (p.version) {
+        <span>Version {{ p.version }}</span>
+      }
+      <span>{{ p.fields.length }} fields</span><span>{{ p.findings?.length ?? 0 }} findings</span>
+    </div>
+    @if (p.description) {
+      <p>{{ p.description }}</p>
+    }
+
+    <div class="actions">
+      <div class="row">
+        <button mat-flat-button type="button" [disabled]="busy() || (useAi() && !user.name())" (click)="detect()" data-testid="detect">Detect business concepts</button>
+        <mat-checkbox [disabled]="!ai()?.available" [checked]="useAi()" (change)="useAi.set($event.checked)" data-testid="use-ai">
+          Ask AI about fields no playbook recognises
+        </mat-checkbox>
+        <a mat-button [routerLink]="['/mappings']" [queryParams]="{ source: id() }">Map from this profile</a>
+      </div>
+      <div class="muted">
+        @if (!ai()?.available) {
+          AI is not configured, so only the published playbooks are used.
+        } @else if (useAi()) {
+          Field names, types and masked sample values are sent to {{ ai()?.provider }}. Answers are capped at {{ ai()?.maxConfidence }}% and go to the AI suggestions inbox for review.
+        } @else {
+          Only the published playbooks are used; nothing leaves MapWright.
+        }
+      </div>
+    </div>
+
+    @if (detection(); as d) {
+      <h2 data-testid="detected">Recognised {{ d.recognised.length }} of {{ d.recognised.length + d.remaining.length + d.suggestions.length }} fields</h2>
+      <table class="plain wide">
+        <tr><th>Field</th><th>Concept</th><th>Score</th><th>Playbook</th><th>Notes</th></tr>
+        @for (m of d.recognised; track m.path) {
+          <tr>
+            <td class="mono">{{ m.path }}</td><td>{{ m.detection.businessConcept }}</td>
+            <td><span class="chip" [class]="m.detection.requiresReview ? 'warn' : 'good'">{{ m.detection.score }}</span></td>
+            <td class="mono">{{ m.detection.playbook }}</td>
+            <td>{{ (m.detection.warnings ?? []).concat(m.detection.questions ?? []).join(' ') }}</td>
+          </tr>
+        }
+      </table>
+      @if (d.suggestions.length) {
+        <p><a routerLink="/suggestions">{{ d.suggestions.length }} AI suggestion(s)</a> are waiting for review.</p>
+      }
+      @if (d.remaining.length) {
+        <h2>Not recognised</h2>
+        <div class="row terms">
+          @for (r of d.remaining; track r) {
+            <span class="chip mono">{{ r }}</span>
+          }
+        </div>
+      }
+      @for (w of d.warnings; track $index) {
+        <p class="warn-text">{{ w }}</p>
+      }
+    }
+
+    <mat-tab-group animationDuration="0ms">
+      <mat-tab [label]="'Fields (' + p.fields.length + ')'">
+        <div class="tab">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Search fields</mat-label>
+            <input matInput [ngModel]="search()" (ngModelChange)="search.set($event)" />
+          </mat-form-field>
+          <table class="plain wide" data-testid="fields">
+            <tr><th>Path</th><th>Type</th><th>Required</th><th>Repeats</th><th>Sample</th><th>Description</th></tr>
+            @for (f of fields(); track f.path) {
+              <tr>
+                <td class="mono">{{ f.path }}</td>
+                <td>{{ f.dataType }}{{ f.format ? ' (' + f.format + ')' : '' }}{{ f.maxLength ? ' ≤' + f.maxLength : '' }}</td>
+                <td>{{ f.required }}</td><td>{{ f.cardinality }}</td>
+                <td class="mono">{{ f.sensitive ? '🔒 ' : '' }}{{ f.allowedValues?.length ? f.allowedValues?.join(', ') : f.sampleValue }}</td>
+                <td>{{ f.description }}</td>
+              </tr>
+            }
+          </table>
+        </div>
+      </mat-tab>
+      <mat-tab [label]="'Findings (' + (p.findings?.length ?? 0) + ')'">
+        <div class="tab">
+          <table class="plain wide">
+            @for (f of p.findings ?? []; track $index) {
+              <tr><td>{{ f.kind }}</td><td class="mono">{{ f.path }}</td><td>{{ f.message }}</td></tr>
+            } @empty {
+              <tr><td class="muted">No findings.</td></tr>
+            }
+          </table>
+        </div>
+      </mat-tab>
+      <mat-tab [label]="'Inputs (' + (p.inputs?.length ?? 0) + ')'">
+        <div class="tab">
+          <table class="plain wide">
+            @for (i of p.inputs ?? []; track i.name) {
+              <tr><td>{{ i.name }}</td><td>{{ i.kind }}</td><td class="mono muted">{{ i.sha256 }}</td><td>{{ i.notes }}</td></tr>
+            }
+          </table>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  }
+</div>

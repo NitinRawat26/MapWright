@@ -390,10 +390,10 @@ is already in the playbook, or a playbook that is in review, returns 409.
 ```bash
 docker build -t mapwright-api .
 docker run -p 8080:8080 -v mapwright-data:/var/data mapwright-api
-# http://localhost:8080/swagger, http://localhost:8080/health
+# UI: http://localhost:8080/   Swagger: http://localhost:8080/swagger   Health: http://localhost:8080/health
 ```
 
-The image seeds the starter playbooks into an empty store and keeps the SQLite file at
+The image builds the web UI (Node.js 24) and the API (.NET 10), and the API serves the UI at `/`. The image seeds the starter playbooks into an empty store and keeps the SQLite file at
 `/var/data/mapwright.db`, so mount a volume there. Any setting can be overridden with an environment variable,
 e.g. `-e MapWright__RequireIndependentReview=false`. To use AI, pass the provider variables
 (`MAPWRIGHT_VERTEX_PROJECT`, `MAPWRIGHT_OLLAMA_URL`, ...) and, for Vertex AI, mount the service-account key and
@@ -421,7 +421,40 @@ SQLite file and a `/health` check. Persistent disks need a paid instance type, w
    already points. The account needs the Vertex AI User role.
 
 The API has no sign-in: `X-MapWright-User` is recorded for audit but not verified. Put it behind your own
-authentication (a gateway, VPN or Render private service) before exposing it.
+authentication (a gateway, VPN or Render private service) before exposing it. The same applies to the web UI:
+the name entered in its toolbar is only a label for the audit trail.
+
+## Web UI
+
+`web/` is an Angular (Angular Material) app for the API. Build it and the API serves it at `/`:
+
+```bash
+cd web
+npm ci
+npm run build        # writes src/MapWright.Api/wwwroot, served by the API
+npm test
+cd ..
+dotnet run --project src/MapWright.Api --urls http://localhost:5080
+# UI: http://localhost:5080/   Swagger: http://localhost:5080/swagger
+```
+
+For UI development, run the API as above and `npm start` in `web/` (http://localhost:4200, with `/api`,
+`/health` and `/swagger` proxied to port 5080). Enter your name in the toolbar before making changes; it is
+sent as `X-MapWright-User`. Without a built UI the API serves only `/api`, `/health` and `/swagger`.
+API errors are shown with their `detail` and `issues`.
+
+Pages:
+- **Playbooks:** filter by status, search, add a playbook as a draft. Each version shows its concept,
+  vocabulary and rules; drafts are edited as JSON and validated and tested before saving. Submit, request
+  changes, publish, retire or draft a new version, see the audit history, and compare any two versions side by side.
+- **Profiles:** upload sample payloads and contracts to build a profile, browse its fields, findings and inputs, and
+  run detection to see which business concepts the published playbooks recognise (optionally asking AI about the rest).
+- **Mappings:** generate a mapping from two profiles, see coverage and confidence, filter and search the rows, open a row
+  to see why it was mapped, approve, reject or override it, see the review history, and download Excel, CSV or HTML.
+- **Replay** (a tab on each mapping): upload source samples, pick the target profile, and see each sample's passed,
+  failed and skipped checks and the target payload it produced; optionally save the runs on the mapping.
+- **AI suggestions:** the inbox of AI answers from detection. Approve one (optionally changing the concept) to add the
+  field name to a draft of the domain playbook, or reject it with a comment.
 
 ## Build and test
 
@@ -433,6 +466,8 @@ dotnet test
 dotnet format MapWright.slnx --verify-no-changes
 ```
 
+The web UI needs Node.js 22 or later: `npm ci`, `npm run build` and `npm test` in `web/`.
+
 ## Layout
 
 ```
@@ -442,6 +477,7 @@ src/MapWright.Output   Report model, Excel / CSV / HTML renderers and the Excel 
 src/MapWright.Ai       Optional AI assist: Vertex AI and Ollama providers, fallback, masked field prompts
 src/MapWright.Cli      `mapwright` command-line tool
 src/MapWright.Api      ASP.NET Core API (Swagger at /swagger) over the engine and the store
+web                    Angular web UI (served by the API once built)
 src/MapWright.Store    SQLite store: playbook versions and lifecycle, profiles, mappings, review decisions, AI suggestions
 tests/MapWright.Tests  Unit and API tests
 samples/mappings       Example mapping specs

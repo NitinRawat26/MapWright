@@ -1,0 +1,67 @@
+<div class="page">
+  <h1>Mappings</h1>
+  <p class="muted">A mapping document says, for every target field, which source field(s) feed it, how the value is transformed, how confident MapWright is and why.</p>
+  <table class="plain wide" data-testid="mappings">
+    <tr><th>ID</th><th>Title</th><th>Source → target</th><th>Version</th><th>Updated</th><th></th></tr>
+    @for (m of mappings(); track m.id) {
+      <tr>
+        <td><a class="mono" [routerLink]="['/mappings', m.id]">{{ m.id }}</a></td>
+        <td>{{ m.title }}</td><td>{{ m.sourceSystem }} → {{ m.targetSystem }}</td><td>{{ m.version }}</td>
+        <td>{{ m.updatedAt | date: 'medium' }} · {{ m.updatedBy }}</td>
+        <td><button mat-button type="button" (click)="drop(m)">Delete</button></td>
+      </tr>
+    } @empty {
+      <tr><td colspan="6" class="muted">No mappings yet.</td></tr>
+    }
+  </table>
+
+  <h2>Generate a mapping</h2>
+  <div class="form">
+    <div class="row">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Source profile</mat-label>
+        <mat-select [ngModel]="request().source" (ngModelChange)="patch({ source: $event })" data-testid="source">
+          @for (p of profiles(); track p.id) {
+            <mat-option [value]="p.id">{{ p.system }} ({{ p.id }})</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <span>→</span>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Target profile</mat-label>
+        <mat-select [ngModel]="request().target" (ngModelChange)="patch({ target: $event })" data-testid="target">
+          @for (p of profiles(); track p.id) {
+            <mat-option [value]="p.id">{{ p.system }} ({{ p.id }})</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Title (optional)</mat-label>
+        <input matInput [ngModel]="request().title" (ngModelChange)="patch({ title: $event })" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>ID (optional)</mat-label>
+        <input matInput placeholder="source__target" [ngModel]="request().id" (ngModelChange)="patch({ id: $event })" />
+      </mat-form-field>
+    </div>
+    <div class="row">
+      <mat-checkbox [ngModel]="request().replace" (ngModelChange)="patch({ replace: $event })">Regenerate if it exists (review decisions on old rows are kept in the history)</mat-checkbox>
+      <mat-checkbox [disabled]="!ai()?.available" [ngModel]="request().useAi" (ngModelChange)="patch({ useAi: $event })" data-testid="use-ai">Ask AI to suggest sources for unmapped target fields</mat-checkbox>
+    </div>
+    <div class="muted">
+      @if (!ai()?.available) {
+        AI is not configured, so only the published playbooks and field names are used.
+      } @else if (request().useAi) {
+        Field names, types and masked sample values of both systems are sent to {{ ai()?.provider }}. AI rows are capped at {{ ai()?.maxConfidence }}% and always need review.
+      } @else {
+        Only the published playbooks and field names are used; nothing leaves MapWright.
+      }
+    </div>
+    <div class="row">
+      <button mat-flat-button type="button" [disabled]="!user.name() || !request().source || !request().target || busy()" (click)="generate()" data-testid="generate">Generate mapping</button>
+      @if (!user.name()) {
+        <span class="muted">Enter your name in the toolbar first.</span>
+      }
+    </div>
+  </div>
+</div>
