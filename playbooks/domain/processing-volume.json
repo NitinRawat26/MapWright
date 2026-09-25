@@ -1,0 +1,548 @@
+{
+  "specVersion": "1.0",
+  "id": "domain/processing-volume",
+  "name": "Processing Volume",
+  "kind": "domain",
+  "version": "1.0.0",
+  "status": "published",
+  "owner": "Underwriting BA team",
+  "description": "Expected card sales: total volume per period, average ticket and high ticket.",
+  "changeNotes": [
+    {
+      "version": "1.0.0",
+      "date": "2026-09-25",
+      "author": "MapWright starter set",
+      "description": "Initial version."
+    }
+  ],
+  "domain": {
+    "concept": {
+      "name": "ProcessingVolume",
+      "description": "How much the merchant expects to process.",
+      "attributes": [
+        {
+          "name": "CardVolume",
+          "description": "Total card sales for a period.",
+          "dataType": "decimal",
+          "sensitivity": "financial"
+        },
+        {
+          "name": "AverageTicket",
+          "description": "Average transaction amount.",
+          "dataType": "decimal",
+          "sensitivity": "financial"
+        },
+        {
+          "name": "HighTicket",
+          "description": "Largest expected single transaction.",
+          "dataType": "decimal",
+          "sensitivity": "financial"
+        }
+      ]
+    },
+    "vocabulary": [
+      {
+        "term": "processing volume"
+      },
+      {
+        "term": "card processing"
+      },
+      {
+        "term": "processing",
+        "relation": "related"
+      },
+      {
+        "term": "financials",
+        "relation": "related"
+      },
+      {
+        "term": "sales profile",
+        "relation": "related"
+      },
+      {
+        "term": "card volume",
+        "appliesTo": "CardVolume"
+      },
+      {
+        "term": "sales volume",
+        "appliesTo": "CardVolume"
+      },
+      {
+        "term": "volume",
+        "appliesTo": "CardVolume"
+      },
+      {
+        "term": "card sales",
+        "appliesTo": "CardVolume"
+      },
+      {
+        "term": "tpv",
+        "appliesTo": "CardVolume"
+      },
+      {
+        "term": "total processing volume",
+        "appliesTo": "CardVolume"
+      },
+      {
+        "term": "charge volume",
+        "appliesTo": "CardVolume"
+      },
+      {
+        "term": "gross sales",
+        "appliesTo": "CardVolume",
+        "relation": "related",
+        "note": "May include cash and non-card sales."
+      },
+      {
+        "term": "revenue",
+        "appliesTo": "CardVolume",
+        "relation": "related",
+        "note": "May include cash and non-card sales."
+      },
+      {
+        "term": "turnover",
+        "appliesTo": "CardVolume",
+        "relation": "related"
+      },
+      {
+        "term": "average ticket",
+        "appliesTo": "AverageTicket"
+      },
+      {
+        "term": "avg ticket",
+        "appliesTo": "AverageTicket"
+      },
+      {
+        "term": "average transaction",
+        "appliesTo": "AverageTicket"
+      },
+      {
+        "term": "avg txn",
+        "appliesTo": "AverageTicket"
+      },
+      {
+        "term": "average sale",
+        "appliesTo": "AverageTicket"
+      },
+      {
+        "term": "avg sale",
+        "appliesTo": "AverageTicket"
+      },
+      {
+        "term": "average ticket size",
+        "appliesTo": "AverageTicket"
+      },
+      {
+        "term": "high ticket",
+        "appliesTo": "HighTicket"
+      },
+      {
+        "term": "max ticket",
+        "appliesTo": "HighTicket"
+      },
+      {
+        "term": "maximum ticket",
+        "appliesTo": "HighTicket"
+      },
+      {
+        "term": "highest ticket",
+        "appliesTo": "HighTicket"
+      },
+      {
+        "term": "largest ticket",
+        "appliesTo": "HighTicket"
+      },
+      {
+        "term": "max transaction",
+        "appliesTo": "HighTicket"
+      },
+      {
+        "term": "max txn",
+        "appliesTo": "HighTicket"
+      },
+      {
+        "term": "largest transaction",
+        "appliesTo": "HighTicket"
+      }
+    ],
+    "qualifiers": [
+      {
+        "name": "period",
+        "description": "The period a volume covers.",
+        "appliesTo": [
+          "CardVolume"
+        ],
+        "default": "monthly",
+        "values": [
+          {
+            "value": "monthly",
+            "terms": [
+              "monthly",
+              "month",
+              "mthly",
+              "per month",
+              "mnthly"
+            ]
+          },
+          {
+            "value": "annual",
+            "terms": [
+              "annual",
+              "annually",
+              "yearly",
+              "year",
+              "yr",
+              "per annum",
+              "pa"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "currencyUnit",
+        "description": "Major units (dollars) or minor units (cents).",
+        "values": [
+          {
+            "value": "major",
+            "terms": [
+              "dollars",
+              "usd",
+              "dollar"
+            ]
+          },
+          {
+            "value": "minor",
+            "terms": [
+              "cents",
+              "minor units",
+              "pennies"
+            ]
+          }
+        ]
+      }
+    ],
+    "signals": [
+      {
+        "id": "VOL-SIG-NUM-VOL",
+        "kind": "dataType",
+        "appliesTo": "CardVolume",
+        "pattern": "integer|decimal",
+        "weight": 10,
+        "note": "numeric"
+      },
+      {
+        "id": "VOL-SIG-NUM-AVG",
+        "kind": "dataType",
+        "appliesTo": "AverageTicket",
+        "pattern": "integer|decimal",
+        "weight": 10,
+        "note": "numeric"
+      },
+      {
+        "id": "VOL-SIG-NUM-HIGH",
+        "kind": "dataType",
+        "appliesTo": "HighTicket",
+        "pattern": "integer|decimal",
+        "weight": 10,
+        "note": "numeric"
+      },
+      {
+        "id": "VOL-SIG-TEXT-VOL",
+        "kind": "dataType",
+        "appliesTo": "CardVolume",
+        "pattern": "string|date|dateTime|boolean",
+        "weight": -30,
+        "note": "not a number, e.g. a volume tier"
+      }
+    ],
+    "derivations": [
+      {
+        "id": "VOL-PERIOD-01",
+        "description": "Annual volume to monthly volume.",
+        "output": {
+          "attribute": "CardVolume",
+          "qualifiers": {
+            "period": "monthly"
+          }
+        },
+        "inputs": [
+          {
+            "name": "annual",
+            "attribute": "CardVolume",
+            "qualifiers": {
+              "period": "annual"
+            }
+          }
+        ],
+        "expression": "annual / 12",
+        "transformation": "periodConversion",
+        "note": "Assumes volume is spread evenly; seasonal merchants may differ.",
+        "examples": [
+          {
+            "inputs": {
+              "annual": 3000000
+            },
+            "expected": 250000
+          },
+          {
+            "inputs": {
+              "annual": 84000
+            },
+            "expected": 7000
+          }
+        ]
+      },
+      {
+        "id": "VOL-PERIOD-02",
+        "description": "Monthly volume to annual volume.",
+        "output": {
+          "attribute": "CardVolume",
+          "qualifiers": {
+            "period": "annual"
+          }
+        },
+        "inputs": [
+          {
+            "name": "monthly",
+            "attribute": "CardVolume",
+            "qualifiers": {
+              "period": "monthly"
+            }
+          }
+        ],
+        "expression": "monthly * 12",
+        "transformation": "periodConversion",
+        "examples": [
+          {
+            "inputs": {
+              "monthly": 250000
+            },
+            "expected": 3000000
+          }
+        ]
+      },
+      {
+        "id": "VOL-UNIT-01",
+        "description": "Cents to dollars.",
+        "output": {
+          "attribute": "CardVolume",
+          "qualifiers": {
+            "currencyUnit": "major"
+          }
+        },
+        "inputs": [
+          {
+            "name": "cents",
+            "attribute": "CardVolume",
+            "qualifiers": {
+              "currencyUnit": "minor"
+            }
+          }
+        ],
+        "expression": "cents / 100",
+        "transformation": "unitConversion",
+        "examples": [
+          {
+            "inputs": {
+              "cents": 12345
+            },
+            "expected": 123.45
+          }
+        ]
+      }
+    ],
+    "validations": [
+      {
+        "id": "VOL-VAL-01",
+        "description": "Average ticket cannot be above high ticket.",
+        "inputs": [
+          {
+            "name": "avg",
+            "attribute": "AverageTicket"
+          },
+          {
+            "name": "high",
+            "attribute": "HighTicket"
+          }
+        ],
+        "expression": "avg <= high",
+        "examples": [
+          {
+            "inputs": {
+              "avg": 42.1,
+              "high": 1500
+            },
+            "expected": true
+          },
+          {
+            "inputs": {
+              "avg": 200,
+              "high": 150
+            },
+            "expected": false
+          }
+        ]
+      },
+      {
+        "id": "VOL-VAL-02",
+        "description": "Volume cannot be negative.",
+        "inputs": [
+          {
+            "name": "volume",
+            "attribute": "CardVolume"
+          }
+        ],
+        "expression": "volume >= 0",
+        "examples": [
+          {
+            "inputs": {
+              "volume": 0
+            },
+            "expected": true
+          },
+          {
+            "inputs": {
+              "volume": -5
+            },
+            "expected": false
+          }
+        ]
+      }
+    ],
+    "confidence": {},
+    "risks": [
+      {
+        "id": "VOL-RISK-PERIOD",
+        "appliesTo": "CardVolume",
+        "level": "high",
+        "text": "A monthly/annual mix-up changes exposure twelve-fold."
+      }
+    ],
+    "reviewGuidance": [
+      {
+        "id": "VOL-Q-PERIOD",
+        "appliesTo": "CardVolume",
+        "when": "assumedQualifier",
+        "question": "The name does not say monthly or annual. Which period does this volume cover?"
+      },
+      {
+        "id": "VOL-Q-GROSS",
+        "appliesTo": "CardVolume",
+        "when": "nonEquivalentTerm",
+        "question": "Does this figure include cash or other non-card sales?"
+      }
+    ],
+    "aiGuidance": "Card volume is expected card sales for a period. Always establish the period (monthly or annual) and the unit (dollars or cents). Gross sales and revenue may include non-card sales.",
+    "tests": [
+      {
+        "id": "VOL-T-01",
+        "description": "Annual card volume.",
+        "field": {
+          "name": "annualCardVolume",
+          "ancestors": [
+            "processing",
+            "$"
+          ],
+          "dataType": "integer",
+          "minValue": 84000,
+          "maxValue": 3000000
+        },
+        "expect": "ProcessingVolume.CardVolume",
+        "expectQualifiers": {
+          "period": "annual"
+        },
+        "minScore": 90,
+        "expectReview": false
+      },
+      {
+        "id": "VOL-T-02",
+        "description": "Monthly volume.",
+        "field": {
+          "name": "MonthlyVolume",
+          "ancestors": [
+            "Processing",
+            "UnderwritingRequest"
+          ],
+          "dataType": "decimal"
+        },
+        "expect": "ProcessingVolume.CardVolume",
+        "expectQualifiers": {
+          "period": "monthly"
+        },
+        "minScore": 90,
+        "expectReview": false
+      },
+      {
+        "id": "VOL-T-03",
+        "description": "No period in the name: assume monthly and ask.",
+        "field": {
+          "name": "cardVolume",
+          "ancestors": [
+            "processing"
+          ],
+          "dataType": "decimal"
+        },
+        "expect": "ProcessingVolume.CardVolume",
+        "expectQualifiers": {
+          "period": "monthly"
+        },
+        "expectReview": true
+      },
+      {
+        "id": "VOL-T-04",
+        "description": "Average ticket.",
+        "field": {
+          "name": "averageTicket",
+          "ancestors": [
+            "processing",
+            "$"
+          ],
+          "dataType": "decimal"
+        },
+        "expect": "ProcessingVolume.AverageTicket",
+        "minScore": 90
+      },
+      {
+        "id": "VOL-T-05",
+        "description": "High ticket.",
+        "field": {
+          "name": "HighTicket",
+          "ancestors": [
+            "Processing"
+          ],
+          "dataType": "decimal"
+        },
+        "expect": "ProcessingVolume.HighTicket",
+        "minScore": 90
+      },
+      {
+        "id": "VOL-T-06",
+        "description": "A volume tier is not a volume.",
+        "field": {
+          "name": "volumeTier",
+          "values": [
+            "LOW",
+            "HIGH"
+          ]
+        },
+        "expect": null
+      },
+      {
+        "id": "VOL-T-07",
+        "description": "Gross sales is related, so it needs review.",
+        "field": {
+          "name": "grossSalesYearly",
+          "ancestors": [
+            "financials"
+          ],
+          "dataType": "decimal"
+        },
+        "expect": "ProcessingVolume.CardVolume",
+        "expectQualifiers": {
+          "period": "annual"
+        },
+        "expectReview": true
+      }
+    ]
+  }
+}

@@ -69,6 +69,41 @@ seen in, and the source of each attribute.
 - **Findings**: type conflicts, object/value conflicts, mixed or ambiguous date formats, inferred
   cardinality, SOAP and namespace handling.
 
+## Playbooks
+
+Playbooks are versioned JSON files that hold the domain knowledge the engine applies. `playbooks/` holds a
+starter set.
+
+| Playbook | Knows about |
+|---|---|
+| `domain/principals` | Owners ≈ Principals; Officers, Signers, Guarantors are *related* (not always owners); ownership as fraction or percent; SSN/DOB sensitivity |
+| `domain/processing-volume` | Card volume per period (monthly/annual, ÷12 / ×12), cents vs dollars, average and high ticket |
+| `domain/channel-mix` | Card-present, MOTO, e-commerce; `CNP = MOTO + ECOMM`; shares add up to 100 |
+| `domain/tax-id` | Business tax ID and its type; SSN for sole proprietors, EIN otherwise; a principal's SSN is not the business tax ID |
+| `domain/entity-type` | Legal structure and its codes (`CORP` = `C` = `CORPORATION`, `SOLE_PROP` = `SP`, …) |
+| `process/onboard-new-system` | Ingest → profile → match → optional AI assist → validate → review → publish, with gates and thresholds |
+
+A **domain playbook** has a concept and its attributes, vocabulary (each term *equivalent*, *narrower*,
+*broader* or *related*), qualifiers (period, unit…), detection signals (name, parent, children, description,
+value pattern/shape/range, code list, type, cardinality), derivation rules and conditional rules with worked
+examples, value maps, validation rules, confidence settings, risks, review questions, optional AI guidance and
+test cases. Derivations and validations use a small arithmetic language (`+ - * /`, comparisons, `sum`,
+`count`, `min`, `max`, `abs`, `round`); nothing else can run.
+
+A **process playbook** lists required inputs, ordered steps with gates and reviewers, confidence thresholds and
+outputs. An AI step must be optional and capped below the auto-accept threshold, and review must come before
+publish.
+
+Detection adds up evidence: a vocabulary term scores by its relation, a parent that names the concept adds
+context, and signals add or subtract their weight. Terms that are not equivalent, assumed or conflicting
+qualifiers (e.g. named *percent* but valued 0–1) and sensitive attributes can require review, and each match
+carries its evidence and the playbook's review questions.
+
+`playbook validate` checks each playbook and the library as a whole (IDs and versions, references to
+attributes, qualifiers, value maps and other playbooks, regexes and expressions, duplicate terms or codes,
+one published version per ID). `playbook test` also runs every detection test and rule example; a published
+domain playbook must have tests.
+
 ## Usage
 
 ```bash
@@ -79,6 +114,12 @@ dotnet run --project src/MapWright.Cli -- render <spec.json> --format xlsx,html
 dotnet run --project src/MapWright.Cli -- profile samples/systems/sales-alpha/samples \
   --system "SalesAlpha CRM" --version 2026.3 --out samples/systems/sales-alpha/profile.json
 dotnet run --project src/MapWright.Cli -- profile a.xml b.xml --system "UW Core" --no-values
+```
+
+```bash
+dotnet run --project src/MapWright.Cli -- playbook validate playbooks
+dotnet run --project src/MapWright.Cli -- playbook test playbooks
+dotnet run --project src/MapWright.Cli -- playbook detect samples/systems/uw-core/profile.json --playbooks playbooks
 ```
 
 `profile` accepts files and directories (their `*.json` and `*.xml` files). All samples of one system must
@@ -96,15 +137,17 @@ Requires the .NET 10 SDK.
 ```bash
 dotnet build -warnaserror
 dotnet test
+dotnet format MapWright.slnx --verify-no-changes
 ```
 
 ## Layout
 
 ```
-src/MapWright.Core     Mapping spec model, system profile model, JSON/XML sample readers, profile builder
+src/MapWright.Core     Mapping spec model, system profiles and sample readers, playbook model, validator and matcher
 src/MapWright.Output   Report model and Excel / CSV / HTML renderers
 src/MapWright.Cli      `mapwright` command-line tool
 tests/MapWright.Tests  Unit tests
 samples/mappings       Example mapping specs
 samples/systems        Example sample payloads and generated system profiles
+playbooks              Starter domain and process playbooks
 ```
