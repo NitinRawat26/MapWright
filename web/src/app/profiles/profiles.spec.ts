@@ -50,6 +50,70 @@ describe('Profiles', () => {
     expect(navigate).toHaveBeenCalledWith(['/profiles', 'salesalpha-crm']);
   });
 
+  it('shows guidance and file types for each preset and fills in an editable description', async () => {
+    const fixture = TestBed.createComponent(ProfileList);
+    fixture.detectChanges();
+    respond('/api/profiles', []);
+    respond('/api/ai', { available: false, maxConfidence: 70 });
+    await settle(fixture);
+    const root = fixture.nativeElement as HTMLElement;
+    const presets = Array.from(root.querySelectorAll('[data-testid="preset"] [data-preset]')).map((e) => e.textContent?.trim());
+    expect(presets).toEqual(['JSON REST API', 'SOAP/XML service', 'XML file or batch', 'Field spec', 'Data dictionary', 'PDF/Word spec', 'Samples only', 'Mixed/custom']);
+    expect(text(root, 'preset-guide')).toContain('Mixed/custom');
+    const picker = root.querySelector('[data-testid="files"]') as HTMLInputElement;
+    const description = () => (root.querySelector('[data-testid="description"]') as HTMLInputElement).value;
+
+    (root.querySelector('[data-preset="data-dictionary"] button') as HTMLButtonElement).click();
+    await settle(fixture);
+    expect(picker.getAttribute('accept')).toBe('.csv,.xlsx,.json,.xml');
+    expect(text(root, 'preset-guide')).toContain('Nullable');
+    expect(description()).toBe('From the data dictionary');
+
+    (root.querySelector('[data-preset="document"] button') as HTMLButtonElement).click();
+    await settle(fixture);
+    expect(picker.getAttribute('accept')).toBe('.pdf,.docx,.json,.xml');
+    expect(description()).toBe('From the interface specification');
+
+    const input = root.querySelector('[data-testid="description"]') as HTMLInputElement;
+    input.value = 'Sales Beta v3.1 spec';
+    input.dispatchEvent(new Event('input'));
+    (root.querySelector('[data-preset="soap-xml"] button') as HTMLButtonElement).click();
+    await settle(fixture);
+    expect(picker.getAttribute('accept')).toBe('.xml,.xsd,.wsdl');
+    expect(description()).toBe('Sales Beta v3.1 spec');
+    expect((root.querySelector('[data-testid="root"]') as HTMLInputElement).placeholder).toContain('WSDL operation');
+  });
+
+  it('warns about files that do not fit the preset but still uploads them', async () => {
+    const fixture = TestBed.createComponent(ProfileList);
+    fixture.detectChanges();
+    respond('/api/profiles', []);
+    respond('/api/ai', { available: false, maxConfidence: 70 });
+    await settle(fixture);
+    const root = fixture.nativeElement as HTMLElement;
+    (root.querySelector('[data-preset="json-rest"] button') as HTMLButtonElement).click();
+    await settle(fixture);
+    const system = root.querySelector('[data-testid="system"]') as HTMLInputElement;
+    system.value = 'Sales Beta';
+    system.dispatchEvent(new Event('input'));
+    const picker = root.querySelector('[data-testid="files"]') as HTMLInputElement;
+    Object.defineProperty(picker, 'files', { value: [new File(['{}'], 'a.json'), new File(['%PDF'], 'spec.pdf')], configurable: true });
+    picker.dispatchEvent(new Event('change'));
+    await settle(fixture);
+    expect(text(root, 'outside')).toContain('spec.pdf');
+    expect(text(root, 'outside')).not.toContain('a.json');
+
+    (root.querySelector('[data-testid="build"]') as HTMLButtonElement).click();
+    const request = http().expectOne({ url: '/api/profiles', method: 'POST' });
+    const form = request.request.body as FormData;
+    expect(form.getAll('files').map((f) => (f as File).name)).toEqual(['a.json', 'spec.pdf']);
+    expect(form.get('description')).toBe('JSON REST API');
+
+    (root.querySelector('[data-preset="custom"] button') as HTMLButtonElement).click();
+    await settle(fixture);
+    expect(root.querySelector('[data-testid="outside"]')).toBeNull();
+  });
+
   it('offers AI for document text only when a PDF or Word file is added and AI is configured', async () => {
     vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     const fixture = TestBed.createComponent(ProfileList);

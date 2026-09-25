@@ -521,6 +521,10 @@ Pages:
   changes, publish, retire or draft a new version, see the audit history, and compare any two versions side by side.
 - **Profiles:** upload sample payloads and contracts to build a profile, browse its fields, findings and inputs, and
   run detection to see which business concepts the published playbooks recognise (optionally asking AI about the rest).
+  A preset picks the kind of system: JSON REST API, SOAP/XML service, XML file or batch, Field spec, Data dictionary,
+  PDF/Word spec, Samples only or Mixed/custom (the default, which accepts every input). Each preset says what to
+  upload, limits the file picker to its file types, hints at Root and fills in a description you can change. A file
+  outside the preset's types is flagged but still uploaded. The AI option appears only for PDF/Word files.
 - **Mappings:** generate a mapping from two profiles, see coverage and confidence, filter and search the rows, open a row
   to see why it was mapped, approve, reject or override it, see the review history, and download Excel, CSV or HTML.
 - **Replay** (a tab on each mapping): upload source samples, pick the target profile, and see each sample's passed,
