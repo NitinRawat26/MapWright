@@ -10,7 +10,8 @@ public static class WsdlReader
     private static readonly XNamespace Wsdl20 = "http://www.w3.org/ns/wsdl";
 
     /// <param name="operation">The operation to profile; optional when the service has one operation.</param>
-    public static ContractDocument Read(string name, string content, string? operation = null)
+    /// <param name="files">Other uploaded files that the types section's <c>xs:import</c> and <c>xs:include</c> may point to.</param>
+    public static ContractDocument Read(string name, string content, string? operation = null, ContractFiles? files = null)
     {
         var root = XsdReader.Load(name, content, "WSDL").Root!;
         var ns = root.Name.Namespace;
@@ -35,14 +36,16 @@ public static class WsdlReader
 
         var schemas = root.Element(ns + "types")?.Elements(XsdReader.Xs + "schema").ToList() ?? [];
         var builder = new ContractBuilder(name, InputKind.Wsdl, PayloadFormat.Xml);
-        var walker = new XsdReader.Walker(schemas, builder);
+        var used = new List<ProfileInput>();
+        var resolved = new HashSet<XElement>();
+        var walker = new XsdReader.Walker(XsdReader.Expand(name, schemas, files ?? ContractFiles.None, builder, used, resolved), builder, resolved);
         if (!walker.HasElement(selected.Element))
         {
             throw new ProfileException($"'{name}': operation '{selected.Name}' uses element '{selected.Element}', which its types section does not declare.");
         }
 
         walker.Root(selected.Element);
-        return builder.Build(ContractDocument.Hash(content), $"operation {selected.Name} input <{selected.Element}>");
+        return builder.Build(ContractDocument.Hash(content), $"operation {selected.Name} input <{selected.Element}>") with { Referenced = used };
     }
 
     private static List<(string Name, string Element)> Wsdl11Operations(XElement root)

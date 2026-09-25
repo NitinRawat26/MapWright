@@ -21,7 +21,7 @@ export const profilePresets: readonly ProfilePreset[] = [
     summary: 'A system that sends or receives JSON over HTTP.',
     upload: [
       'Sample request bodies (.json): a few real or test payloads, e.g. one per product or entity type.',
-      'The OpenAPI (JSON or YAML) or JSON Schema file, if there is one. It decides types and required fields.',
+      'The OpenAPI (JSON or YAML) or JSON Schema file, if there is one. It decides types and required fields. Add the files its $ref points to as well.',
     ],
     accept: '.json,.yaml,.yml',
     rootHint: 'operationId, "POST /path" or schema name',
@@ -33,7 +33,7 @@ export const profilePresets: readonly ProfilePreset[] = [
     summary: 'A SOAP or XML web service described by a WSDL.',
     upload: [
       'Sample request messages (.xml), with or without the SOAP envelope.',
-      'The WSDL and any XSD it uses. Leave Root empty with both, or give the WSDL operation with the WSDL only.',
+      'The WSDL and the XSDs it uses; XSDs it imports or includes are read as part of it. With a separate XSD, leave Root empty.',
     ],
     accept: '.xml,.xsd,.wsdl',
     rootHint: 'WSDL operation, e.g. SubmitApplication',

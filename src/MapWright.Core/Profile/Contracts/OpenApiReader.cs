@@ -5,24 +5,27 @@ namespace MapWright.Core.Profile.Contracts;
 
 /// <summary>
 /// Reads the JSON request body of one OpenAPI 3.x or Swagger 2.0 operation, or one named schema, into profile fields.
-/// The document itself may be JSON or YAML.
+/// The document itself may be JSON or YAML, and its external <c>$ref</c>s may point to other uploaded files.
 /// </summary>
 public static class OpenApiReader
 {
     private static readonly string[] Methods = ["get", "put", "post", "delete", "options", "head", "patch", "trace"];
 
     /// <param name="root">An operationId, "METHOD /path" or a schema name; optional when only one operation has a JSON request body.</param>
-    public static ContractDocument Read(string name, string content, string? root = null)
+    /// <param name="files">Other uploaded files that external <c>$ref</c>s may point to.</param>
+    public static ContractDocument Read(string name, string content, string? root = null, ContractFiles? files = null)
     {
         var json = IsJson(content) ? content : OpenApiYaml.ToJson(name, content);
-        using var document = JsonSchemaReader.Parse(name, json, "OpenAPI document");
+        JsonSchemaReader.Parse(name, json, "OpenAPI document").Dispose();
+        var builder = new ContractBuilder(name, InputKind.OpenApi, PayloadFormat.Json);
+        var used = new List<ProfileInput>();
+        using var document = JsonSchemaReader.Parse(name, JsonSchemaBundle.Bundle(name, json, files ?? ContractFiles.None, builder, used), "OpenAPI document");
         var spec = document.RootElement;
         if (spec.ValueKind != JsonValueKind.Object || (Version(spec, "openapi") is null && Version(spec, "swagger") is null))
         {
             throw new ProfileException($"'{name}' is not an OpenAPI document (no 'openapi' or 'swagger' version).");
         }
 
-        var builder = new ContractBuilder(name, InputKind.OpenApi, PayloadFormat.Json);
         var walker = new JsonSchemaReader.Walker(spec, builder);
         var operations = Operations(spec, walker).ToList();
         var schemas = Schemas(spec);
@@ -59,7 +62,7 @@ public static class OpenApiReader
         }
 
         walker.Root(selected.Schema);
-        return builder.Build(ContractDocument.Hash(content), selected.Label);
+        return builder.Build(ContractDocument.Hash(content), selected.Label) with { Referenced = used };
     }
 
     internal static bool IsJson(string content) => content.TrimStart('\uFEFF', ' ', '\t', '\r', '\n').FirstOrDefault() == '{';
@@ -82,7 +85,12 @@ public static class OpenApiReader
 
         foreach (var path in paths.EnumerateObject().Where(p => p.Value.ValueKind == JsonValueKind.Object))
         {
-            foreach (var method in path.Value.EnumerateObject().Where(m => Methods.Contains(m.Name) && m.Value.ValueKind == JsonValueKind.Object))
+            if (!walker.TryResolve(path.Value, path.Name, out var item, out _) || item.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            foreach (var method in item.EnumerateObject().Where(m => Methods.Contains(m.Name) && m.Value.ValueKind == JsonValueKind.Object))
             {
                 if (RequestSchema(method.Value, walker) is { } schema)
                 {

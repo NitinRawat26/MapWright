@@ -119,7 +119,7 @@ seen in, and the source of each attribute.
 
 | Input | Recognised by | What is read |
 |---|---|---|
-| JSON Schema | `$schema`, or `type: object` with `properties` | `properties`, `required`, arrays and `maxItems`, `enum`/`const`, `format` (date, date-time), length, range, `multipleOf` (scale), `description`; local `$ref`, `allOf`; `oneOf`/`anyOf` are merged and their fields made optional |
+| JSON Schema | `$schema`, or `type: object` with `properties` | `properties`, `required`, arrays and `maxItems`, `enum`/`const`, `format` (date, date-time), length, range, `multipleOf` (scale), `description`; `$ref` (local, or to another uploaded file), `allOf`; `oneOf`/`anyOf` are merged and their fields made optional |
 | OpenAPI 3.x / Swagger 2.0 (JSON or YAML) | `openapi` or `swagger` | The JSON request body of one operation, or one named schema, read as JSON Schema |
 | XSD | `.xsd`, or an `xs:schema` root | One global element: sequences, `xs:all`, choices (optional), groups, attributes and attribute groups, named and inline types, extensions, `simpleContent` (`/text()`), `minOccurs`/`maxOccurs`, enumerations, length, range and `fractionDigits` facets, `fixed`, annotations |
 | WSDL 1.1 / 2.0 | `.wsdl`, or a WSDL root | The input element of one document/literal operation, read from the XSD in `types` |
@@ -134,11 +134,19 @@ seen in, and the source of each attribute.
 - **Disagreements are findings, not overwrites**: `typeConflict` (samples look like a number, the contract
   declares a boolean), `contractMismatch` (required but missing in samples, values outside the allowed list,
   values longer than the declared length, a repeating field declared once, a different date format),
-  `undeclaredField` (seen in samples, not in any contract), `unresolvedReference` (external `$ref`,
-  `xs:import`) and `schemaSimplified` (merged alternatives, recursion, unknown types).
+  `undeclaredField` (seen in samples, not in any contract), `unresolvedReference` (an external `$ref` or
+  `xs:import` whose file was not uploaded) and `schemaSimplified` (merged alternatives, recursion, unknown types).
 - **Provenance**: every attribute records the input kind and file it came from, and `seenIn` lists samples and
   contracts. A field a contract marks sensitive masks the sample values too.
-- XML contracts are read with DTDs rejected and no external resolution; referenced files are not fetched.
+- **References to other files**: an external `$ref` (`common.json#/$defs/Address`, `../schemas/app.yaml`,
+  `https://example.com/defs/common.json#/A`) and an `xs:import`, `xs:include`, `xs:redefine` or `xs:override`
+  are read from the other files uploaded with the contract. A reference matches the file at the same relative
+  path, or else the only upload with that file name; an `xs:import` without `schemaLocation` matches the uploaded
+  schema with that `targetNamespace`. A referenced file is read as part of the contract that refers to it, not on
+  its own, and is listed in the profile's inputs as "Referenced by ...". Nothing is fetched from disk or the
+  network, and DTDs are rejected. A reference that matches no upload, or several, is an `unresolvedReference`
+  finding. `samples/systems/sales-alpha/split-contracts` (JSON Schema plus a definitions file) and
+  `samples/systems/uw-core/split-contracts` (a WSDL importing an XSD that includes another) are examples.
 - OpenAPI documents may be YAML (`.yaml`/`.yml`). Anchors, aliases and `<<` merge keys are resolved, plain
   scalars follow the YAML core schema (so `openapi: 3.1` still counts), and errors give the YAML line. One document
   per file. `samples/systems/sales-alpha/openapi-yaml` has the SalesAlpha OpenAPI document in YAML.

@@ -6,7 +6,7 @@ namespace MapWright.Core.Profile.Contracts;
 
 /// <summary>
 /// Reads a JSON Schema into profile fields: properties, required, arrays, enum/const, formats, length and range
-/// limits, local $ref, allOf, and oneOf/anyOf (merged, with their fields optional).
+/// limits, $ref (local, or to another uploaded file), allOf, and oneOf/anyOf (merged, with their fields optional).
 /// </summary>
 public static class JsonSchemaReader
 {
@@ -16,12 +16,15 @@ public static class JsonSchemaReader
         AllowTrailingCommas = true,
     };
 
-    public static ContractDocument Read(string name, string content)
+    /// <param name="files">Other uploaded files that external <c>$ref</c>s may point to.</param>
+    public static ContractDocument Read(string name, string content, ContractFiles? files = null)
     {
-        using var document = Parse(name, content, "JSON Schema");
         var builder = new ContractBuilder(name, InputKind.JsonSchema, PayloadFormat.Json);
+        var used = new List<ProfileInput>();
+        Parse(name, content, "JSON Schema").Dispose();
+        using var document = Parse(name, JsonSchemaBundle.Bundle(name, content, files ?? ContractFiles.None, builder, used), "JSON Schema");
         new Walker(document.RootElement, builder).Root(document.RootElement);
-        return builder.Build(ContractDocument.Hash(content), null);
+        return builder.Build(ContractDocument.Hash(content), null) with { Referenced = used };
     }
 
     internal static JsonDocument Parse(string name, string content, string what)
@@ -64,13 +67,13 @@ public static class JsonSchemaReader
             {
                 if (++hops > MaxDepth || _refs.Contains(pointer))
                 {
-                    builder.Finding(ProfileFindingKind.SchemaSimplified, path, $"Recursive reference '{pointer}' was profiled once.");
+                    builder.Finding(ProfileFindingKind.SchemaSimplified, path, $"Recursive reference '{JsonSchemaBundle.Display(pointer)}' was profiled once.");
                     return false;
                 }
 
                 if (!pointer.StartsWith('#') || Pointer(pointer) is not { } target)
                 {
-                    builder.Finding(ProfileFindingKind.UnresolvedReference, path, $"Reference '{pointer}' is not inside '{builder.Input}'; its fields are unknown.");
+                    builder.Finding(ProfileFindingKind.UnresolvedReference, path, $"Reference '{JsonSchemaBundle.Display(pointer)}' is not inside '{builder.Input}' or another uploaded file; its fields are unknown.");
                     return false;
                 }
 

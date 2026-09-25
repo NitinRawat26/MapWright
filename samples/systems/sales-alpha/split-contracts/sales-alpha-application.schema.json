@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sales-alpha.example/schemas/application.json",
+  "title": "SalesAlpha merchant application",
+  "type": "object",
+  "required": [
+    "applicationId",
+    "submittedAt",
+    "account",
+    "owners",
+    "processing",
+    "bank"
+  ],
+  "properties": {
+    "applicationId": {
+      "type": "string",
+      "maxLength": 20,
+      "description": "CRM application identifier."
+    },
+    "submittedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "account": {
+      "$ref": "sales-alpha-defs.json#/$defs/account"
+    },
+    "owners": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "items": {
+        "$ref": "sales-alpha-defs.json#/$defs/owner"
+      }
+    },
+    "processing": {
+      "type": "object",
+      "required": [
+        "annualCardVolume",
+        "averageTicket",
+        "cardPresentPercent",
+        "motoPercent",
+        "ecommPercent"
+      ],
+      "properties": {
+        "annualCardVolume": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Expected card volume per year, in USD."
+        },
+        "averageTicket": {
+          "type": "number",
+          "minimum": 0,
+          "multipleOf": 0.01
+        },
+        "cardPresentPercent": {
+          "$ref": "sales-alpha-defs.json#/$defs/percent"
+        },
+        "motoPercent": {
+          "$ref": "sales-alpha-defs.json#/$defs/percent"
+        },
+        "ecommPercent": {
+          "$ref": "sales-alpha-defs.json#/$defs/percent"
+        }
+      }
+    },
+    "bank": {
+      "type": "object",
+      "required": [
+        "routingNumber",
+        "accountNumber"
+      ],
+      "properties": {
+        "routingNumber": {
+          "type": "string",
+          "minLength": 9,
+          "maxLength": 9
+        },
+        "accountNumber": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 17
+        }
+      }
+    }
+  }
+}

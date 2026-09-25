@@ -60,12 +60,13 @@ public static class ContractReader
     }
 
     /// <param name="root">XSD root element, WSDL operation, or OpenAPI operation/schema to profile.</param>
-    public static ContractDocument Read(string name, string content, InputKind kind, string? root = null) => kind switch
+    /// <param name="files">Other uploaded files that external <c>$ref</c>, <c>xs:import</c> and <c>xs:include</c> may point to.</param>
+    public static ContractDocument Read(string name, string content, InputKind kind, string? root = null, ContractFiles? files = null) => kind switch
     {
-        InputKind.JsonSchema => JsonSchemaReader.Read(name, content),
-        InputKind.OpenApi => OpenApiReader.Read(name, content, root),
-        InputKind.Xsd => XsdReader.Read(name, content, root),
-        InputKind.Wsdl => WsdlReader.Read(name, content, root),
+        InputKind.JsonSchema => JsonSchemaReader.Read(name, content, files),
+        InputKind.OpenApi => OpenApiReader.Read(name, content, root, files),
+        InputKind.Xsd => XsdReader.Read(name, content, root, files),
+        InputKind.Wsdl => WsdlReader.Read(name, content, root, files),
         InputKind.FieldSpec => FieldSpecReader.ReadCsv(name, content),
         _ => throw new ProfileException($"'{name}': {kind} inputs are not supported yet."),
     };

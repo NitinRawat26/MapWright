@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+                  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                  xmlns:uw="urn:uwcore:intake:4.2"
+                  targetNamespace="urn:uwcore:intake:4.2">
+  <wsdl:types>
+    <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+               targetNamespace="urn:uwcore:intake:4.2:service">
+      <xs:import namespace="urn:uwcore:intake:4.2" schemaLocation="uw-core-intake-main.xsd"/>
+    </xs:schema>
+  </wsdl:types>
+
+  <wsdl:message name="SubmitApplicationRequest">
+    <wsdl:part name="body" element="uw:UnderwritingRequest"/>
+  </wsdl:message>
+  <wsdl:message name="SubmitApplicationResponse">
+    <wsdl:part name="body" element="uw:UnderwritingRequest"/>
+  </wsdl:message>
+
+  <wsdl:portType name="IntakePort">
+    <wsdl:operation name="SubmitApplication">
+      <wsdl:input message="uw:SubmitApplicationRequest"/>
+      <wsdl:output message="uw:SubmitApplicationResponse"/>
+    </wsdl:operation>
+  </wsdl:portType>
+
+  <wsdl:binding name="IntakeBinding" type="uw:IntakePort">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="SubmitApplication">
+      <soap:operation soapAction="urn:uwcore:intake:4.2/SubmitApplication"/>
+      <wsdl:input><soap:body use="literal"/></wsdl:input>
+      <wsdl:output><soap:body use="literal"/></wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+
+  <wsdl:service name="IntakeService">
+    <wsdl:port name="IntakePort" binding="uw:IntakeBinding">
+      <soap:address location="https://uwcore.example/intake/4.2"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>
