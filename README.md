@@ -446,6 +446,10 @@ Pages:
 - **Playbooks:** filter by status, search, add a playbook as a draft. Each version shows its concept,
   vocabulary and rules; drafts are edited as JSON and validated and tested before saving. Submit, request
   changes, publish, retire or draft a new version, see the audit history, and compare any two versions side by side.
+- **Profiles:** upload sample payloads and contracts to build a profile, browse its fields, findings and inputs, and
+  run detection to see which business concepts the published playbooks recognise (optionally asking AI about the rest).
+- **Mappings:** generate a mapping from two profiles, see coverage and confidence, filter and search the rows, open a row
+  to see why it was mapped, approve, reject or override it, see the review history, and download Excel, CSV or HTML.
 
 ## Build and test
 

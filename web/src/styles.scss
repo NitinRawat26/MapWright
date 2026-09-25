@@ -86,3 +86,62 @@ table.mat-mdc-table {
 .problem {
   white-space: pre-line;
 }
+
+.back {
+  text-decoration: none;
+}
+
+.actions {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+}
+
+.form {
+  display: grid;
+  gap: 12px;
+  max-width: 1000px;
+}
+
+.tab {
+  padding: 16px 4px;
+}
+
+.terms {
+  gap: 6px;
+}
+
+.error {
+  color: var(--mat-sys-error);
+}
+
+.warn-text {
+  color: #6b4d00;
+}
+
+.wide {
+  width: 100%;
+}
+
+button.link {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 0 0 0 4px;
+  font: inherit;
+}
+
+table.plain {
+  border-collapse: collapse;
+}
+
+table.plain td,
+table.plain th {
+  text-align: left;
+  padding: 4px 12px 4px 0;
+  vertical-align: top;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}

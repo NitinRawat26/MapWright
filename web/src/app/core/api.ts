@@ -1,9 +1,17 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import {
   AiStatus,
+  DetectResponse,
+  FieldMapping,
+  MappingDocument,
   MappingListItem,
+  MappingSummary,
+  NewProfile,
+  ReviewDecision,
+  ReviewDecisionKind,
+  SystemProfile,
   PlaybookEvent,
   PlaybookStatus,
   PlaybookSummary,
@@ -83,8 +91,67 @@ export class Api {
     return this.http.get<ProfileSummary[]>('/api/profiles');
   }
 
+  profile(id: string): Observable<SystemProfile> {
+    return this.http.get<SystemProfile>(`/api/profiles/${encodeURIComponent(id)}`);
+  }
+
+  /** Builds and stores a profile from uploaded samples and contracts; emits the new profile's id. */
+  createProfile(files: File[], request: NewProfile): Observable<string> {
+    const form = new FormData();
+    for (const file of files) {
+      form.append('files', file, file.name);
+    }
+
+    for (const [name, value] of Object.entries(request)) {
+      if (value !== undefined && value !== '') {
+        form.append(name, String(value));
+      }
+    }
+
+    return this.http
+      .post<SystemProfile>('/api/profiles', form, { observe: 'response' })
+      .pipe(map((response) => decodeURIComponent((response.headers.get('Location') ?? '').split('/').pop() ?? '')));
+  }
+
+  deleteProfile(id: string): Observable<unknown> {
+    return this.http.delete(`/api/profiles/${encodeURIComponent(id)}`);
+  }
+
+  /** Playbook detection; with useAi the unrecognised fields go to AI and its answers to the suggestions inbox. */
+  detect(id: string, useAi: boolean): Observable<DetectResponse> {
+    return this.http.post<DetectResponse>(`/api/profiles/${encodeURIComponent(id)}/detect`, { useAi });
+  }
+
   mappings(): Observable<MappingListItem[]> {
     return this.http.get<MappingListItem[]>('/api/mappings');
+  }
+
+  mapping(id: string): Observable<MappingDocument> {
+    return this.http.get<MappingDocument>(`/api/mappings/${encodeURIComponent(id)}`);
+  }
+
+  generateMapping(request: { source: string; target: string; id?: string; title?: string; replace?: boolean; useAi?: boolean }): Observable<MappingDocument> {
+    return this.http.post<MappingDocument>('/api/mappings', request);
+  }
+
+  deleteMapping(id: string): Observable<unknown> {
+    return this.http.delete(`/api/mappings/${encodeURIComponent(id)}`);
+  }
+
+  mappingSummary(id: string): Observable<MappingSummary> {
+    return this.http.get<MappingSummary>(`/api/mappings/${encodeURIComponent(id)}/summary`);
+  }
+
+  exportUrl(id: string, format: 'xlsx' | 'csv' | 'html'): string {
+    return `/api/mappings/${encodeURIComponent(id)}/export/${format}`;
+  }
+
+  review(id: string, rowId: string, decision: ReviewDecisionKind, comment?: string, row?: FieldMapping): Observable<ReviewDecision> {
+    return this.http.post<ReviewDecision>(`/api/mappings/${encodeURIComponent(id)}/rows/${encodeURIComponent(rowId)}/review`, { decision, comment, row });
+  }
+
+  reviews(id: string): Observable<ReviewDecision[]> {
+    return this.http.get<ReviewDecision[]>(`/api/mappings/${encodeURIComponent(id)}/reviews`);
   }
 
   pendingSuggestions(): Observable<unknown[]> {
