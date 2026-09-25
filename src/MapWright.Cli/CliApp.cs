@@ -1,5 +1,6 @@
 using MapWright.Ai;
 using MapWright.Core;
+using MapWright.Core.Matching;
 using MapWright.Core.Playbooks;
 using MapWright.Core.Profile;
 using MapWright.Core.Spec;
@@ -28,6 +29,8 @@ public static class CliApp
           mapwright playbook test <playbook|dir>...
           mapwright playbook detect <profile.json> [--playbooks <playbook|dir>]... [--ai ask|yes|no]
                             [--out <report.json>]
+          mapwright map <source-profile.json> <target-profile.json> [--playbooks <playbook|dir>]...
+                            [--id <id>] [--title <text>] [--out <mapping.json>]
 
         Render options:
           --out <dir>       Output directory (default: directory of the spec)
@@ -46,6 +49,12 @@ public static class CliApp
           --playbooks       Playbook files or directories for detect (default: ./playbooks)
           --ai <mode>       After the playbooks, offer AI for the remaining fields: ask (default), yes or no
           --out <file>      Write playbook matches, AI suggestions and remaining fields as JSON
+
+        Map options:
+          <source> <target> System profiles of the sending and the receiving system
+          --playbooks       Playbook files or directories (default: ./playbooks)
+          --id, --title     Mapping id and title (default: from the two system names)
+          --out <file>      Write the mapping spec here (default: print to stdout)
 
         AI (optional; without it MapWright uses playbooks only):
           {AiProviders.VertexProjectVariable}    Google Cloud project; enables Vertex AI (credentials from
@@ -74,6 +83,7 @@ public static class CliApp
             "render" => Render(args[1..], stdout, stderr),
             "profile" => Profile(args[1..], stdout, stderr),
             "playbook" => Playbook(args[1..], stdin, stdout, stderr, ai),
+            "map" => Map(args[1..], stdout, stderr),
             _ => Fail(stderr, $"Unknown command '{args[0]}'."),
         };
     }
@@ -466,6 +476,97 @@ public static class CliApp
 
         stdout.WriteLine($"{result.Suggestions.Count} AI suggestion(s); {result.Unresolved.Count} field(s) still unresolved.");
         return result;
+    }
+
+    private static int Map(string[] args, TextWriter stdout, TextWriter stderr)
+    {
+        var profilePaths = new List<string>();
+        var playbookPaths = new List<string>();
+        string? outPath = null;
+        string? id = null;
+        string? title = null;
+
+        for (var i = 0; i < args.Length; i++)
+        {
+            switch (args[i])
+            {
+                case "--playbooks" when i + 1 < args.Length:
+                    playbookPaths.Add(args[++i]);
+                    break;
+                case "--out" when i + 1 < args.Length:
+                    outPath = args[++i];
+                    break;
+                case "--id" when i + 1 < args.Length:
+                    id = args[++i];
+                    break;
+                case "--title" when i + 1 < args.Length:
+                    title = args[++i];
+                    break;
+                case var arg when !arg.StartsWith("--", StringComparison.Ordinal) && profilePaths.Count < 2:
+                    profilePaths.Add(arg);
+                    break;
+                default:
+                    return Fail(stderr, $"Unexpected argument '{args[i]}'.");
+            }
+        }
+
+        if (profilePaths.Count != 2)
+        {
+            return Fail(stderr, "map expects a source profile and a target profile.");
+        }
+
+        var profiles = new List<SystemProfile>();
+        foreach (var path in profilePaths)
+        {
+            try
+            {
+                profiles.Add(ProfileSerializer.Load(path));
+            }
+            catch (Exception ex) when (ex is ProfileException or IOException)
+            {
+                stderr.WriteLine(ex.Message);
+                return InvalidInput;
+            }
+        }
+
+        var log = outPath is null ? TextWriter.Null : stdout;
+        if (!TryLoadPlaybooks(playbookPaths.Count > 0 ? playbookPaths : ["playbooks"], log, stderr, out var library))
+        {
+            return InvalidInput;
+        }
+
+        var document = MappingGenerator.Generate(profiles[0], profiles[1], library, new() { Id = id, Title = title });
+        var issues = MappingSpecValidator.Validate(document);
+        foreach (var issue in issues)
+        {
+            (issue.Severity == IssueSeverity.Error ? stderr : log).WriteLine(issue);
+        }
+
+        if (outPath is null)
+        {
+            stdout.WriteLine(MappingSpecSerializer.Serialize(document));
+            return issues.Any(i => i.Severity == IssueSeverity.Error) ? InvalidSpec : Success;
+        }
+
+        if (Path.GetDirectoryName(Path.GetFullPath(outPath)) is { } directory)
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        MappingSpecSerializer.Save(document, outPath);
+        var summary = MappingSummary.From(document);
+        stdout.WriteLine(
+            $"Wrote {outPath}: {summary.MappedTargetFields} of {summary.TotalTargetFields} target field(s) mapped " +
+            $"({summary.RequiredCoveragePercent}% of required), {summary.ByReviewStatus[ReviewStatus.AutoAccepted]} auto-accepted, " +
+            $"{summary.ByReviewStatus[ReviewStatus.NeedsReview]} need review, {summary.OrphanSourceFields} unused source field(s), " +
+            $"{summary.Conflicts} conflict(s), {summary.Assumptions} assumption(s).");
+        foreach (var mapping in document.Mappings)
+        {
+            var sources = mapping.Sources.Count == 0 ? "-" : string.Join(" + ", mapping.Sources.Select(f => f.Path));
+            stdout.WriteLine($"  {mapping.Id} {mapping.Target.Path} <- {sources}  {(mapping.Type == MappingType.Unmapped ? "Unmapped" : mapping.Transformation.Type)} {mapping.ConfidencePercent}% {mapping.Review.Status}");
+        }
+
+        return issues.Any(i => i.Severity == IssueSeverity.Error) ? InvalidSpec : Success;
     }
 
     private static bool TryLoadPlaybooks(IReadOnlyList<string> paths, TextWriter stdout, TextWriter stderr, out PlaybookLibrary library)

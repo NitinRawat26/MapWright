@@ -35,7 +35,7 @@ public static class MappingGenerator
         var orphans = builder.Sources.Where(s => !used.Contains(s.Path)).Select(Orphan).ToList();
         var findings = builder.Findings().Concat(ProfileFindings(source, target, mappings)).Select((f, i) => f with { Id = $"F{i + 1:000}" }).ToList();
 
-        var createdAt = options.CreatedAt ?? DateTimeOffset.UtcNow;
+        var createdAt = options.CreatedAt ?? DateTimeOffset.FromUnixTimeSeconds(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
         var usedPlaybooks = library.Active
             .Where(p => p.Process is not null || mappings.Any(m => m.DomainPlaybook == p.Reference))
             .Select(p => new PlaybookRef { Name = p.Id, Version = p.Version })
