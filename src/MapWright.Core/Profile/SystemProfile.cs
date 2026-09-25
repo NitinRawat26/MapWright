@@ -3,8 +3,8 @@ using MapWright.Core.Spec;
 namespace MapWright.Core.Profile;
 
 /// <summary>
-/// Normalized description of one system's contract, merged from all of its inputs
-/// (sample payloads today; schemas, field specs and documentation later).
+/// Normalized description of one system's contract, merged from all of its inputs: sample payloads,
+/// JSON Schema, OpenAPI, XSD, WSDL and field specs.
 /// </summary>
 public sealed record SystemProfile
 {
@@ -119,6 +119,8 @@ public enum ProfileAttribute
     Required,
     Format,
     Sensitivity,
+    AllowedValues,
+    Constraints,
 }
 
 public enum ProfileFindingKind
@@ -131,4 +133,8 @@ public enum ProfileFindingKind
     SoapEnvelopeUnwrapped,
     NamespacesIgnored,
     MixedContentIgnored,
+    ContractMismatch,
+    UndeclaredField,
+    UnresolvedReference,
+    SchemaSimplified,
 }

@@ -46,9 +46,10 @@ Unknown JSON properties and missing required properties are rejected.
 
 ## System profiles
 
-A system profile is a normalized description of one system's contract, built from any number of its inputs.
-This release builds profiles from JSON or XML sample payloads; schemas, field specs, metadata exports and
-documentation will feed the same profile in later releases.
+A system profile is a normalized description of one system's contract, built from any number of its inputs:
+JSON or XML sample payloads, JSON Schema, OpenAPI (JSON), XSD, WSDL and field specs (CSV or Excel). All
+inputs of one system are merged into one profile. PDF and Word documentation will feed the same profile in a
+later release.
 
 Each field records its path, parent, kind (object/value), cardinality, inferred data type and date format,
 required signal, length/value ranges, observed values and value shapes, presence counts, the samples it was
@@ -60,7 +61,7 @@ seen in, and the source of each attribute.
   inferred as an array and reported, SOAP envelopes are unwrapped, namespaces are reported, `xsi:nil` is a null
   and DTDs are rejected.
 - **Required**: samples can only show *likely required* (present every time) or *optional* (missing, null or
-  empty at least once); the formal schema inputs will make this authoritative.
+  empty at least once); a contract makes it authoritative (see below).
 - **Dates**: ISO dates and times are detected; `MM/dd/yyyy` vs `dd/MM/yyyy` is resolved from the values or
   reported as ambiguous.
 - **Sensitive data**: fields whose names match PII/financial terms (SSN, tax id, DOB, account/routing number,
@@ -68,6 +69,31 @@ seen in, and the source of each attribute.
   observed values and no numeric ranges. `--no-values` stores no values at all.
 - **Findings**: type conflicts, object/value conflicts, mixed or ambiguous date formats, inferred
   cardinality, SOAP and namespace handling.
+
+### Contracts (schemas, service definitions, field specs)
+
+| Input | Recognised by | What is read |
+|---|---|---|
+| JSON Schema | `$schema`, or `type: object` with `properties` | `properties`, `required`, arrays and `maxItems`, `enum`/`const`, `format` (date, date-time), length, range, `multipleOf` (scale), `description`; local `$ref`, `allOf`; `oneOf`/`anyOf` are merged and their fields made optional |
+| OpenAPI 3.x / Swagger 2.0 (JSON) | `openapi` or `swagger` | The JSON request body of one operation, or one named schema, read as JSON Schema |
+| XSD | `.xsd`, or an `xs:schema` root | One global element: sequences, `xs:all`, choices (optional), groups, attributes and attribute groups, named and inline types, extensions, `simpleContent` (`/text()`), `minOccurs`/`maxOccurs`, enumerations, length, range and `fractionDigits` facets, `fixed`, annotations |
+| WSDL 1.1 / 2.0 | `.wsdl`, or a WSDL root | The input element of one document/literal operation, read from the XSD in `types` |
+| Field spec | `.csv`, `.xlsx` | One row per field. Only a path column is required (`Path`, `Field Path`, `XPath`, `JSON Path`, `Field`, `Element`). Also recognised: type (`String(20)`, `Decimal(12,2)`, `Date`…), required/mandatory (`Y`, `M`, `C` = conditional…), format (`YYYY-MM-DD`), min/max length, min/max value, scale, allowed values (`CORP = Corporation; LLC = …`), description, sensitive/PII and repeats. `owners[].ssn` and `/uw:Merchant/uw:Name` style paths are normalized |
+
+- **`--root`** picks the XSD root element, the WSDL operation, or the OpenAPI `operationId`, `"POST /path"` or
+  schema name, when a contract has more than one. The profiled part is recorded in the input's notes.
+- **Precedence**: schemas (JSON Schema, OpenAPI, XSD, WSDL) over field specs over samples, per attribute.
+  Requiredness becomes authoritative (`required`/`optional`). A contract `string` with date samples keeps the
+  sample date format. Samples still supply presence, observed values and value shapes.
+- **Disagreements are findings, not overwrites**: `typeConflict` (samples look like a number, the contract
+  declares a boolean), `contractMismatch` (required but missing in samples, values outside the allowed list,
+  values longer than the declared length, a repeating field declared once, a different date format),
+  `undeclaredField` (seen in samples, not in any contract), `unresolvedReference` (external `$ref`,
+  `xs:import`) and `schemaSimplified` (merged alternatives, recursion, unknown types).
+- **Provenance**: every attribute records the input kind and file it came from, and `seenIn` lists samples and
+  contracts. A field a contract marks sensitive masks the sample values too.
+- XML contracts are read with DTDs rejected and no external resolution; referenced files are not fetched.
+- YAML OpenAPI documents are not read yet; convert them to JSON first.
 
 ## Playbooks
 
@@ -189,6 +215,14 @@ dotnet run --project src/MapWright.Cli -- render <spec.json> --format xlsx,html
 dotnet run --project src/MapWright.Cli -- profile samples/systems/sales-alpha/samples \
   --system "SalesAlpha CRM" --version 2026.3 --out samples/systems/sales-alpha/profile.json
 dotnet run --project src/MapWright.Cli -- profile a.xml b.xml --system "UW Core" --no-values
+
+# Samples plus contracts, merged into one profile
+dotnet run --project src/MapWright.Cli -- profile samples/systems/sales-alpha/samples samples/systems/sales-alpha/contracts \
+  --system "SalesAlpha CRM" --root submitApplication --out out/sales-alpha.profile.json
+dotnet run --project src/MapWright.Cli -- profile samples/systems/uw-core/samples samples/systems/uw-core/contracts/uw-core-intake.xsd \
+  --system "UW Core" --out out/uw-core.profile.json
+dotnet run --project src/MapWright.Cli -- profile samples/systems/uw-core/contracts/uw-core-intake.wsdl \
+  --system "UW Core" --root SubmitApplication --out out/uw-core.wsdl.profile.json
 ```
 
 ```bash
@@ -213,14 +247,18 @@ dotnet run --project src/MapWright.Cli -- replay out/sales-alpha__uw-core.mappin
   --target samples/systems/uw-core/profile.json --out out/replay --record --strict
 ```
 
-`profile` accepts files and directories (their `*.json` and `*.xml` files). All samples of one system must
-share a format. Without `--out` the profile is printed to stdout.
+`profile` accepts files and directories (their `*.json`, `*.xml`, `*.xsd`, `*.wsdl`, `*.csv` and `*.xlsx`
+files). JSON and XML files are treated as contracts when they are a schema, OpenAPI or WSDL document, and as
+samples otherwise. All inputs of one system must share a format (JSON or XML). Without `--out` the profile is
+printed to stdout.
 
 `samples/mappings/sales-alpha__uw-core/mapping.json` is a synthetic example covering Owners → Officers,
 annual → monthly volume, CNP = MOTO + ECOMM, SSN/EIN tax-id type, enum value maps, gaps, conflicts and a
 validation run. `generated-mapping.json` next to it is what `mapwright map` produces from the two sample
 profiles, and `replay/` holds the UW Core XML that `mapwright replay` builds from the SalesAlpha samples. `samples/systems/sales-alpha` (three JSON applications) and `samples/systems/uw-core` (SOAP
-and plain XML applications) hold synthetic sample payloads and the profiles generated from them.
+and plain XML applications) hold synthetic sample payloads and the profiles generated from them. Their
+`contracts/` folders hold matching synthetic contracts: a JSON Schema, an OpenAPI document and a CSV field
+spec for SalesAlpha, and an XSD and WSDL for UW Core.
 
 ## Build and test
 
@@ -235,13 +273,13 @@ dotnet format MapWright.slnx --verify-no-changes
 ## Layout
 
 ```
-src/MapWright.Core     Mapping spec model, system profiles and sample readers, playbook model, validator and matcher,
+src/MapWright.Core     Mapping spec model, system profiles, sample and contract readers, playbook model, validator and matcher,
                        mapping generator, replay (transform engine, JSON/XML target writers, validation)
-src/MapWright.Output   Report model and Excel / CSV / HTML renderers
+src/MapWright.Output   Report model, Excel / CSV / HTML renderers and the Excel field-spec reader
 src/MapWright.Ai       Optional AI assist: Vertex AI and Ollama providers, fallback, masked field prompts
 src/MapWright.Cli      `mapwright` command-line tool
 tests/MapWright.Tests  Unit tests
 samples/mappings       Example mapping specs
-samples/systems        Example sample payloads and generated system profiles
+samples/systems        Example sample payloads, contracts and generated system profiles
 playbooks              Starter domain and process playbooks
 ```
