@@ -351,6 +351,7 @@ export interface ReplaySample {
 export interface ReplayResponse {
   samples: ReplaySample[];
   recorded: boolean;
+  masked?: boolean;
 }
 
 export interface ApprovedSuggestion {

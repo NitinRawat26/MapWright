@@ -189,7 +189,7 @@ export class Api {
   }
 
   /** Runs source samples through a mapping; with record the runs are saved on the mapping. */
-  replay(id: string, files: File[], request: { target: string; xmlNamespace?: string; record?: boolean }): Observable<ReplayResponse> {
+  replay(id: string, files: File[], request: { target: string; xmlNamespace?: string; record?: boolean; mask?: boolean }): Observable<ReplayResponse> {
     const form = new FormData();
     for (const file of files) {
       form.append('files', file, file.name);
@@ -202,6 +202,10 @@ export class Api {
 
     if (request.record) {
       form.append('record', 'true');
+    }
+
+    if (request.mask) {
+      form.append('mask', 'true');
     }
 
     return this.http.post<ReplayResponse>(`/api/mappings/${encodeURIComponent(id)}/replay`, form);

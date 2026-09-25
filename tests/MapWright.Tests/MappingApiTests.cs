@@ -128,6 +128,17 @@ public sealed class MappingApiTests : IDisposable
         var stored = MappingSpecSerializer.Deserialize(await client.GetStringAsync("/api/mappings/sales-alpha__uw-core"));
         Assert.Equal(3, stored.ValidationRuns.Count);
 
+        var masked = await (await client.Upload(
+            "/api/mappings/sales-alpha__uw-core/replay", Files(Systems("sales-alpha", "samples")), ("target", "uw-core"), ("mask", "true"))).Node();
+        Assert.Equal((true, false), (masked["masked"]!.GetValue<bool>(), masked["recorded"]!.GetValue<bool>()));
+        var soleProp = masked["samples"]!.AsArray().Single(s => s!["sample"].Text() == "sole-prop.json")!;
+        Assert.Contains("<SSN>*****5566</SSN>", soleProp["payload"].Text());
+        Assert.DoesNotContain("900445566", soleProp["payload"].Text());
+        Assert.Equal(
+            samples.Select(s => s!["run"]!["results"]!.AsArray().Select(r => r!["outcome"].Text())),
+            masked["samples"]!.AsArray().Select(s => s!["run"]!["results"]!.AsArray().Select(r => r!["outcome"].Text())));
+        Assert.Equal(3, MappingSpecSerializer.Deserialize(await client.GetStringAsync("/api/mappings/sales-alpha__uw-core")).ValidationRuns.Count);
+
         var wrongTarget = await client.Upload("/api/mappings/sales-alpha__uw-core/replay", Files(Systems("sales-alpha", "samples")), ("target", "sales-alpha"));
         Assert.Equal(HttpStatusCode.BadRequest, wrongTarget.StatusCode);
         var wrongSample = await client.Upload("/api/mappings/sales-alpha__uw-core/replay", Files(Systems("uw-core", "samples")), ("target", "uw-core"));

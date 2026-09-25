@@ -303,7 +303,11 @@ real data before anyone builds the integration.
 
 Each sample becomes one validation run (`V001`, `V002`, ...). `--record` adds the runs to the mapping file so
 the Validation tab of `render` shows them; `--strict` exits with 1 when any check fails. Sensitive values stay
-masked in the results, but the written target payloads contain the real values from the samples.
+masked in the results. The written target payloads contain the real values from the samples unless you add
+`--mask`: then every value that is personal or card data by the row's risk (names, SSN, date of birth…), whose
+source or target name is sensitive (such as account number), or whose field the target profile marks sensitive
+keeps only its last four characters, e.g. `*****3456`, and is written as text. Business amounts stay readable. The
+checks always run on the real values.
 
 ## Usage
 
@@ -427,7 +431,7 @@ curl -X POST localhost:5080/api/playbooks -H 'X-MapWright-User: ana' -H 'Content
 | `GET` / `PUT` / `DELETE /api/mappings/{id}` | Get, store (mapping JSON) or delete a mapping |
 | `GET /api/mappings/{id}/summary` | Coverage, confidence bands, review status and validation counts |
 | `GET /api/mappings/{id}/export/{xlsx\|csv\|html}` | Download the mapping document |
-| `POST /api/mappings/{id}/replay` | Replay samples (multipart `files`, plus `target` profile id, optional `xmlNamespace`, `record`) |
+| `POST /api/mappings/{id}/replay` | Replay samples (multipart `files`, plus `target` profile id, optional `xmlNamespace`, `record`, `mask`) |
 | `POST /api/mappings/{id}/rows/{rowId}/review` | `{ "decision": "approve" \| "reject" \| "override", "comment": "…", "row": { … } }` |
 | `GET /api/mappings/{id}/reviews` | Review decisions, oldest first |
 

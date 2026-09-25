@@ -287,6 +287,20 @@ public sealed class CliAppTests : IDisposable
     }
 
     [Fact]
+    public void Replay_mask_writes_payloads_without_the_real_sensitive_values()
+    {
+        var outDir = Path.Combine(_dir, "masked");
+
+        Assert.Equal(CliApp.Success, Run(
+            "replay", MappingSample("generated-mapping.json"), Path.Combine(SalesSamples, "sole-prop.json"), "--target", SystemProfile("uw-core"),
+            "--playbooks", StarterPlaybooks.Directory, "--out", outDir, "--mask"));
+
+        var payload = File.ReadAllText(Path.Combine(outDir, "sole-prop.xml"));
+        Assert.Contains("<SSN>*****5566</SSN>", payload);
+        Assert.DoesNotContain("900445566", payload);
+    }
+
+    [Fact]
     public void Replay_strict_fails_when_a_check_fails_and_leaves_the_mapping_unchanged()
     {
         var mapping = Path.Combine(_dir, "mapping.json");
