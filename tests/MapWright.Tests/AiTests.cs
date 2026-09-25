@@ -127,6 +127,22 @@ public sealed class AiProviderTests
         Assert.False(body["stream"]!.GetValue<bool>());
         Assert.Equal("object", body["format"]!["type"]!.GetValue<string>());
         Assert.Equal(["system", "user"], body["messages"]!.AsArray().Select(m => m!["role"]!.GetValue<string>()));
+        Assert.Equal(OllamaOptions.DefaultContextTokens, body["options"]!["num_ctx"]!.GetValue<int>());
+        Assert.Equal(OllamaOptions.DefaultMaxOutputTokens, body["options"]!["num_predict"]!.GetValue<int>());
+    }
+
+    [Fact]
+    public async Task Ollama_answer_cut_off_at_the_token_limit_is_a_provider_exception()
+    {
+        var handler = new FakeHandler(HttpStatusCode.OK, """
+            {"model":"qwen3","message":{"role":"assistant","content":"{\"answer\":\"o"},"done":true,"done_reason":"length"}
+            """);
+        var provider = new OllamaProvider(new HttpClient(handler), new() { BaseUrl = new("http://ollama.internal:11434/"), MaxOutputTokens = 100 });
+
+        var ex = await Assert.ThrowsAsync<AiProviderException>(() => provider.GenerateJsonAsync(AiSamples.Prompt()));
+
+        Assert.Contains("cut off after 100 tokens", ex.Message);
+        Assert.Contains(AiProviders.OllamaContextVariable, ex.Message);
     }
 
     [Fact]
@@ -203,6 +219,31 @@ public sealed class AiProviderTests
     {
         Assert.Throws<AiProviderException>(() =>
             AiProviders.FromEnvironment(n => n == AiProviders.OllamaUrlVariable ? url : null, new HttpClient()));
+    }
+
+    [Theory]
+    [InlineData(null, OllamaOptions.DefaultContextTokens, OllamaOptions.DefaultMaxOutputTokens)]
+    [InlineData("32768", 32768, OllamaOptions.DefaultMaxOutputTokens)]
+    [InlineData("4096", 4096, 2048)]
+    public void Ollama_context_comes_from_the_environment(string? value, int context, int output)
+    {
+        var env = new Dictionary<string, string?> { [AiProviders.OllamaUrlVariable] = "http://ollama:11434", [AiProviders.OllamaContextVariable] = value };
+
+        var ollama = Assert.IsType<OllamaProvider>(AiProviders.FromEnvironment(env.GetValueOrDefault, new HttpClient()));
+
+        Assert.Equal((context, output), (ollama.Options.ContextTokens, ollama.Options.MaxOutputTokens));
+    }
+
+    [Theory]
+    [InlineData("1000")]
+    [InlineData("lots")]
+    public void Invalid_ollama_context_is_rejected(string value)
+    {
+        var env = new Dictionary<string, string?> { [AiProviders.OllamaUrlVariable] = "http://ollama:11434", [AiProviders.OllamaContextVariable] = value };
+
+        var ex = Assert.Throws<AiProviderException>(() => AiProviders.FromEnvironment(env.GetValueOrDefault, new HttpClient()));
+
+        Assert.Contains(AiProviders.OllamaContextVariable, ex.Message);
     }
 
     [Theory]
@@ -296,6 +337,13 @@ public sealed class AiFieldAssistantTests
         await new AiFieldAssistant(provider, batchSize: 2).DecodeAsync(AiSamples.SalesAlpha(), Remaining, StarterPlaybooks.Library().Domains);
 
         Assert.Equal([2, 2, 1], provider.Prompts.Select(p => AiSamples.Input(p)["fields"]!.AsArray().Count));
+        foreach (var prompt in provider.Prompts)
+        {
+            var suggestions = prompt.ResponseSchema["properties"]!["suggestions"]!;
+            var paths = AiSamples.Input(prompt)["fields"]!.AsArray().Select(f => f!["path"]!.GetValue<string>());
+            Assert.Equal(paths, suggestions["items"]!["properties"]!["path"]!["enum"]!.AsArray().Select(p => p!.GetValue<string>()));
+            Assert.Equal(paths.Count(), suggestions["maxItems"]!.GetValue<int>());
+        }
     }
 
     [Fact]
@@ -448,6 +496,15 @@ public sealed class AiMappingTests
         Assert.True(ssn["sensitive"]!.GetValue<bool>());
         Assert.Null(ssn["values"]);
         Assert.True(ssn["used"]!.GetValue<bool>());
+
+        var pairings = Assert.Single(ai.Prompts).ResponseSchema["properties"]!["pairings"]!;
+        var item = pairings["items"]!["properties"]!;
+        Assert.Equal(targets.Count, pairings["maxItems"]!.GetValue<int>());
+        Assert.Equal(targets, item["target"]!["enum"]!.AsArray().Select(t => t!.GetValue<string>()));
+        Assert.Equal(
+            Source.Fields.Where(f => f.Kind == FieldNodeKind.Value).Select(f => f.Path),
+            item["sources"]!["items"]!["enum"]!.AsArray().Select(p => p!.GetValue<string>()));
+        Assert.Contains("periodConversion", item["transformation"]!["enum"]!.AsArray().Select(t => t!.GetValue<string>()));
         Assert.False(input["sources"]!.AsArray().Single(s => s!["path"]!.GetValue<string>() == "$.account.incorporationDate")!["used"]!.GetValue<bool>());
         Assert.DoesNotContain("Acme", input.ToJsonString());
     }
@@ -481,7 +538,7 @@ public sealed class AiMappingTests
     }
 
     [Fact]
-    public async Task Answers_for_mapped_or_unknown_fields_are_ignored_with_a_warning()
+    public async Task Answers_for_mapped_unknown_or_repeated_fields_are_ignored_with_a_warning()
     {
         var ai = new FakeProvider("fake", _ => JsonSerializer.Serialize(new
         {
@@ -490,12 +547,14 @@ public sealed class AiMappingTests
                 new { target = "/UnderwritingRequest/Merchant/TaxId/Number", sources = new[] { "$.account.phone" }, confidence = 60, reasoning = "x" },
                 new { target = "/UnderwritingRequest/Merchant/YearsInBusiness", sources = new[] { "$.account.founded" }, confidence = 60, reasoning = "x" },
                 new { target = "/UnderwritingRequest/Merchant/WebsiteUrl", sources = new[] { "$.account.phone", "$.account.leadSource" }, transformation = "bogus", confidence = 20, reasoning = "x" },
+                new { target = "/UnderwritingRequest/Merchant/WebsiteUrl", sources = new[] { "$.account.dbaName" }, confidence = 30, reasoning = "again" },
             },
         }));
 
         var result = await Pair(ai);
 
-        Assert.Equal(2, result.Warnings.Count);
+        Assert.Equal(3, result.Warnings.Count);
+        Assert.Contains("ignored a repeated pairing for '/UnderwritingRequest/Merchant/WebsiteUrl'", result.Warnings[2]);
         Assert.Equal(result.Warnings, result.Document.AiPass!.Warnings);
         Assert.Equal(Playbooks.Row("/UnderwritingRequest/Merchant/TaxId/Number"), result.Document.Row("/UnderwritingRequest/Merchant/TaxId/Number"));
         Assert.Equal(MappingType.Unmapped, result.Document.Row("/UnderwritingRequest/Merchant/YearsInBusiness").Type);
