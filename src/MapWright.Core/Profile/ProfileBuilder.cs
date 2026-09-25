@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using MapWright.Core.Profile.Contracts;
 using MapWright.Core.Profile.Samples;
 using MapWright.Core.Spec;
 
@@ -15,6 +16,9 @@ public sealed record ProfileRequest
     public string? Version { get; init; }
     public string? Description { get; init; }
     public required IReadOnlyList<SampleInput> Samples { get; init; }
+
+    /// <summary>Schemas, service contracts and field specs; they are authoritative over what samples show.</summary>
+    public IReadOnlyList<ContractDocument> Contracts { get; init; } = [];
 }
 
 public sealed record ProfileOptions
@@ -30,7 +34,10 @@ public sealed record ProfileOptions
     public SensitiveDataPolicy Sensitivity { get; init; } = SensitiveDataPolicy.Default;
 }
 
-/// <summary>Builds a <see cref="SystemProfile"/> by merging one or more sample payloads of the same format.</summary>
+/// <summary>
+/// Builds a <see cref="SystemProfile"/> by merging sample payloads of one format with the system's contracts
+/// (JSON Schema, OpenAPI, XSD, WSDL, field specs).
+/// </summary>
 public static partial class ProfileBuilder
 {
     public static SystemProfile Build(ProfileRequest request, ProfileOptions? options = null, TimeProvider? time = null)
@@ -41,16 +48,23 @@ public static partial class ProfileBuilder
             throw new ProfileException("A system name is required.");
         }
 
-        if (request.Samples.Count == 0)
+        if (request.Samples.Count == 0 && request.Contracts.Count == 0)
         {
-            throw new ProfileException("At least one sample payload is required.");
+            throw new ProfileException("At least one sample payload or contract is required.");
         }
 
-        if (request.Samples.GroupBy(s => s.Name, StringComparer.OrdinalIgnoreCase).FirstOrDefault(g => g.Count() > 1) is { } duplicate)
+        if (request.Samples.Select(s => s.Name).Concat(request.Contracts.Select(c => c.Name))
+            .GroupBy(n => n, StringComparer.OrdinalIgnoreCase).FirstOrDefault(g => g.Count() > 1) is { } duplicate)
         {
-            throw new ProfileException($"Sample name '{duplicate.Key}' is used more than once.");
+            throw new ProfileException($"Input name '{duplicate.Key}' is used more than once.");
         }
 
+        var observed = request.Samples.Count == 0 ? null : FromSamples(request, options, time);
+        return request.Contracts.Count == 0 ? observed! : Merge(request, observed, time);
+    }
+
+    private static SystemProfile FromSamples(ProfileRequest request, ProfileOptions options, TimeProvider? time)
+    {
         var documents = request.Samples
             .Select(s => SampleReader.Read(s.Name, s.Content, options.UnwrapSoapEnvelope))
             .ToList();

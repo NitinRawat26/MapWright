@@ -3,9 +3,11 @@ using MapWright.Core;
 using MapWright.Core.Matching;
 using MapWright.Core.Playbooks;
 using MapWright.Core.Profile;
+using MapWright.Core.Profile.Contracts;
 using MapWright.Core.Profile.Samples;
 using MapWright.Core.Replay;
 using MapWright.Core.Spec;
+using MapWright.Output.Readers;
 using MapWright.Output.Renderers;
 using MapWright.Output.Report;
 using System.Text.Json;
@@ -25,8 +27,8 @@ public static class CliApp
         Usage:
           mapwright validate <spec.json>
           mapwright render <spec.json> [--out <dir>] [--format <list>]
-          mapwright profile <sample|dir>... --system <name> [--version <v>] [--description <text>]
-                            [--out <profile.json>] [--no-values]
+          mapwright profile <input|dir>... --system <name> [--version <v>] [--description <text>]
+                            [--root <name>] [--out <profile.json>] [--no-values]
           mapwright playbook validate <playbook|dir>...
           mapwright playbook test <playbook|dir>...
           mapwright playbook detect <profile.json> [--playbooks <playbook|dir>]... [--ai ask|yes|no]
@@ -41,7 +43,10 @@ public static class CliApp
           --format <list>   Comma-separated: {string.Join(",", MappingRenderers.All.Select(r => r.Format))} (default: all)
 
         Profile options:
-          <sample|dir>      JSON or XML sample payloads; directories contribute their *.json and *.xml files
+          <input|dir>       JSON or XML sample payloads, JSON Schema, OpenAPI (JSON), XSD, WSDL and field specs
+                            (.csv, .xlsx); directories contribute all of these
+          --root <name>     XSD root element, WSDL operation, or OpenAPI operationId, "METHOD /path" or schema
+                            (needed when the contract has more than one)
           --system <name>   System name recorded in the profile (required)
           --out <file>      Write the profile here (default: print to stdout)
           --no-values       Do not store sample or observed values in the profile
@@ -184,6 +189,7 @@ public static class CliApp
         string? description = null;
         string? outPath = null;
         var retainValues = true;
+        string? root = null;
         var inputs = new List<string>();
 
         for (var i = 0; i < args.Length; i++)
@@ -201,6 +207,9 @@ public static class CliApp
                     break;
                 case "--out" when i + 1 < args.Length:
                     outPath = args[++i];
+                    break;
+                case "--root" when i + 1 < args.Length:
+                    root = args[++i];
                     break;
                 case "--no-values":
                     retainValues = false;
@@ -223,7 +232,7 @@ public static class CliApp
             return Fail(stderr, "profile expects at least one sample file or directory.");
         }
 
-        if (!TryCollectSamples(inputs, stderr, out var files))
+        if (!TryCollectSamples(inputs, stderr, out var files, ProfileExtensions))
         {
             return InvalidInput;
         }
@@ -231,13 +240,36 @@ public static class CliApp
         SystemProfile profile;
         try
         {
+            var samples = new List<SampleInput>();
+            var contracts = new List<ContractDocument>();
+            foreach (var file in files)
+            {
+                var name = Path.GetFileName(file);
+                if (Path.GetExtension(file).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
+                {
+                    contracts.Add(FieldSpecWorkbook.Read(name, File.ReadAllBytes(file)));
+                    continue;
+                }
+
+                var content = File.ReadAllText(file);
+                if (ContractReader.Detect(name, content) is { } kind)
+                {
+                    contracts.Add(ContractReader.Read(name, content, kind, root));
+                }
+                else
+                {
+                    samples.Add(new(name, content));
+                }
+            }
+
             profile = ProfileBuilder.Build(
                 new()
                 {
                     System = system,
                     Version = version,
                     Description = description,
-                    Samples = [.. files.Select(f => new SampleInput(Path.GetFileName(f), File.ReadAllText(f)))],
+                    Samples = samples,
+                    Contracts = contracts,
                 },
                 new() { RetainValues = retainValues });
         }
@@ -260,7 +292,7 @@ public static class CliApp
 
         ProfileSerializer.Save(profile, outPath);
         stdout.WriteLine(
-            $"Wrote {outPath}: {profile.Fields.Count} field(s) from {profile.Inputs.Count} {profile.Format.ToString().ToUpperInvariant()} sample(s), " +
+            $"Wrote {outPath}: {profile.Fields.Count} field(s) from {Sources(profile)}, " +
             $"{profile.Fields.Count(f => f.Sensitive)} sensitive field(s) masked, {profile.Findings.Count} finding(s).");
         foreach (var finding in profile.Findings)
         {
@@ -723,15 +755,29 @@ public static class CliApp
         return strict && runs.Any(r => r.Results.Any(x => x.Outcome == ValidationOutcome.Fail)) ? InvalidInput : Success;
     }
 
-    private static bool TryCollectSamples(IEnumerable<string> inputs, TextWriter stderr, out List<string> files)
+    private static readonly string[] SampleExtensions = [".json", ".xml"];
+    private static readonly string[] ProfileExtensions = [".json", ".xml", ".xsd", ".wsdl", ".csv", ".xlsx", ".yaml", ".yml"];
+
+    private static string Sources(SystemProfile profile)
     {
+        var format = profile.Format.ToString().ToUpperInvariant();
+        var samples = profile.Inputs.Count(i => i.Kind == InputKind.SamplePayload);
+        var contracts = profile.Inputs.Count - samples;
+        return string.Join(" and ", new[] { (samples, "sample"), (contracts, "contract") }
+            .Where(p => p.Item1 > 0)
+            .Select(p => $"{p.Item1} {format} {p.Item2}(s)"));
+    }
+
+    private static bool TryCollectSamples(IEnumerable<string> inputs, TextWriter stderr, out List<string> files, string[]? extensions = null)
+    {
+        extensions ??= SampleExtensions;
         files = [];
         foreach (var input in inputs)
         {
             if (Directory.Exists(input))
             {
                 files.AddRange(Directory.EnumerateFiles(input)
-                    .Where(f => Path.GetExtension(f).ToLowerInvariant() is ".json" or ".xml")
+                    .Where(f => extensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
                     .Order(StringComparer.Ordinal));
             }
             else if (File.Exists(input))
@@ -747,7 +793,9 @@ public static class CliApp
 
         if (files.Count == 0)
         {
-            stderr.WriteLine("No .json or .xml samples found.");
+            stderr.WriteLine(extensions == SampleExtensions
+                ? "No .json or .xml samples found."
+                : "No .json or .xml samples, schemas or field specs found.");
             return false;
         }
 

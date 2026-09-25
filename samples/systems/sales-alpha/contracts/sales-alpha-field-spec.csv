@@ -1,0 +1,31 @@
+Field Path,Data Type,Mandatory,Format,Max Length,Valid Values,Description,PII
+applicationId,String(20),Y,,,,CRM application identifier,N
+submittedAt,DateTime,Y,ISO 8601,,,When the application left the CRM,N
+account.legalName,String(120),Y,,,,Registered legal name,N
+account.dbaName,String(120),N,,,,Trading name,N
+account.taxId,String(11),Y,,,,EIN or SSN,Y
+account.entityType,String,Y,,,"CORP = Corporation; LLC = Limited liability company; PARTNERSHIP = Partnership; SOLE_PROP = Sole proprietor; NON_PROFIT = Non-profit",Legal structure,N
+account.mcc,String(4),Y,,,,Merchant category code,N
+account.incorporationDate,Date,N,YYYY-MM-DD,,,Date the business was formed,N
+account.phone,String(20),N,,,,Business phone,N
+account.salesRepId,String(10),N,,,,Sales rep who owns the deal,N
+account.leadSource,String(40),N,,,,Where the lead came from,N
+account.address.line1,String(60),Y,,,,,N
+account.address.line2,String(60),N,,,,,N
+account.address.city,String(40),Y,,,,,N
+account.address.state,String(2),Y,,,,US state code,N
+account.address.postalCode,String(10),Y,,,,,N
+owners[].firstName,String(40),Y,,,,,N
+owners[].lastName,String(40),Y,,,,,N
+owners[].title,String(40),N,,,,,N
+owners[].ownershipPercent,"Decimal(5,4)",Y,,,,Fraction of ownership (0.25 = 25%),N
+owners[].ssn,String(11),Y,,,,,Y
+owners[].dateOfBirth,Date,Y,YYYY-MM-DD,,,,Y
+owners[].email,String(80),N,,,,,N
+processing.annualCardVolume,"Decimal(12,2)",Y,,,,Expected card volume per year (USD),N
+processing.averageTicket,"Decimal(9,2)",Y,,,,,N
+processing.cardPresentPercent,Integer,Y,,,,,N
+processing.motoPercent,Integer,Y,,,,,N
+processing.ecommPercent,Integer,Y,,,,,N
+bank.routingNumber,String(9),Y,,,,ABA routing number,Y
+bank.accountNumber,String(17),Y,,,,,Y

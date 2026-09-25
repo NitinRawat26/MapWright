@@ -2,7 +2,7 @@
   "specVersion": "1.0",
   "system": "SalesAlpha CRM",
   "format": "json",
-  "createdAt": "2026-09-25T01:08:48.116704+00:00",
+  "createdAt": "2026-09-25T04:14:00.883064+00:00",
   "inputs": [
     {
       "name": "corp-three-owners.json",
@@ -21,6 +21,25 @@
       "kind": "samplePayload",
       "format": "json",
       "sha256": "5187395898367595fb76b5079041d6326db7aa995667f71658aa8afc9051da1f"
+    },
+    {
+      "name": "sales-alpha-api.openapi.json",
+      "kind": "openApi",
+      "format": "json",
+      "sha256": "1947d8975f3266365a3406d1e80a2c087f22749c02f950b5da053d132aeedfd4",
+      "notes": "Profiled POST /applications request body."
+    },
+    {
+      "name": "sales-alpha-application.schema.json",
+      "kind": "jsonSchema",
+      "format": "json",
+      "sha256": "6ef19d1f3778549227bae2636ac4e169a148127814547d0459e550e6a27c129b"
+    },
+    {
+      "name": "sales-alpha-field-spec.csv",
+      "kind": "fieldSpec",
+      "format": "json",
+      "sha256": "45c7f3915fb99236297f84620d2edc1a00b93f08e63ebc4cf9a56a2957aba5e4"
     }
   ],
   "fields": [
@@ -30,12 +49,13 @@
       "kind": "object",
       "cardinality": "single",
       "dataType": "object",
-      "required": "likelyRequired",
+      "required": "required",
       "allowedValues": [],
       "observedValues": [],
       "observedValuesTruncated": false,
       "valueShapes": [],
       "sensitive": false,
+      "description": "SalesAlpha merchant application",
       "presence": {
         "parentInstances": 3,
         "presentInstances": 3,
@@ -46,38 +66,27 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Structured element in 3 sample(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'object'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Document root."
         }
       ]
     },
@@ -88,9 +97,9 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "string",
-      "required": "likelyRequired",
+      "required": "required",
       "minLength": 14,
-      "maxLength": 14,
+      "maxLength": 20,
       "allowedValues": [],
       "observedValues": [
         "SA-2026-000204",
@@ -103,6 +112,7 @@
       ],
       "sampleValue": "SA-2026-000204",
       "sensitive": false,
+      "description": "CRM application identifier.",
       "presence": {
         "parentInstances": 3,
         "presentInstances": 3,
@@ -113,38 +123,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 3 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "openApi",
+          "inputs": [
+            "sales-alpha-api.openapi.json"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -156,7 +163,7 @@
       "cardinality": "single",
       "dataType": "dateTime",
       "format": "ISO 8601",
-      "required": "likelyRequired",
+      "required": "required",
       "minLength": 20,
       "maxLength": 20,
       "allowedValues": [],
@@ -171,6 +178,7 @@
       ],
       "sampleValue": "2026-09-20T16:48:12Z",
       "sensitive": false,
+      "description": "When the application left the CRM",
       "presence": {
         "parentInstances": 3,
         "presentInstances": 3,
@@ -181,48 +189,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 3 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string', format 'date-time'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
         },
         {
           "attribute": "format",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Detected from value patterns."
+          "detail": "format 'date-time'."
         }
       ]
     },
@@ -233,7 +228,7 @@
       "kind": "object",
       "cardinality": "single",
       "dataType": "object",
-      "required": "likelyRequired",
+      "required": "required",
       "allowedValues": [],
       "observedValues": [],
       "observedValuesTruncated": false,
@@ -249,38 +244,27 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Structured element in 3 sample(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'object'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
         }
       ]
     },
@@ -291,9 +275,9 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "string",
-      "required": "likelyRequired",
+      "required": "required",
       "minLength": 10,
-      "maxLength": 24,
+      "maxLength": 120,
       "allowedValues": [],
       "observedValues": [
         "Northwind Provisions Inc",
@@ -308,6 +292,7 @@
       ],
       "sampleValue": "Northwind Provisions Inc",
       "sensitive": false,
+      "description": "Registered legal name",
       "presence": {
         "parentInstances": 3,
         "presentInstances": 3,
@@ -318,38 +303,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 3 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "openApi",
+          "inputs": [
+            "sales-alpha-api.openapi.json"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -360,9 +342,9 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "string",
-      "required": "likelyRequired",
+      "required": "optional",
       "minLength": 16,
-      "maxLength": 21,
+      "maxLength": 120,
       "allowedValues": [],
       "observedValues": [
         "Northwind Market",
@@ -377,6 +359,7 @@
       ],
       "sampleValue": "Northwind Market",
       "sensitive": false,
+      "description": "Trading name",
       "presence": {
         "parentInstances": 3,
         "presentInstances": 3,
@@ -387,38 +370,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 3 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Not listed in 'required'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "openApi",
+          "inputs": [
+            "sales-alpha-api.openapi.json"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -429,7 +409,7 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "string",
-      "required": "likelyRequired",
+      "required": "required",
       "minLength": 9,
       "maxLength": 11,
       "allowedValues": [],
@@ -442,6 +422,7 @@
       "sampleValue": "*****8899",
       "sensitive": true,
       "sensitivityReason": "Field name matches sensitive term 'taxid'.",
+      "description": "EIN, or the owner's SSN for sole proprietors.",
       "presence": {
         "parentInstances": 3,
         "presentInstances": 3,
@@ -452,48 +433,43 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 3 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
         },
         {
           "attribute": "sensitivity",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
           "detail": "Field name matches sensitive term 'taxid'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "fieldSpec",
+          "inputs": [
+            "sales-alpha-field-spec.csv"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -504,10 +480,16 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "string",
-      "required": "likelyRequired",
+      "required": "required",
       "minLength": 3,
       "maxLength": 9,
-      "allowedValues": [],
+      "allowedValues": [
+        "CORP",
+        "LLC",
+        "PARTNERSHIP",
+        "SOLE_PROP",
+        "NON_PROFIT"
+      ],
       "observedValues": [
         "CORP",
         "LLC",
@@ -521,6 +503,7 @@
       ],
       "sampleValue": "CORP",
       "sensitive": false,
+      "description": "Legal structure",
       "presence": {
         "parentInstances": 3,
         "presentInstances": 3,
@@ -531,38 +514,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 3 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
+        },
+        {
+          "attribute": "allowedValues",
+          "kind": "openApi",
+          "inputs": [
+            "sales-alpha-api.openapi.json"
+          ],
+          "detail": "enum/const."
         }
       ]
     },
@@ -573,7 +553,7 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "string",
-      "required": "likelyRequired",
+      "required": "required",
       "minLength": 4,
       "maxLength": 4,
       "allowedValues": [],
@@ -588,6 +568,7 @@
       ],
       "sampleValue": "5411",
       "sensitive": false,
+      "description": "Merchant category code",
       "presence": {
         "parentInstances": 3,
         "presentInstances": 3,
@@ -598,38 +579,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 3 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "openApi",
+          "inputs": [
+            "sales-alpha-api.openapi.json"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -641,7 +619,7 @@
       "cardinality": "single",
       "dataType": "date",
       "format": "yyyy-MM-dd",
-      "required": "likelyRequired",
+      "required": "optional",
       "minLength": 10,
       "maxLength": 10,
       "allowedValues": [],
@@ -656,6 +634,7 @@
       ],
       "sampleValue": "2014-03-15",
       "sensitive": false,
+      "description": "Date the business was formed",
       "presence": {
         "parentInstances": 3,
         "presentInstances": 3,
@@ -666,48 +645,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 3 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string', format 'date'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Not listed in 'required'."
         },
         {
           "attribute": "format",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Detected from value patterns."
+          "detail": "format 'date'."
         }
       ]
     },
@@ -718,9 +684,9 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "string",
-      "required": "likelyRequired",
+      "required": "optional",
       "minLength": 14,
-      "maxLength": 14,
+      "maxLength": 20,
       "allowedValues": [],
       "observedValues": [
         "(206) 555-0110",
@@ -733,6 +699,7 @@
       ],
       "sampleValue": "(206) 555-0110",
       "sensitive": false,
+      "description": "Business phone",
       "presence": {
         "parentInstances": 3,
         "presentInstances": 3,
@@ -743,38 +710,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 3 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Not listed in 'required'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "fieldSpec",
+          "inputs": [
+            "sales-alpha-field-spec.csv"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -785,9 +749,9 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "string",
-      "required": "likelyRequired",
+      "required": "optional",
       "minLength": 8,
-      "maxLength": 8,
+      "maxLength": 10,
       "allowedValues": [],
       "observedValues": [
         "REP-0042",
@@ -799,6 +763,7 @@
       ],
       "sampleValue": "REP-0042",
       "sensitive": false,
+      "description": "Sales rep who owns the deal",
       "presence": {
         "parentInstances": 3,
         "presentInstances": 3,
@@ -809,38 +774,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 3 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Not listed in 'required'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "fieldSpec",
+          "inputs": [
+            "sales-alpha-field-spec.csv"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -851,9 +813,9 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "string",
-      "required": "likelyRequired",
+      "required": "optional",
       "minLength": 3,
-      "maxLength": 16,
+      "maxLength": 40,
       "allowedValues": [],
       "observedValues": [
         "Partner Referral",
@@ -866,6 +828,7 @@
       ],
       "sampleValue": "Partner Referral",
       "sensitive": false,
+      "description": "Where the lead came from",
       "presence": {
         "parentInstances": 3,
         "presentInstances": 3,
@@ -876,38 +839,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 3 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Not listed in 'required'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "fieldSpec",
+          "inputs": [
+            "sales-alpha-field-spec.csv"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -918,7 +878,7 @@
       "kind": "object",
       "cardinality": "single",
       "dataType": "object",
-      "required": "likelyRequired",
+      "required": "required",
       "allowedValues": [],
       "observedValues": [],
       "observedValuesTruncated": false,
@@ -934,38 +894,27 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Structured element in 3 sample(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'object'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
         }
       ]
     },
@@ -976,9 +925,9 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "string",
-      "required": "likelyRequired",
+      "required": "required",
       "minLength": 11,
-      "maxLength": 17,
+      "maxLength": 60,
       "allowedValues": [],
       "observedValues": [
         "455 Pine St",
@@ -1003,38 +952,95 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 3 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "fieldSpec",
+          "inputs": [
+            "sales-alpha-field-spec.csv"
+          ],
+          "detail": "Declared length, range or scale."
+        }
+      ]
+    },
+    {
+      "path": "$.account.address.line2",
+      "name": "line2",
+      "parentPath": "$.account.address",
+      "kind": "value",
+      "cardinality": "single",
+      "dataType": "string",
+      "required": "optional",
+      "minLength": 7,
+      "maxLength": 60,
+      "allowedValues": [],
+      "observedValues": [
+        "Suite 4"
+      ],
+      "observedValuesTruncated": false,
+      "valueShapes": [
+        "Aaaaa 9"
+      ],
+      "sampleValue": "Suite 4",
+      "sensitive": false,
+      "presence": {
+        "parentInstances": 3,
+        "presentInstances": 1,
+        "occurrences": 1,
+        "nullCount": 0,
+        "emptyCount": 0
+      },
+      "seenIn": [
+        "llc-two-owners.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
+      ],
+      "provenance": [
+        {
+          "attribute": "dataType",
+          "kind": "openApi",
+          "inputs": [
+            "sales-alpha-api.openapi.json"
+          ],
+          "detail": "type 'string'."
+        },
+        {
+          "attribute": "required",
+          "kind": "openApi",
+          "inputs": [
+            "sales-alpha-api.openapi.json"
+          ],
+          "detail": "Not listed in 'required'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "fieldSpec",
+          "inputs": [
+            "sales-alpha-field-spec.csv"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -1045,9 +1051,9 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "string",
-      "required": "likelyRequired",
+      "required": "required",
       "minLength": 6,
-      "maxLength": 13,
+      "maxLength": 40,
       "allowedValues": [],
       "observedValues": [
         "Seattle",
@@ -1072,38 +1078,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 3 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "fieldSpec",
+          "inputs": [
+            "sales-alpha-field-spec.csv"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -1114,7 +1117,7 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "string",
-      "required": "likelyRequired",
+      "required": "required",
       "minLength": 2,
       "maxLength": 2,
       "allowedValues": [],
@@ -1129,6 +1132,7 @@
       ],
       "sampleValue": "WA",
       "sensitive": false,
+      "description": "US state code",
       "presence": {
         "parentInstances": 3,
         "presentInstances": 3,
@@ -1139,38 +1143,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 3 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "openApi",
+          "inputs": [
+            "sales-alpha-api.openapi.json"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -1181,9 +1182,9 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "string",
-      "required": "likelyRequired",
+      "required": "required",
       "minLength": 5,
-      "maxLength": 5,
+      "maxLength": 10,
       "allowedValues": [],
       "observedValues": [
         "98101",
@@ -1206,95 +1207,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 3 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
-        }
-      ]
-    },
-    {
-      "path": "$.account.address.line2",
-      "name": "line2",
-      "parentPath": "$.account.address",
-      "kind": "value",
-      "cardinality": "single",
-      "dataType": "string",
-      "required": "optional",
-      "minLength": 7,
-      "maxLength": 7,
-      "allowedValues": [],
-      "observedValues": [
-        "Suite 4"
-      ],
-      "observedValuesTruncated": false,
-      "valueShapes": [
-        "Aaaaa 9"
-      ],
-      "sampleValue": "Suite 4",
-      "sensitive": false,
-      "presence": {
-        "parentInstances": 3,
-        "presentInstances": 1,
-        "occurrences": 1,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
-      "seenIn": [
-        "llc-two-owners.json"
-      ],
-      "provenance": [
-        {
-          "attribute": "dataType",
-          "kind": "samplePayload",
-          "inputs": [
-            "llc-two-owners.json"
-          ],
-          "detail": "Inferred from 1 non-empty value(s)."
+          "detail": "Listed in 'required'."
         },
         {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
+          "attribute": "constraints",
+          "kind": "fieldSpec",
           "inputs": [
-            "llc-two-owners.json"
+            "sales-alpha-field-spec.csv"
           ],
-          "detail": "Never repeated in samples."
-        },
-        {
-          "attribute": "required",
-          "kind": "samplePayload",
-          "inputs": [
-            "llc-two-owners.json"
-          ],
-          "detail": "Absent from 2 of 3 parent instance(s)."
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -1305,8 +1246,8 @@
       "kind": "object",
       "cardinality": "array",
       "dataType": "object",
-      "required": "likelyRequired",
-      "maxOccurs": 3,
+      "required": "required",
+      "maxOccurs": 4,
       "allowedValues": [],
       "observedValues": [],
       "observedValuesTruncated": false,
@@ -1322,38 +1263,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Structured element in 3 sample(s)."
+          "detail": "type 'object'."
         },
         {
           "attribute": "cardinality",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "JSON array with up to 3 item(s) in 'corp-three-owners.json'."
+          "detail": "type 'array'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
         }
       ]
     },
@@ -1364,9 +1302,9 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "string",
-      "required": "likelyRequired",
+      "required": "required",
       "minLength": 3,
-      "maxLength": 5,
+      "maxLength": 40,
       "allowedValues": [],
       "observedValues": [
         "Dana",
@@ -1394,38 +1332,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 6 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 6 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "fieldSpec",
+          "inputs": [
+            "sales-alpha-field-spec.csv"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -1436,9 +1371,9 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "string",
-      "required": "likelyRequired",
+      "required": "required",
       "minLength": 4,
-      "maxLength": 9,
+      "maxLength": 40,
       "allowedValues": [],
       "observedValues": [
         "Whitfield",
@@ -1467,38 +1402,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 6 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 6 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "fieldSpec",
+          "inputs": [
+            "sales-alpha-field-spec.csv"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -1511,7 +1443,7 @@
       "dataType": "string",
       "required": "optional",
       "minLength": 3,
-      "maxLength": 15,
+      "maxLength": 40,
       "allowedValues": [],
       "observedValues": [
         "CEO",
@@ -1535,35 +1467,35 @@
       },
       "seenIn": [
         "corp-three-owners.json",
-        "llc-two-owners.json"
+        "llc-two-owners.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 4 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Absent from 2 of 6 parent instance(s)."
+          "detail": "Not listed in 'required'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "fieldSpec",
+          "inputs": [
+            "sales-alpha-field-spec.csv"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -1574,12 +1506,12 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "decimal",
-      "required": "likelyRequired",
+      "required": "required",
       "minLength": 1,
       "maxLength": 3,
-      "minValue": 0.2,
+      "minValue": 0,
       "maxValue": 1,
-      "maxScale": 1,
+      "maxScale": 4,
       "allowedValues": [],
       "observedValues": [
         "0.5",
@@ -1596,6 +1528,7 @@
       ],
       "sampleValue": "0.5",
       "sensitive": false,
+      "description": "Share of the business as a fraction (0.25 = 25%).",
       "presence": {
         "parentInstances": 6,
         "presentInstances": 6,
@@ -1606,38 +1539,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 6 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'number'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 6 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "openApi",
+          "inputs": [
+            "sales-alpha-api.openapi.json"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -1648,7 +1578,7 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "string",
-      "required": "likelyRequired",
+      "required": "required",
       "minLength": 11,
       "maxLength": 11,
       "allowedValues": [],
@@ -1670,48 +1600,43 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 6 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 6 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
         },
         {
           "attribute": "sensitivity",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
           "detail": "Field name matches sensitive term 'ssn'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "fieldSpec",
+          "inputs": [
+            "sales-alpha-field-spec.csv"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -1723,7 +1648,7 @@
       "cardinality": "single",
       "dataType": "date",
       "format": "yyyy-MM-dd",
-      "required": "likelyRequired",
+      "required": "required",
       "minLength": 10,
       "maxLength": 10,
       "allowedValues": [],
@@ -1745,56 +1670,41 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 6 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string', format 'date'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 6 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
         },
         {
           "attribute": "format",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Detected from value patterns."
+          "detail": "format 'date'."
         },
         {
           "attribute": "sensitivity",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
           "detail": "Field name matches sensitive term 'dateofbirth'."
         }
@@ -1809,7 +1719,7 @@
       "dataType": "string",
       "required": "optional",
       "minLength": 21,
-      "maxLength": 24,
+      "maxLength": 80,
       "allowedValues": [],
       "observedValues": [
         "dana@northwind.example",
@@ -1837,38 +1747,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 5 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string', format 'email'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Sent empty or null 1 time(s)."
+          "detail": "Not listed in 'required'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "fieldSpec",
+          "inputs": [
+            "sales-alpha-field-spec.csv"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -1879,7 +1786,7 @@
       "kind": "object",
       "cardinality": "single",
       "dataType": "object",
-      "required": "likelyRequired",
+      "required": "required",
       "allowedValues": [],
       "observedValues": [],
       "observedValuesTruncated": false,
@@ -1895,38 +1802,27 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Structured element in 3 sample(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'object'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
         }
       ]
     },
@@ -1936,12 +1832,13 @@
       "parentPath": "$.processing",
       "kind": "value",
       "cardinality": "single",
-      "dataType": "integer",
-      "required": "likelyRequired",
+      "dataType": "decimal",
+      "required": "required",
       "minLength": 5,
       "maxLength": 7,
-      "minValue": 84000,
+      "minValue": 0,
       "maxValue": 3000000,
+      "maxScale": 2,
       "allowedValues": [],
       "observedValues": [
         "3000000",
@@ -1956,6 +1853,7 @@
       ],
       "sampleValue": "3000000",
       "sensitive": false,
+      "description": "Expected card volume per year, in USD.",
       "presence": {
         "parentInstances": 3,
         "presentInstances": 3,
@@ -1966,38 +1864,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 3 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'number'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "openApi",
+          "inputs": [
+            "sales-alpha-api.openapi.json"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -2008,12 +1903,12 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "decimal",
-      "required": "likelyRequired",
+      "required": "required",
       "minLength": 3,
       "maxLength": 4,
-      "minValue": 12.5,
+      "minValue": 0,
       "maxValue": 140,
-      "maxScale": 1,
+      "maxScale": 2,
       "allowedValues": [],
       "observedValues": [
         "42.1",
@@ -2037,38 +1932,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 3 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'number'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "openApi",
+          "inputs": [
+            "sales-alpha-api.openapi.json"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -2079,11 +1971,11 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "integer",
-      "required": "likelyRequired",
+      "required": "required",
       "minLength": 2,
       "maxLength": 2,
-      "minValue": 70,
-      "maxValue": 90,
+      "minValue": 0,
+      "maxValue": 100,
       "allowedValues": [],
       "observedValues": [
         "80",
@@ -2106,38 +1998,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 3 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'integer'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "openApi",
+          "inputs": [
+            "sales-alpha-api.openapi.json"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -2148,11 +2037,11 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "integer",
-      "required": "likelyRequired",
+      "required": "required",
       "minLength": 1,
       "maxLength": 2,
       "minValue": 0,
-      "maxValue": 10,
+      "maxValue": 100,
       "allowedValues": [],
       "observedValues": [
         "0",
@@ -2176,38 +2065,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 3 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'integer'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "openApi",
+          "inputs": [
+            "sales-alpha-api.openapi.json"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -2218,11 +2104,11 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "integer",
-      "required": "likelyRequired",
+      "required": "required",
       "minLength": 1,
       "maxLength": 2,
       "minValue": 0,
-      "maxValue": 25,
+      "maxValue": 100,
       "allowedValues": [],
       "observedValues": [
         "20",
@@ -2246,38 +2132,35 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 3 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'integer'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "openApi",
+          "inputs": [
+            "sales-alpha-api.openapi.json"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -2288,7 +2171,7 @@
       "kind": "object",
       "cardinality": "single",
       "dataType": "object",
-      "required": "likelyRequired",
+      "required": "required",
       "allowedValues": [],
       "observedValues": [],
       "observedValuesTruncated": false,
@@ -2304,38 +2187,27 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Structured element in 3 sample(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'object'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
         }
       ]
     },
@@ -2346,7 +2218,7 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "string",
-      "required": "likelyRequired",
+      "required": "required",
       "minLength": 9,
       "maxLength": 9,
       "allowedValues": [],
@@ -2358,6 +2230,7 @@
       "sampleValue": "*****0024",
       "sensitive": true,
       "sensitivityReason": "Field name matches sensitive term 'routing'.",
+      "description": "ABA routing number",
       "presence": {
         "parentInstances": 3,
         "presentInstances": 3,
@@ -2368,48 +2241,43 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 3 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
         },
         {
           "attribute": "sensitivity",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
           "detail": "Field name matches sensitive term 'routing'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "openApi",
+          "inputs": [
+            "sales-alpha-api.openapi.json"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     },
@@ -2420,9 +2288,9 @@
       "kind": "value",
       "cardinality": "single",
       "dataType": "string",
-      "required": "likelyRequired",
-      "minLength": 12,
-      "maxLength": 12,
+      "required": "required",
+      "minLength": 4,
+      "maxLength": 17,
       "allowedValues": [],
       "observedValues": [],
       "observedValuesTruncated": false,
@@ -2442,48 +2310,43 @@
       "seenIn": [
         "corp-three-owners.json",
         "llc-two-owners.json",
-        "sole-prop.json"
+        "sole-prop.json",
+        "sales-alpha-api.openapi.json",
+        "sales-alpha-application.schema.json",
+        "sales-alpha-field-spec.csv"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Inferred from 3 non-empty value(s)."
-        },
-        {
-          "attribute": "cardinality",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
-          ],
-          "detail": "Never repeated in samples."
+          "detail": "type 'string'."
         },
         {
           "attribute": "required",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
-          "detail": "Present in all 3 parent instance(s); samples alone cannot prove it is required."
+          "detail": "Listed in 'required'."
         },
         {
           "attribute": "sensitivity",
-          "kind": "samplePayload",
+          "kind": "openApi",
           "inputs": [
-            "corp-three-owners.json",
-            "llc-two-owners.json",
-            "sole-prop.json"
+            "sales-alpha-api.openapi.json"
           ],
           "detail": "Field name matches sensitive term 'accountnumber'."
+        },
+        {
+          "attribute": "constraints",
+          "kind": "openApi",
+          "inputs": [
+            "sales-alpha-api.openapi.json"
+          ],
+          "detail": "Declared length, range or scale."
         }
       ]
     }

@@ -2,26 +2,14 @@
   "specVersion": "1.0",
   "system": "UW Core",
   "format": "xml",
-  "createdAt": "2026-09-25T04:14:02.07412+00:00",
+  "createdAt": "2026-09-25T04:14:03.189921+00:00",
   "inputs": [
     {
-      "name": "corp-application.xml",
-      "kind": "samplePayload",
+      "name": "uw-core-intake.wsdl",
+      "kind": "wsdl",
       "format": "xml",
-      "sha256": "d5db6dbb52201309190e4b3bb6473f1240566b0cffd1ae705114c0a4b35177f4"
-    },
-    {
-      "name": "sole-prop-application.xml",
-      "kind": "samplePayload",
-      "format": "xml",
-      "sha256": "d98532bb81a669d8338e7f0d05d7914b9b03d880bdccb1b84ca31244bd8013d4"
-    },
-    {
-      "name": "uw-core-intake.xsd",
-      "kind": "xsd",
-      "format": "xml",
-      "sha256": "9109157a8b658e75910c01c827be809e9e6b72ed9e0ee62e1a1783c6d427f694",
-      "notes": "Profiled element UnderwritingRequest."
+      "sha256": "7a16b13b0f8f9048c366b90588c79af5a3fc103bd0c089fc2fa1e7132ffedeaa",
+      "notes": "Profiled operation SubmitApplication input <UnderwritingRequest>."
     }
   ],
   "fields": [
@@ -38,32 +26,23 @@
       "valueShapes": [],
       "sensitive": false,
       "description": "Merchant application submitted for underwriting.",
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 2,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "complexType UnderwritingRequestType."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Root element."
         }
@@ -77,52 +56,37 @@
       "cardinality": "single",
       "dataType": "string",
       "required": "required",
-      "minLength": 11,
       "maxLength": 20,
       "allowedValues": [],
-      "observedValues": [
-        "SALES_ALPHA"
-      ],
+      "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "AAAAA_AAAAA"
-      ],
-      "sampleValue": "SALES_ALPHA",
+      "valueShapes": [],
       "sensitive": false,
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 2,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Code20 (xs:string)."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "use=\"required\"."
         },
         {
           "attribute": "constraints",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Declared length, range or scale."
         }
@@ -136,45 +100,28 @@
       "cardinality": "single",
       "dataType": "string",
       "required": "required",
-      "minLength": 9,
-      "maxLength": 9,
       "allowedValues": [],
-      "observedValues": [
-        "UW-778812",
-        "UW-779034"
-      ],
+      "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "AA-999999"
-      ],
-      "sampleValue": "UW-778812",
+      "valueShapes": [],
       "sensitive": false,
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 2,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "xs:string."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "use=\"required\"."
         }
@@ -193,32 +140,23 @@
       "observedValuesTruncated": false,
       "valueShapes": [],
       "sensitive": false,
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 2,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "complexType MerchantType."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=1."
         }
@@ -232,55 +170,38 @@
       "cardinality": "single",
       "dataType": "string",
       "required": "required",
-      "minLength": 10,
       "maxLength": 100,
       "allowedValues": [],
-      "observedValues": [
-        "Northwind Provisions Inc",
-        "Priya Nair"
-      ],
+      "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "Aaaaaaaaa Aaaaaaaaaa Aaa",
-        "Aaaaa Aaaa"
-      ],
-      "sampleValue": "Northwind Provisions Inc",
+      "valueShapes": [],
       "sensitive": false,
       "description": "Registered legal name of the business.",
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 2,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Name100 (xs:string)."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=1."
         },
         {
           "attribute": "constraints",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Declared length, range or scale."
         }
@@ -294,54 +215,37 @@
       "cardinality": "single",
       "dataType": "string",
       "required": "optional",
-      "minLength": 16,
       "maxLength": 100,
       "allowedValues": [],
-      "observedValues": [
-        "Northwind Market",
-        "Nair Mobile Detailing"
-      ],
+      "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "Aaaaaaaaa Aaaaaa",
-        "Aaaa Aaaaaa Aaaaaaaaa"
-      ],
-      "sampleValue": "Northwind Market",
+      "valueShapes": [],
       "sensitive": false,
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 2,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Name100 (xs:string)."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=0."
         },
         {
           "attribute": "constraints",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Declared length, range or scale."
         }
@@ -360,32 +264,23 @@
       "observedValuesTruncated": false,
       "valueShapes": [],
       "sensitive": false,
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 2,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Inline complexType."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=1."
         }
@@ -399,56 +294,39 @@
       "cardinality": "single",
       "dataType": "string",
       "required": "required",
-      "minLength": 3,
-      "maxLength": 3,
       "allowedValues": [
         "EIN",
         "SSN"
       ],
-      "observedValues": [
-        "EIN",
-        "SSN"
-      ],
+      "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "AAA"
-      ],
-      "sampleValue": "EIN",
+      "valueShapes": [],
       "sensitive": false,
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 2,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "inline simpleType (xs:string)."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "use=\"required\"."
         },
         {
           "attribute": "allowedValues",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "xs:enumeration."
         }
@@ -467,54 +345,42 @@
       "allowedValues": [],
       "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "999999999"
-      ],
-      "sampleValue": "*****8899",
+      "valueShapes": [],
       "sensitive": true,
       "sensitivityReason": "Parent 'TaxId' matches sensitive term 'taxid'.",
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 2,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "NineDigits (xs:string)."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=1."
         },
         {
           "attribute": "sensitivity",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Parent 'TaxId' matches sensitive term 'taxid'."
         },
         {
           "attribute": "constraints",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Declared length, range or scale."
         }
@@ -528,8 +394,6 @@
       "cardinality": "single",
       "dataType": "string",
       "required": "required",
-      "minLength": 1,
-      "maxLength": 2,
       "allowedValues": [
         "C",
         "L",
@@ -537,51 +401,35 @@
         "SP",
         "NP"
       ],
-      "observedValues": [
-        "C",
-        "SP"
-      ],
+      "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "A",
-        "AA"
-      ],
-      "sampleValue": "C",
+      "valueShapes": [],
       "sensitive": false,
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 2,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "inline simpleType (xs:string)."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=1."
         },
         {
           "attribute": "allowedValues",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "xs:enumeration."
         }
@@ -595,55 +443,38 @@
       "cardinality": "single",
       "dataType": "integer",
       "required": "required",
-      "minLength": 4,
-      "maxLength": 4,
       "minValue": 1,
       "maxValue": 9999,
       "allowedValues": [],
-      "observedValues": [
-        "5411",
-        "7542"
-      ],
+      "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "9999"
-      ],
-      "sampleValue": "5411",
+      "valueShapes": [],
       "sensitive": false,
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 2,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "inline simpleType (xs:int)."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=1."
         },
         {
           "attribute": "constraints",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Declared length, range or scale."
         }
@@ -657,48 +488,28 @@
       "cardinality": "single",
       "dataType": "integer",
       "required": "optional",
-      "minLength": 1,
-      "maxLength": 2,
-      "minValue": 3,
-      "maxValue": 12,
       "allowedValues": [],
-      "observedValues": [
-        "12",
-        "3"
-      ],
+      "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "99",
-        "9"
-      ],
-      "sampleValue": "12",
+      "valueShapes": [],
       "sensitive": false,
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 2,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "xs:int."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=0."
         }
@@ -710,61 +521,33 @@
       "parentPath": "/UnderwritingRequest/Merchant",
       "kind": "value",
       "cardinality": "single",
-      "dataType": "date",
-      "format": "MM/dd/yyyy",
+      "dataType": "string",
       "required": "optional",
-      "minLength": 10,
-      "maxLength": 10,
       "allowedValues": [],
-      "observedValues": [
-        "03/15/2014",
-        "02/15/2023"
-      ],
+      "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "99/99/9999"
-      ],
-      "sampleValue": "03/15/2014",
+      "valueShapes": [],
       "sensitive": false,
       "description": "Date as MM/dd/yyyy.",
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 2,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "samplePayload",
+          "kind": "wsdl",
           "inputs": [
-            "corp-application.xml",
-            "sole-prop-application.xml"
+            "uw-core-intake.wsdl"
           ],
-          "detail": "Inferred from 2 non-empty value(s)."
+          "detail": "UsDate (xs:string)."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=0."
-        },
-        {
-          "attribute": "format",
-          "kind": "samplePayload",
-          "inputs": [
-            "corp-application.xml",
-            "sole-prop-application.xml"
-          ],
-          "detail": "Detected from value patterns."
         }
       ]
     },
@@ -776,43 +559,28 @@
       "cardinality": "single",
       "dataType": "string",
       "required": "optional",
-      "minLength": 25,
-      "maxLength": 25,
       "allowedValues": [],
-      "observedValues": [
-        "https://northwind.example"
-      ],
+      "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "aaaaa://aaaaaaaaa.aaaaaaa"
-      ],
-      "sampleValue": "https://northwind.example",
+      "valueShapes": [],
       "sensitive": false,
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 1,
-        "occurrences": 1,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "xs:anyURI."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=0."
         }
@@ -831,32 +599,23 @@
       "observedValuesTruncated": false,
       "valueShapes": [],
       "sensitive": false,
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 2,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Inline complexType."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=1."
         }
@@ -876,40 +635,31 @@
       "observedValuesTruncated": false,
       "valueShapes": [],
       "sensitive": false,
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 4,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "complexType OfficerType."
         },
         {
           "attribute": "cardinality",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "maxOccurs=10."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=1."
         }
@@ -923,58 +673,37 @@
       "cardinality": "single",
       "dataType": "string",
       "required": "required",
-      "minLength": 8,
       "maxLength": 100,
       "allowedValues": [],
-      "observedValues": [
-        "Dana Whitfield",
-        "Luis Ortega",
-        "Ken Sato",
-        "Priya Nair"
-      ],
+      "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "Aaaa Aaaaaaaaa",
-        "Aaaa Aaaaaa",
-        "Aaa Aaaa",
-        "Aaaaa Aaaa"
-      ],
-      "sampleValue": "Dana Whitfield",
+      "valueShapes": [],
       "sensitive": false,
-      "presence": {
-        "parentInstances": 4,
-        "presentInstances": 4,
-        "occurrences": 4,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Name100 (xs:string)."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=1."
         },
         {
           "attribute": "constraints",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Declared length, range or scale."
         }
@@ -988,45 +717,28 @@
       "cardinality": "single",
       "dataType": "string",
       "required": "optional",
-      "minLength": 3,
-      "maxLength": 3,
       "allowedValues": [],
-      "observedValues": [
-        "CEO",
-        "CFO",
-        "COO"
-      ],
+      "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "AAA"
-      ],
-      "sampleValue": "CEO",
+      "valueShapes": [],
       "sensitive": false,
-      "presence": {
-        "parentInstances": 4,
-        "presentInstances": 3,
-        "occurrences": 3,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "xs:string."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=0."
         }
@@ -1045,54 +757,42 @@
       "allowedValues": [],
       "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "999999999"
-      ],
-      "sampleValue": "*****2020",
+      "valueShapes": [],
       "sensitive": true,
       "sensitivityReason": "Field name matches sensitive term 'ssn'.",
-      "presence": {
-        "parentInstances": 4,
-        "presentInstances": 4,
-        "occurrences": 4,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "NineDigits (xs:string)."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=1."
         },
         {
           "attribute": "sensitivity",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Field name matches sensitive term 'ssn'."
         },
         {
           "attribute": "constraints",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Declared length, range or scale."
         }
@@ -1106,58 +806,38 @@
       "cardinality": "single",
       "dataType": "integer",
       "required": "required",
-      "minLength": 2,
-      "maxLength": 3,
       "minValue": 0,
       "maxValue": 100,
       "allowedValues": [],
-      "observedValues": [
-        "50",
-        "30",
-        "20",
-        "100"
-      ],
+      "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "99",
-        "999"
-      ],
-      "sampleValue": "50",
+      "valueShapes": [],
       "sensitive": false,
-      "presence": {
-        "parentInstances": 4,
-        "presentInstances": 4,
-        "occurrences": 4,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "inline simpleType (xs:int)."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=1."
         },
         {
           "attribute": "constraints",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Declared length, range or scale."
         }
@@ -1172,59 +852,45 @@
       "dataType": "date",
       "format": "yyyy-MM-dd",
       "required": "required",
-      "minLength": 10,
-      "maxLength": 10,
       "allowedValues": [],
       "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "9999-99-99"
-      ],
-      "sampleValue": "****-01-30",
+      "valueShapes": [],
       "sensitive": true,
       "sensitivityReason": "Field name matches sensitive term 'dateofbirth'.",
-      "presence": {
-        "parentInstances": 4,
-        "presentInstances": 4,
-        "occurrences": 4,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "xs:date."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=1."
         },
         {
           "attribute": "format",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "xs:date."
         },
         {
           "attribute": "sensitivity",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Field name matches sensitive term 'dateofbirth'."
         }
@@ -1243,32 +909,23 @@
       "observedValuesTruncated": false,
       "valueShapes": [],
       "sensitive": false,
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 2,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "complexType ProcessingType."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=1."
         }
@@ -1282,57 +939,38 @@
       "cardinality": "single",
       "dataType": "decimal",
       "required": "required",
-      "minLength": 7,
-      "maxLength": 9,
       "minValue": 0,
-      "maxValue": 250000.00,
       "maxScale": 2,
       "allowedValues": [],
-      "observedValues": [
-        "250000.00",
-        "7000.00"
-      ],
+      "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "999999.99",
-        "9999.99"
-      ],
-      "sampleValue": "250000.00",
+      "valueShapes": [],
       "sensitive": false,
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 2,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Amount (xs:decimal)."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=1."
         },
         {
           "attribute": "constraints",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Declared length, range or scale."
         }
@@ -1346,57 +984,38 @@
       "cardinality": "single",
       "dataType": "decimal",
       "required": "required",
-      "minLength": 5,
-      "maxLength": 6,
       "minValue": 0,
-      "maxValue": 140.00,
       "maxScale": 2,
       "allowedValues": [],
-      "observedValues": [
-        "42.10",
-        "140.00"
-      ],
+      "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "99.99",
-        "999.99"
-      ],
-      "sampleValue": "42.10",
+      "valueShapes": [],
       "sensitive": false,
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 2,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Amount (xs:decimal)."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=1."
         },
         {
           "attribute": "constraints",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Declared length, range or scale."
         }
@@ -1410,54 +1029,38 @@
       "cardinality": "single",
       "dataType": "decimal",
       "required": "optional",
-      "minLength": 7,
-      "maxLength": 7,
       "minValue": 0,
-      "maxValue": 1500.00,
       "maxScale": 2,
       "allowedValues": [],
-      "observedValues": [
-        "1500.00"
-      ],
+      "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "9999.99"
-      ],
-      "sampleValue": "1500.00",
+      "valueShapes": [],
       "sensitive": false,
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 1,
-        "occurrences": 1,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Amount (xs:decimal)."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=0."
         },
         {
           "attribute": "constraints",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Declared length, range or scale."
         }
@@ -1471,55 +1074,38 @@
       "cardinality": "single",
       "dataType": "integer",
       "required": "required",
-      "minLength": 2,
-      "maxLength": 2,
       "minValue": 0,
       "maxValue": 100,
       "allowedValues": [],
-      "observedValues": [
-        "80",
-        "90"
-      ],
+      "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "99"
-      ],
-      "sampleValue": "80",
+      "valueShapes": [],
       "sensitive": false,
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 2,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Percent (xs:int)."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=1."
         },
         {
           "attribute": "constraints",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Declared length, range or scale."
         }
@@ -1533,55 +1119,38 @@
       "cardinality": "single",
       "dataType": "integer",
       "required": "required",
-      "minLength": 2,
-      "maxLength": 2,
       "minValue": 0,
       "maxValue": 100,
       "allowedValues": [],
-      "observedValues": [
-        "20",
-        "10"
-      ],
+      "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "99"
-      ],
-      "sampleValue": "20",
+      "valueShapes": [],
       "sensitive": false,
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 2,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Percent (xs:int)."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=1."
         },
         {
           "attribute": "constraints",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Declared length, range or scale."
         }
@@ -1600,32 +1169,23 @@
       "observedValuesTruncated": false,
       "valueShapes": [],
       "sensitive": false,
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 2,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "complexType SettlementType."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=1."
         }
@@ -1644,54 +1204,42 @@
       "allowedValues": [],
       "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "999999999"
-      ],
-      "sampleValue": "*****0024",
+      "valueShapes": [],
       "sensitive": true,
       "sensitivityReason": "Field name matches sensitive term 'routing'.",
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 2,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "NineDigits (xs:string)."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=1."
         },
         {
           "attribute": "sensitivity",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Field name matches sensitive term 'routing'."
         },
         {
           "attribute": "constraints",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Declared length, range or scale."
         }
@@ -1710,54 +1258,42 @@
       "allowedValues": [],
       "observedValues": [],
       "observedValuesTruncated": false,
-      "valueShapes": [
-        "999999999999"
-      ],
-      "sampleValue": "********6655",
+      "valueShapes": [],
       "sensitive": true,
       "sensitivityReason": "Field name matches sensitive term 'accountnumber'.",
-      "presence": {
-        "parentInstances": 2,
-        "presentInstances": 2,
-        "occurrences": 2,
-        "nullCount": 0,
-        "emptyCount": 0
-      },
       "seenIn": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ],
       "provenance": [
         {
           "attribute": "dataType",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "inline simpleType (xs:string)."
         },
         {
           "attribute": "required",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "minOccurs=1."
         },
         {
           "attribute": "sensitivity",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Field name matches sensitive term 'accountnumber'."
         },
         {
           "attribute": "constraints",
-          "kind": "xsd",
+          "kind": "wsdl",
           "inputs": [
-            "uw-core-intake.xsd"
+            "uw-core-intake.wsdl"
           ],
           "detail": "Declared length, range or scale."
         }
@@ -1766,19 +1302,10 @@
   ],
   "findings": [
     {
-      "kind": "soapEnvelopeUnwrapped",
-      "message": "Profiled <UnderwritingRequest> from the SOAP Body. The SOAP Header was ignored.",
-      "inputs": [
-        "corp-application.xml"
-      ]
-    },
-    {
       "kind": "namespacesIgnored",
       "message": "Paths use local names; namespace(s) urn:uwcore:intake:4.2 were not included.",
       "inputs": [
-        "corp-application.xml",
-        "sole-prop-application.xml",
-        "uw-core-intake.xsd"
+        "uw-core-intake.wsdl"
       ]
     }
   ]

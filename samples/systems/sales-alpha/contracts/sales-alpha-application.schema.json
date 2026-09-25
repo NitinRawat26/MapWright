@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sales-alpha.example/schemas/application.json",
+  "title": "SalesAlpha merchant application",
+  "type": "object",
+  "required": ["applicationId", "submittedAt", "account", "owners", "processing", "bank"],
+  "properties": {
+    "applicationId": { "type": "string", "maxLength": 20, "description": "CRM application identifier." },
+    "submittedAt": { "type": "string", "format": "date-time" },
+    "account": { "$ref": "#/$defs/account" },
+    "owners": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "items": { "$ref": "#/$defs/owner" }
+    },
+    "processing": {
+      "type": "object",
+      "required": ["annualCardVolume", "averageTicket", "cardPresentPercent", "motoPercent", "ecommPercent"],
+      "properties": {
+        "annualCardVolume": { "type": "number", "minimum": 0, "description": "Expected card volume per year, in USD." },
+        "averageTicket": { "type": "number", "minimum": 0, "multipleOf": 0.01 },
+        "cardPresentPercent": { "$ref": "#/$defs/percent" },
+        "motoPercent": { "$ref": "#/$defs/percent" },
+        "ecommPercent": { "$ref": "#/$defs/percent" }
+      }
+    },
+    "bank": {
+      "type": "object",
+      "required": ["routingNumber", "accountNumber"],
+      "properties": {
+        "routingNumber": { "type": "string", "minLength": 9, "maxLength": 9 },
+        "accountNumber": { "type": "string", "minLength": 4, "maxLength": 17 }
+      }
+    }
+  },
+  "$defs": {
+    "account": {
+      "type": "object",
+      "required": ["legalName", "taxId", "entityType", "mcc", "address"],
+      "properties": {
+        "legalName": { "type": "string", "maxLength": 120 },
+        "dbaName": { "type": "string", "maxLength": 120 },
+        "taxId": { "type": "string", "description": "EIN, or the owner's SSN for sole proprietors." },
+        "entityType": { "enum": ["CORP", "LLC", "PARTNERSHIP", "SOLE_PROP", "NON_PROFIT"], "type": "string" },
+        "mcc": { "type": "string", "minLength": 4, "maxLength": 4 },
+        "incorporationDate": { "type": "string", "format": "date" },
+        "phone": { "type": "string" },
+        "salesRepId": { "type": "string" },
+        "leadSource": { "type": "string" },
+        "address": { "$ref": "#/$defs/address" }
+      }
+    },
+    "address": {
+      "type": "object",
+      "required": ["line1", "city", "state", "postalCode"],
+      "properties": {
+        "line1": { "type": "string" },
+        "line2": { "type": "string" },
+        "city": { "type": "string" },
+        "state": { "type": "string", "minLength": 2, "maxLength": 2 },
+        "postalCode": { "type": "string" }
+      }
+    },
+    "owner": {
+      "type": "object",
+      "required": ["firstName", "lastName", "ownershipPercent", "ssn", "dateOfBirth"],
+      "properties": {
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "title": { "type": "string" },
+        "ownershipPercent": { "type": "number", "minimum": 0, "maximum": 1, "description": "Share of the business as a fraction (0.25 = 25%)." },
+        "ssn": { "type": "string" },
+        "dateOfBirth": { "type": "string", "format": "date" },
+        "email": { "type": "string", "format": "email" }
+      }
+    },
+    "percent": { "type": "integer", "minimum": 0, "maximum": 100 }
+  }
+}
