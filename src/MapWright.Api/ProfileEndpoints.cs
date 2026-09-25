@@ -8,6 +8,14 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MapWright.Api;
 
+/// <param name="UseAi">Consent to send the remaining fields' masked metadata to the configured AI provider.</param>
+public sealed record DetectRequest(bool UseAi = false);
+
+/// <param name="Suggestions">AI answers, filed in the suggestions inbox for review.</param>
+/// <param name="Remaining">Fields neither the playbooks nor the AI resolved.</param>
+public sealed record DetectResponse(
+    string System, IReadOnlyList<PlaybookMatch> Recognised, IReadOnlyList<Suggestion> Suggestions, IReadOnlyList<string> Remaining, IReadOnlyList<string> Warnings);
+
 /// <summary>System profiles, built from uploaded samples and contracts or imported as profile JSON.</summary>
 public static class ProfileEndpoints
 {
@@ -80,9 +88,39 @@ public static class ProfileEndpoints
             })
             .WithSummary("Delete a profile.");
 
-        group.MapPost("/{id}/detect", (string id, ProfileStore profiles, PlaybookStore playbooks) =>
-                Detection.Recognise(profiles.Get(id), playbooks.Library()))
-            .WithSummary("Show which business concept the published playbooks recognise in each field.");
+        group.MapPost("/{id}/detect", async (
+                string id, DetectRequest? body, ProfileStore profiles, PlaybookStore playbooks, SuggestionStore suggestions, AiAccess ai,
+                HttpContext context, [FromHeader(Name = ApiErrors.UserHeader)] string? user) =>
+            {
+                var profile = profiles.Get(id);
+                var library = playbooks.Library();
+                var report = Detection.Recognise(profile, library);
+                if (body?.UseAi != true || report.Remaining.Count == 0)
+                {
+                    return new DetectResponse(report.System, report.Recognised, [], report.Remaining, []);
+                }
+
+                var actor = ApiErrors.Actor(user);
+                var result = await new AiFieldAssistant(ai.Require(), AiAccess.Cap(library))
+                    .DecodeAsync(profile, report.Remaining, library.Domains, context.RequestAborted);
+                var names = profile.Fields.ToDictionary(f => f.Path, f => f.Name, StringComparer.Ordinal);
+                var inbox = suggestions.Add(id, profile.System, result.Suggestions.Select(s => new SuggestionContent
+                {
+                    Path = s.Path,
+                    FieldName = names[s.Path],
+                    BusinessConcept = s.BusinessConcept,
+                    DomainPlaybook = s.DomainPlaybook,
+                    ProposedConcept = s.ProposedConcept,
+                    Meaning = s.Meaning,
+                    ConfidencePercent = s.ConfidencePercent,
+                    Reasoning = s.Reasoning,
+                    Question = s.Question,
+                    Provider = s.Provider,
+                    Model = s.Model,
+                }), actor);
+                return new DetectResponse(report.System, report.Recognised, inbox, result.Unresolved, result.Warnings);
+            })
+            .WithSummary("Show which business concept the published playbooks recognise in each field; with useAi, ask AI about the rest and file its answers in the suggestions inbox.");
     }
 }
 

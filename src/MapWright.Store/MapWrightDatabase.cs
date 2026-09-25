@@ -146,6 +146,21 @@ public sealed partial class MapWrightDatabase : IDisposable
                 decided_at TEXT NOT NULL
             );
             CREATE INDEX IF NOT EXISTS ix_review_decisions_mapping ON review_decisions(mapping_id);
+            CREATE TABLE IF NOT EXISTS ai_suggestions (
+                seq INTEGER PRIMARY KEY AUTOINCREMENT,
+                profile_id TEXT NOT NULL,
+                system TEXT NOT NULL,
+                path TEXT NOT NULL,
+                status TEXT NOT NULL,
+                json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                created_by TEXT NOT NULL,
+                decided_at TEXT,
+                decided_by TEXT,
+                comment TEXT,
+                playbook_ref TEXT
+            );
+            CREATE INDEX IF NOT EXISTS ix_ai_suggestions_status ON ai_suggestions(status);
             """;
         command.ExecuteNonQuery();
     }

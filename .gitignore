@@ -480,3 +480,8 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# MapWright API SQLite database
+*.db
+*.db-shm
+*.db-wal

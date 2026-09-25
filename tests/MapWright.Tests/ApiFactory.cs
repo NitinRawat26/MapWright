@@ -1,21 +1,25 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using MapWright.Ai;
 using MapWright.Api;
 using MapWright.Core;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MapWright.Tests;
 
 /// <summary>The API over a fresh in-memory store seeded with the starter playbooks.</summary>
-internal sealed class ApiFactory : WebApplicationFactory<ApiOptions>
+internal sealed class ApiFactory(IAiProvider? ai = null) : WebApplicationFactory<ApiOptions>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
         builder.UseSetting("MapWright:DatabasePath", ":memory:");
         builder.UseSetting("MapWright:SeedPlaybooks", StarterPlaybooks.Directory);
+        builder.ConfigureTestServices(services => services.AddSingleton(new AiAccess(ai)));
     }
 
     public HttpClient As(string user)

@@ -1,3 +1,4 @@
+using MapWright.Ai;
 using MapWright.Core.Matching;
 using MapWright.Core.Profile;
 using MapWright.Core.Profile.Samples;
@@ -15,7 +16,8 @@ namespace MapWright.Api;
 /// <param name="Target">Target profile id.</param>
 /// <param name="Id">Mapping id; default "&lt;source&gt;__&lt;target&gt;".</param>
 /// <param name="Replace">Overwrite an existing mapping with the same id.</param>
-public sealed record GenerateMappingRequest(string Source, string Target, string? Id = null, string? Title = null, bool Replace = false);
+/// <param name="UseAi">Consent to ask the configured AI provider about target fields the playbooks left unmapped.</param>
+public sealed record GenerateMappingRequest(string Source, string Target, string? Id = null, string? Title = null, bool Replace = false, bool UseAi = false);
 
 /// <param name="Row">The replacement row, for an override. It keeps the row id and target path.</param>
 public sealed record ReviewRequest(ReviewDecisionKind Decision, string? Comment = null, FieldMapping? Row = null);
@@ -37,8 +39,8 @@ public static class MappingEndpoints
         group.MapGet("/", (MappingStore store) => store.List())
             .WithSummary("List stored mappings.");
 
-        group.MapPost("/", (
-                GenerateMappingRequest body, MappingStore mappings, ProfileStore profiles, PlaybookStore playbooks,
+        group.MapPost("/", async (
+                GenerateMappingRequest body, MappingStore mappings, ProfileStore profiles, PlaybookStore playbooks, AiAccess ai,
                 MapWrightDatabase database, HttpContext context, [FromHeader(Name = ApiErrors.UserHeader)] string? user) =>
             {
                 var actor = ApiErrors.Actor(user);
@@ -53,15 +55,23 @@ public static class MappingEndpoints
                     throw new StoreException(StoreError.Conflict, $"Mapping '{id}' already exists; send replace: true to regenerate it.");
                 }
 
-                var document = MappingGenerator.Generate(
-                    profiles.Get(body.Source), profiles.Get(body.Target), playbooks.Library(),
-                    new() { Id = id, Title = body.Title, CreatedAt = Uploads.Now(database) });
+                var source = profiles.Get(body.Source);
+                var target = profiles.Get(body.Target);
+                var library = playbooks.Library();
+                var document = MappingGenerator.Generate(source, target, library, new() { Id = id, Title = body.Title, CreatedAt = Uploads.Now(database) });
+                if (body.UseAi && document.Mappings.Any(m => m.Type == MappingType.Unmapped))
+                {
+                    var paired = await new AiMappingAssistant(ai.Require(), AiAccess.Cap(library))
+                        .PairAsync(document, source, target, library.Domains, context.RequestAborted);
+                    document = paired.Document;
+                }
+
                 mappings.Save(document, actor);
                 context.Response.Headers.Location = $"/api/mappings/{id}";
                 return Results.Text(MappingSpecSerializer.Serialize(document), "application/json", statusCode: StatusCodes.Status201Created);
             })
             .Produces<MappingDocument>(StatusCodes.Status201Created)
-            .WithSummary("Generate a mapping between two stored profiles with the published playbooks.");
+            .WithSummary("Generate a mapping between two stored profiles with the published playbooks; with useAi, AI suggests sources for the unmapped targets (capped, always needing review).");
 
         group.MapGet("/{id}", (string id, MappingStore store) => Json(store.Get(id)))
             .Produces<MappingDocument>()

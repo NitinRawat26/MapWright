@@ -361,6 +361,28 @@ curl -X POST localhost:5080/api/mappings/sales-alpha__uw-core/replay \
 curl -o mapping.xlsx localhost:5080/api/mappings/sales-alpha__uw-core/export/xlsx
 ```
 
+### AI and the suggestions inbox
+
+AI never runs unless a request asks for it with `"useAi": true`, and it only looks at what the playbooks left
+over. The provider comes from the same variables as the CLI: `MAPWRIGHT_VERTEX_PROJECT` (Vertex AI, first choice),
+`MAPWRIGHT_OLLAMA_URL` (fallback). With neither set, `useAi: true` returns 400 and everything else works with
+playbooks only. Answers are capped at the process playbook's AI confidence (70% in the starter set) and always
+need review. If the provider fails, the API returns 502 and saves nothing.
+
+| Method and path | Does |
+|---|---|
+| `GET /api/ai` | Whether a provider is configured, its name and the confidence cap |
+| `POST /api/profiles/{id}/detect` with `{ "useAi": true }` | Asks AI about the fields no playbook recognised and files each answer in the inbox |
+| `POST /api/mappings` with `"useAi": true` | AI suggests sources for unmapped targets; those rows need review like any other |
+| `GET /api/suggestions?status=&profile=` | The inbox (`pending`, `approved`, `rejected`) |
+| `POST /api/suggestions/{id}/approve` | `{ "concept": "Concept.Attribute", "comment": "…" }`: adds the field's name as a vocabulary term to a draft of that concept's domain playbook |
+| `POST /api/suggestions/{id}/reject` | `{ "comment": "…" }` |
+
+Approving never publishes anything. It opens a draft (the next minor version, or the open draft if there is
+one) and the draft goes through test, review and publish as usual. `concept` defaults to the AI's answer; it is
+needed when the AI proposed a concept no playbook defines, or when two playbooks share the concept. A term that
+is already in the playbook, or a playbook that is in review, returns 409.
+
 ## Build and test
 
 Requires the .NET 10 SDK.

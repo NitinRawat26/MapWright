@@ -1,3 +1,4 @@
+using MapWright.Ai;
 using MapWright.Core.Playbooks;
 using MapWright.Core.Profile;
 using MapWright.Core.Replay;
@@ -39,6 +40,10 @@ public static class ApiErrors
         {
             await Write(context, StatusCodes.Status400BadRequest, ex.Message, []);
         }
+        catch (AiProviderException ex)
+        {
+            await Write(context, StatusCodes.Status502BadGateway, $"AI assist failed: {ex.Message} Nothing was saved; retry, or send useAi: false.", []);
+        }
     });
 
     private static Task Write(HttpContext context, int status, string detail, IReadOnlyList<SpecIssue> issues)
@@ -47,6 +52,7 @@ public static class ApiErrors
         {
             StatusCodes.Status404NotFound => "Not found",
             StatusCodes.Status409Conflict => "Conflict",
+            StatusCodes.Status502BadGateway => "AI provider failed",
             _ => "Invalid request",
         };
         return Results.Json(new ApiProblem(title, status, detail, issues), statusCode: status).ExecuteAsync(context);
