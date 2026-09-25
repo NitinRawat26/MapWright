@@ -40,6 +40,22 @@ internal static class ApiJson
     public static Task<HttpResponseMessage> Post(this HttpClient client, string url, object body) =>
         client.PostAsJsonAsync(url, body, MapWrightJson.Options);
 
+    public static Task<HttpResponseMessage> Upload(this HttpClient client, string url, IEnumerable<string> files, params (string Name, string Value)[] fields)
+    {
+        var form = new MultipartFormDataContent();
+        foreach (var file in files)
+        {
+            form.Add(new ByteArrayContent(File.ReadAllBytes(file)), "files", Path.GetFileName(file));
+        }
+
+        foreach (var (name, value) in fields)
+        {
+            form.Add(new StringContent(value), name);
+        }
+
+        return client.PostAsync(url, form);
+    }
+
     public static string Text(this JsonNode? node) => node?.GetValue<string>() ?? "";
 
     public static JsonSerializerOptions Options => MapWrightJson.Options;

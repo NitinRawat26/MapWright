@@ -45,6 +45,8 @@ app.UseSwaggerUI();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" })).ExcludeFromDescription();
 app.MapPlaybookEndpoints();
+app.MapProfileEndpoints();
+app.MapMappingEndpoints();
 
 app.Run();
 

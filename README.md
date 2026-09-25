@@ -326,6 +326,41 @@ curl -X POST localhost:5080/api/playbooks/domain/tax-id/1.1.0/status -H 'X-MapWr
   -H 'Content-Type: application/json' -d '{"status":"published"}'
 ```
 
+### Profiles, mappings and replay
+
+| Method and path | Does |
+|---|---|
+| `GET /api/profiles` | List profiles |
+| `POST /api/profiles` | Build a profile from uploaded files (multipart `files`, plus `system`, and optional `id`, `version`, `description`, `root`, `noValues`, `replace`) |
+| `GET` / `PUT` / `DELETE /api/profiles/{id}` | Get, store (profile JSON, e.g. from the CLI) or delete a profile |
+| `POST /api/profiles/{id}/detect` | Which business concept the published playbooks recognise in each field |
+| `GET /api/mappings` | List mappings |
+| `POST /api/mappings` | Generate a mapping: `{ "source": "<profile id>", "target": "<profile id>", "id": "…", "title": "…", "replace": false }` |
+| `GET` / `PUT` / `DELETE /api/mappings/{id}` | Get, store (mapping JSON) or delete a mapping |
+| `GET /api/mappings/{id}/summary` | Coverage, confidence bands, review status and validation counts |
+| `GET /api/mappings/{id}/export/{xlsx\|csv\|html}` | Download the mapping document |
+| `POST /api/mappings/{id}/replay` | Replay samples (multipart `files`, plus `target` profile id, optional `xmlNamespace`, `record`) |
+| `POST /api/mappings/{id}/rows/{rowId}/review` | `{ "decision": "approve" \| "reject" \| "override", "comment": "…", "row": { … } }` |
+| `GET /api/mappings/{id}/reviews` | Review decisions, oldest first |
+
+Generation uses the published playbooks only, so drafts never change a mapping until they are published.
+Replay responses contain the built target payloads, which hold the samples' real values; `record=true` also
+saves the validation runs in the mapping.
+
+```bash
+curl -X POST localhost:5080/api/profiles -H 'X-MapWright-User: ana' \
+  -F system="SalesAlpha CRM" -F id=sales-alpha -F root=submitApplication \
+  -F files=@samples/systems/sales-alpha/samples/sole-prop.json \
+  -F files=@samples/systems/sales-alpha/contracts/sales-alpha-application.schema.json
+curl -X PUT localhost:5080/api/profiles/uw-core -H 'X-MapWright-User: ana' \
+  -H 'Content-Type: application/json' --data-binary @samples/systems/uw-core/profile.json
+curl -X POST localhost:5080/api/mappings -H 'X-MapWright-User: ana' \
+  -H 'Content-Type: application/json' -d '{"source":"sales-alpha","target":"uw-core"}'
+curl -X POST localhost:5080/api/mappings/sales-alpha__uw-core/replay \
+  -F target=uw-core -F files=@samples/systems/sales-alpha/samples/sole-prop.json
+curl -o mapping.xlsx localhost:5080/api/mappings/sales-alpha__uw-core/export/xlsx
+```
+
 ## Build and test
 
 Requires the .NET 10 SDK.

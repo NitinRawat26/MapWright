@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,7 +17,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\MapWright.Ai\MapWright.Ai.csproj" />
     <ProjectReference Include="..\MapWright.Core\MapWright.Core.csproj" />
+    <ProjectReference Include="..\MapWright.Output\MapWright.Output.csproj" />
     <ProjectReference Include="..\MapWright.Store\MapWright.Store.csproj" />
   </ItemGroup>
 

@@ -1,5 +1,6 @@
 using MapWright.Core.Playbooks;
 using MapWright.Core.Profile;
+using MapWright.Core.Replay;
 using MapWright.Core.Spec;
 using MapWright.Store;
 
@@ -34,7 +35,7 @@ public static class ApiErrors
             };
             await Write(context, status, ex.Message, ex.Issues);
         }
-        catch (Exception ex) when (ex is PlaybookException or ProfileException or MappingSpecException)
+        catch (Exception ex) when (ex is PlaybookException or ProfileException or MappingSpecException or TransformException)
         {
             await Write(context, StatusCodes.Status400BadRequest, ex.Message, []);
         }
