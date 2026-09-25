@@ -3,6 +3,10 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import {
   AiStatus,
+  ApprovedSuggestion,
+  ReplayResponse,
+  Suggestion,
+  SuggestionStatus,
   DetectResponse,
   FieldMapping,
   MappingDocument,
@@ -154,7 +158,38 @@ export class Api {
     return this.http.get<ReviewDecision[]>(`/api/mappings/${encodeURIComponent(id)}/reviews`);
   }
 
-  pendingSuggestions(): Observable<unknown[]> {
-    return this.http.get<unknown[]>('/api/suggestions', { params: { status: 'pending' } });
+  pendingSuggestions(): Observable<Suggestion[]> {
+    return this.suggestions('pending');
+  }
+
+  suggestions(status?: SuggestionStatus): Observable<Suggestion[]> {
+    return this.http.get<Suggestion[]>('/api/suggestions', { params: status ? { status } : {} });
+  }
+
+  approveSuggestion(id: number, request: { concept?: string; comment?: string }): Observable<ApprovedSuggestion> {
+    return this.http.post<ApprovedSuggestion>(`/api/suggestions/${id}/approve`, request);
+  }
+
+  rejectSuggestion(id: number, comment?: string): Observable<Suggestion> {
+    return this.http.post<Suggestion>(`/api/suggestions/${id}/reject`, { comment });
+  }
+
+  /** Runs source samples through a mapping; with record the runs are saved on the mapping. */
+  replay(id: string, files: File[], request: { target: string; xmlNamespace?: string; record?: boolean }): Observable<ReplayResponse> {
+    const form = new FormData();
+    for (const file of files) {
+      form.append('files', file, file.name);
+    }
+
+    form.append('target', request.target);
+    if (request.xmlNamespace) {
+      form.append('xmlNamespace', request.xmlNamespace);
+    }
+
+    if (request.record) {
+      form.append('record', 'true');
+    }
+
+    return this.http.post<ReplayResponse>(`/api/mappings/${encodeURIComponent(id)}/replay`, form);
   }
 }

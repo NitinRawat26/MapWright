@@ -450,6 +450,10 @@ Pages:
   run detection to see which business concepts the published playbooks recognise (optionally asking AI about the rest).
 - **Mappings:** generate a mapping from two profiles, see coverage and confidence, filter and search the rows, open a row
   to see why it was mapped, approve, reject or override it, see the review history, and download Excel, CSV or HTML.
+- **Replay** (a tab on each mapping): upload source samples, pick the target profile, and see each sample's passed,
+  failed and skipped checks and the target payload it produced; optionally save the runs on the mapping.
+- **AI suggestions:** the inbox of AI answers from detection. Approve one (optionally changing the concept) to add the
+  field name to a draft of the domain playbook, or reject it with a comment.
 
 ## Build and test
 

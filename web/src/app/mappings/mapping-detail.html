@@ -147,6 +147,11 @@
           </table>
         </div>
       </mat-tab>
+      <mat-tab label="Replay">
+        <div class="tab">
+          <app-replay [mapping]="m" (recorded)="reload()" />
+        </div>
+      </mat-tab>
       <mat-tab label="Review history">
         <div class="tab">
           <table class="plain wide" data-testid="reviews">

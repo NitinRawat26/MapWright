@@ -337,3 +337,20 @@ export interface NewProfile {
   noValues?: boolean;
   replace?: boolean;
 }
+
+export interface ReplaySample {
+  sample: string;
+  payload: string;
+  run: ValidationRun;
+}
+
+export interface ReplayResponse {
+  samples: ReplaySample[];
+  recorded: boolean;
+}
+
+export interface ApprovedSuggestion {
+  suggestion: Suggestion;
+  playbookId: string;
+  version: string;
+}

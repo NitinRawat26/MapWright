@@ -145,3 +145,23 @@ table.plain th {
   vertical-align: top;
   border-bottom: 1px solid var(--mat-sys-outline-variant);
 }
+
+pre.payload {
+  max-height: 480px;
+  overflow: auto;
+  padding: 12px;
+  background: var(--mat-sys-surface-container-low);
+  border-radius: 4px;
+}
+
+.suggestion {
+  margin-bottom: 12px;
+}
+
+.note {
+  width: 320px;
+}
+
+.filters {
+  margin-bottom: 12px;
+}

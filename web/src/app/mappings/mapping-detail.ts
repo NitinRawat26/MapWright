@@ -11,6 +11,7 @@ import { finalize } from 'rxjs';
 import { Api } from '../core/api';
 import { FieldMapping, MappingDocument, MappingSummary, ReviewDecision, ReviewDecisionKind, ReviewStatus } from '../core/models';
 import { UserService } from '../core/user';
+import { Replay } from './replay';
 
 export const reviewLabels: Record<ReviewStatus | string, string> = {
   autoAccepted: 'Auto-accepted',
@@ -30,7 +31,7 @@ export const reviewClass: Record<ReviewStatus | string, string> = {
 
 @Component({
   selector: 'app-mapping-detail',
-  imports: [DatePipe, FormsModule, UpperCasePipe, MatButtonModule, MatButtonToggleModule, MatFormFieldModule, MatInputModule, MatTabsModule, RouterLink],
+  imports: [DatePipe, FormsModule, UpperCasePipe, MatButtonModule, MatButtonToggleModule, MatFormFieldModule, MatInputModule, MatTabsModule, Replay, RouterLink],
   templateUrl: './mapping-detail.html',
   styleUrl: './mapping-detail.scss',
 })
@@ -84,8 +85,7 @@ export class MappingDetail {
       const id = this.id();
       untracked(() => {
         this.selected.set(null);
-        this.api.mapping(id).subscribe((mapping) => this.mapping.set(mapping));
-        this.loadSummary();
+        this.reload();
       });
     });
   }
@@ -128,6 +128,11 @@ export class MappingDetail {
         },
         error: () => undefined,
       });
+  }
+
+  protected reload(): void {
+    this.api.mapping(this.id()).subscribe((mapping) => this.mapping.set(mapping));
+    this.loadSummary();
   }
 
   protected loadReviews(): void {
