@@ -122,7 +122,7 @@ seen in, and the source of each attribute.
 | JSON Schema | `$schema`, or `type: object` with `properties` | `properties`, `required`, arrays and `maxItems`, `enum`/`const`, `format` (date, date-time), length, range, `multipleOf` (scale), `description`; `$ref` (local, or to another uploaded file), `allOf`; `oneOf`/`anyOf` are merged and their fields made optional |
 | OpenAPI 3.x / Swagger 2.0 (JSON or YAML) | `openapi` or `swagger` | The JSON request body of one operation, or one named schema, read as JSON Schema |
 | XSD | `.xsd`, or an `xs:schema` root | One global element: sequences, `xs:all`, choices (optional), groups, attributes and attribute groups, named and inline types, extensions, `simpleContent` (`/text()`), `minOccurs`/`maxOccurs`, enumerations, length, range and `fractionDigits` facets, `fixed`, annotations |
-| WSDL 1.1 / 2.0 | `.wsdl`, or a WSDL root | The input element of one document/literal operation, read from the XSD in `types` |
+| WSDL 1.1 / 2.0 | `.wsdl`, or a WSDL root | The input of one operation, read from the XSD in `types`: the part's element for document/literal; for RPC style (`style="rpc"` or typed parts), a wrapper element named after the operation with one child per part (`/SubmitApplication/request/...`). `use="encoded"` is read as literal XML, with a finding |
 | Field spec | `.csv`, `.xlsx` | One row per field. Only a path column is required (`Path`, `Field Path`, `XPath`, `JSON Path`, `Field`, `Element`). Also recognised: type (`String(20)`, `Decimal(12,2)`, `Date`…), required/mandatory (`Y`, `M`, `C` = conditional…), format (`YYYY-MM-DD`), min/max length, min/max value, scale, allowed values (`CORP = Corporation; LLC = …`), description, sensitive/PII and repeats. `owners[].ssn` and `/uw:Merchant/uw:Name` style paths are normalized |
 | Data dictionary | `.csv`, `.xlsx` | Read like a field spec, with the column names data dictionaries use (see below) |
 
@@ -147,6 +147,7 @@ seen in, and the source of each attribute.
   network, and DTDs are rejected. A reference that matches no upload, or several, is an `unresolvedReference`
   finding. `samples/systems/sales-alpha/split-contracts` (JSON Schema plus a definitions file) and
   `samples/systems/uw-core/split-contracts` (a WSDL importing an XSD that includes another) are examples.
+- `samples/systems/uw-core/rpc` has the UW Core service as an RPC/literal WSDL, with a matching SOAP sample.
 - OpenAPI documents may be YAML (`.yaml`/`.yml`). Anchors, aliases and `<<` merge keys are resolved, plain
   scalars follow the YAML core schema (so `openapi: 3.1` still counts), and errors give the YAML line. One document
   per file. `samples/systems/sales-alpha/openapi-yaml` has the SalesAlpha OpenAPI document in YAML.
