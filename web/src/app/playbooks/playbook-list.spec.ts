@@ -31,6 +31,23 @@ describe('PlaybookList', () => {
     expect(root.querySelector('tbody')?.textContent).toContain('Draft');
   });
 
+  it('leaves abandoned versions out of All and shows them under Abandoned', async () => {
+    const fixture = TestBed.createComponent(PlaybookList);
+    fixture.detectChanges();
+    const abandoned = summary('domain/tax-id', '1.1.0', 'abandoned');
+    respond('/api/playbooks', [summary('domain/tax-id', '1.0.0', 'published'), abandoned]);
+    await settle(fixture);
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelectorAll('tr.mat-mdc-row').length).toBe(1);
+    expect(root.querySelector('tbody')?.textContent).not.toContain('1.1.0');
+
+    (root.querySelectorAll('mat-button-toggle button')[5] as HTMLButtonElement).click();
+    respond('/api/playbooks?status=abandoned', [abandoned]);
+    await settle(fixture);
+    expect(root.querySelectorAll('tr.mat-mdc-row').length).toBe(1);
+    expect(root.querySelector('tbody')?.textContent).toContain('Abandoned');
+  });
+
   it('creates a draft from pasted JSON once a name is set', async () => {
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     const fixture = TestBed.createComponent(PlaybookList);

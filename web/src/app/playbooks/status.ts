@@ -5,6 +5,7 @@ export const statusLabels: Record<PlaybookStatus | string, string> = {
   inReview: 'In review',
   published: 'Published',
   retired: 'Retired',
+  abandoned: 'Abandoned',
 };
 
 export const statusClass: Record<PlaybookStatus | string, string> = {
@@ -12,4 +13,5 @@ export const statusClass: Record<PlaybookStatus | string, string> = {
   inReview: 'warn',
   published: 'good',
   retired: '',
+  abandoned: '',
 };

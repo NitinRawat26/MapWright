@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using MapWright.Core.Playbooks;
 using Microsoft.Data.Sqlite;
 
 namespace MapWright.Store;
@@ -106,10 +107,9 @@ public sealed partial class MapWrightDatabase : IDisposable
                 actor TEXT NOT NULL,
                 action TEXT NOT NULL,
                 from_status TEXT,
-                to_status TEXT NOT NULL,
+                to_status TEXT,
                 note TEXT,
-                occurred_at TEXT NOT NULL,
-                FOREIGN KEY (id, version) REFERENCES playbook_versions(id, version)
+                occurred_at TEXT NOT NULL
             );
             CREATE INDEX IF NOT EXISTS ix_playbook_events_id ON playbook_events(id, version);
             CREATE TABLE IF NOT EXISTS profiles (
@@ -170,6 +170,82 @@ public sealed partial class MapWrightDatabase : IDisposable
             command.CommandText = "ALTER TABLE playbook_versions ADD COLUMN yaml TEXT";
             command.ExecuteNonQuery();
         }
+
+        KeepEventsOfDeletedVersions(connection);
+        MarkAbandonedDrafts(connection);
+    }
+
+    /// <summary>Older databases tied each event to a stored version, so a deleted draft could not keep its history.</summary>
+    private static void KeepEventsOfDeletedVersions(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM pragma_foreign_key_list('playbook_events')";
+        if ((long)command.ExecuteScalar()! == 0)
+        {
+            return;
+        }
+
+        using var transaction = connection.BeginTransaction();
+        command.Transaction = transaction;
+        command.CommandText = """
+            CREATE TABLE playbook_events_new (
+                seq INTEGER PRIMARY KEY AUTOINCREMENT,
+                id TEXT NOT NULL,
+                version TEXT NOT NULL,
+                actor TEXT NOT NULL,
+                action TEXT NOT NULL,
+                from_status TEXT,
+                to_status TEXT,
+                note TEXT,
+                occurred_at TEXT NOT NULL
+            );
+            INSERT INTO playbook_events_new (seq, id, version, actor, action, from_status, to_status, note, occurred_at)
+                SELECT seq, id, version, actor, action, from_status, to_status, note, occurred_at FROM playbook_events;
+            DROP TABLE playbook_events;
+            ALTER TABLE playbook_events_new RENAME TO playbook_events;
+            CREATE INDEX IF NOT EXISTS ix_playbook_events_id ON playbook_events(id, version);
+            """;
+        command.ExecuteNonQuery();
+        transaction.Commit();
+    }
+
+    /// <summary>Drafts abandoned before the Abandoned status existed were stored as Retired.</summary>
+    private static void MarkAbandonedDrafts(SqliteConnection connection)
+    {
+        using var transaction = connection.BeginTransaction();
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            SELECT v.id, v.version, v.json, v.yaml FROM playbook_versions v
+            WHERE v.status = 'Retired' AND (
+                SELECT e.action FROM playbook_events e WHERE e.id = v.id AND e.version = v.version ORDER BY e.seq DESC LIMIT 1) = 'abandoned'
+            """;
+        var rows = new List<(string Id, string Version, Playbook Before, string? Yaml)>();
+        using (var reader = command.ExecuteReader())
+        {
+            while (reader.Read())
+            {
+                rows.Add((reader.GetString(0), reader.GetString(1), PlaybookSerializer.Deserialize(reader.GetString(2)), reader.IsDBNull(3) ? null : reader.GetString(3)));
+            }
+        }
+
+        command.CommandText = "UPDATE playbook_versions SET status = $status, json = $json, yaml = $yaml WHERE id = $id AND version = $version";
+        foreach (var (id, version, before, yaml) in rows)
+        {
+            var after = before with { Status = PlaybookStatus.Abandoned };
+            command.Parameters.Clear();
+            command.Parameters.AddWithValue("$status", after.Status.ToString());
+            command.Parameters.AddWithValue("$json", PlaybookSerializer.Serialize(after));
+            command.Parameters.AddWithValue("$yaml", (object?)PlaybookYaml.Update(yaml, before, after) ?? DBNull.Value);
+            command.Parameters.AddWithValue("$id", id);
+            command.Parameters.AddWithValue("$version", version);
+            command.ExecuteNonQuery();
+        }
+
+        command.Parameters.Clear();
+        command.CommandText = "UPDATE playbook_events SET to_status = 'Abandoned' WHERE action = 'abandoned' AND to_status = 'Retired'";
+        command.ExecuteNonQuery();
+        transaction.Commit();
     }
 
     [GeneratedRegex("[^a-z0-9._-]+")]

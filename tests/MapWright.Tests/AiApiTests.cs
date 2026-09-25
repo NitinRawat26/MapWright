@@ -90,6 +90,9 @@ public sealed class AiApiTests
         Assert.StartsWith("# Domain playbook:", draftYaml, StringComparison.Ordinal);
         Assert.Contains("- term: legal name\n", draftYaml, StringComparison.Ordinal);
         Assert.Equal(PlaybookStatus.Published, PlaybookSerializer.Deserialize(await ben.GetStringAsync($"/api/playbooks/{playbook}/1.0.0")).Status);
+        var keep = await ben.DeleteAsync($"/api/playbooks/{playbook}/1.1.0");
+        Assert.Equal(HttpStatusCode.Conflict, keep.StatusCode);
+        Assert.Contains("approved AI suggestions", (await keep.Node())["detail"].Text());
 
         Assert.Equal(HttpStatusCode.Conflict, (await ben.Post($"/api/suggestions/{ids[0]}/reject", new { })).StatusCode);
         var duplicate = await ben.Post($"/api/suggestions/{ids[1]}/approve", new { });

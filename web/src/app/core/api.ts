@@ -77,6 +77,11 @@ export class Api {
     return this.http.post(`/api/playbooks/${id}/${from}/versions`, request, { responseType: 'text' });
   }
 
+  /** Deletes a draft that was never submitted for review. */
+  deleteDraft(id: string, version: string, note?: string): Observable<unknown> {
+    return this.http.delete(`/api/playbooks/${id}/${version}`, { params: note ? { note } : {} });
+  }
+
   /** Moves a version to another status; answers with its YAML. */
   changeStatus(id: string, version: string, status: PlaybookStatus, note?: string): Observable<string> {
     return this.http.post(`/api/playbooks/${id}/${version}/status`, { status, note }, { params: yaml, responseType: 'text' });

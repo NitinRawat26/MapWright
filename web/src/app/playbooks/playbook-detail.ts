@@ -25,7 +25,7 @@ interface Transition {
 const transitions: Record<PlaybookStatus, Transition[]> = {
   draft: [
     { to: 'inReview', label: 'Submit for review', primary: true },
-    { to: 'retired', label: 'Abandon draft', primary: false },
+    { to: 'abandoned', label: 'Abandon draft', primary: false },
   ],
   inReview: [
     { to: 'published', label: 'Publish', primary: true },
@@ -33,6 +33,7 @@ const transitions: Record<PlaybookStatus, Transition[]> = {
   ],
   published: [{ to: 'retired', label: 'Retire', primary: false }],
   retired: [],
+  abandoned: [],
 };
 
 @Component({
@@ -73,6 +74,9 @@ export class PlaybookDetail {
   protected readonly parseError = computed(() => read(this.edited()).error);
   protected readonly isDraft = computed(() => this.playbook()?.status === 'draft');
   protected readonly dirty = computed(() => this.isDraft() && this.edited() !== this.saved());
+  protected readonly canDelete = computed(
+    () => this.isDraft() && !this.history().some((e) => e.version === this.version() && e.action === 'submitted'),
+  );
   protected readonly actions = computed(() => transitions[this.playbook()?.status ?? 'retired']);
   protected readonly canWrite = computed(() => !!this.user.name() && !this.busy());
   protected readonly others = computed(() => this.versions().filter((v) => v.version !== this.version()));
@@ -137,6 +141,18 @@ export class PlaybookDetail {
       this.loadVersions();
       this.loadHistory();
       this.snackBar.open(`Now ${statusLabels[to].toLowerCase()}.`, undefined, { duration: 3000 });
+    });
+  }
+
+  protected deleteDraft(): void {
+    if (!confirm(`Delete draft ${this.id()}@${this.version()}? Its version number becomes free again.`)) {
+      return;
+    }
+
+    this.run(this.api.deleteDraft(this.id(), this.version(), this.note().trim() || undefined), () => {
+      this.note.set('');
+      this.snackBar.open('Draft deleted.', undefined, { duration: 3000 });
+      void this.router.navigate(['/playbooks']);
     });
   }
 

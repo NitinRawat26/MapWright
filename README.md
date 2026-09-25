@@ -156,7 +156,12 @@ survive new versions, status changes and edits. Playbooks that arrived as JSON g
 | Draft | In Review | The playbook is valid and all its tests and rule examples pass |
 | In Review | Draft | Changes requested |
 | In Review | Published | Valid, tests pass, and published by someone other than the submitter; the previous published version is retired |
-| Published / Draft | Retired | No longer applied (a retired draft is abandoned) |
+| Published | Retired | No longer applied |
+| Draft | Abandoned | The draft is dropped but kept for the audit trail (sending `retired` for a draft also abandons it) |
+| Draft | (deleted) | Only a draft that was never submitted for review and holds no approved AI suggestions; its version number becomes free and the history keeps a `deleted` entry |
+
+Drafts abandoned before the Abandoned status existed were stored as Retired; existing databases relabel them as
+Abandoned on start-up.
 
 A new version copies an existing one (next unused minor version by default) and adds a change note. The same store
 holds system profiles, mapping specs and reviewers' decisions on mapping rows (approve, reject or override,
@@ -324,7 +329,7 @@ version's YAML with its comments. A YAML body's comments are kept.
 
 | Method and path | Does |
 |---|---|
-| `GET /api/playbooks?status=` | List versions (`draft`, `inReview`, `published`, `retired`) |
+| `GET /api/playbooks?status=` | List versions (`draft`, `inReview`, `published`, `retired`, `abandoned`) |
 | `POST /api/playbooks` | Create a draft |
 | `POST /api/playbooks/validate`, `POST /api/playbooks/test` | Validate or test an unsaved playbook |
 | `GET /api/playbooks/{kind}/{slug}` | Versions of one playbook |
@@ -332,6 +337,7 @@ version's YAML with its comments. A YAML body's comments are kept.
 | `GET` / `PUT /api/playbooks/{kind}/{slug}/{version}` | Get a version; replace a draft |
 | `POST .../{version}/versions` | Draft a new version: `{ "version": "1.1.0", "note": "…" }` (both optional) |
 | `POST .../{version}/status` | Change status: `{ "status": "inReview", "note": "…" }` |
+| `DELETE .../{version}?note=` | Delete a draft that was never submitted (409 otherwise; abandon it instead) |
 | `GET .../{version}/validate`, `GET .../{version}/test` | Validate or test a stored version |
 
 ```bash

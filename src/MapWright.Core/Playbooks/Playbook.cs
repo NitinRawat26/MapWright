@@ -52,6 +52,7 @@ public enum PlaybookStatus
     InReview,
     Published,
     Retired,
+    Abandoned,
 }
 
 // ---------------------------------------------------------------- domain playbooks

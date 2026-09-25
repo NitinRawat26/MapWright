@@ -81,6 +81,16 @@ public static class PlaybookEndpoints
             .Produces<Playbook>(StatusCodes.Status200OK, BodyTypes[0], BodyTypes[1..])
             .WithSummary("Replace a draft playbook version.");
 
+        group.MapDelete($"/{Kind}/{{slug}}/{{version}}", (
+                string kind, string slug, string version, string? note, PlaybookStore store,
+                [FromHeader(Name = ApiErrors.UserHeader)] string? user) =>
+            {
+                store.Delete($"{kind}/{slug}", version, ApiErrors.Actor(user), note);
+                return Results.NoContent();
+            })
+            .Produces(StatusCodes.Status204NoContent)
+            .WithSummary("Delete a draft that was never submitted for review; other drafts are abandoned instead.");
+
         group.MapPost($"/{Kind}/{{slug}}/{{version}}/versions", (
                 string kind, string slug, string version, NewVersionRequest body, PlaybookStore store, HttpContext context,
                 [FromHeader(Name = ApiErrors.UserHeader)] string? user) =>
@@ -96,7 +106,7 @@ public static class PlaybookEndpoints
                 [FromHeader(Name = ApiErrors.UserHeader)] string? user) =>
                 Respond(context, store, store.Transition($"{kind}/{slug}", version, body.Status, ApiErrors.Actor(user), body.Note)))
             .Produces<Playbook>(StatusCodes.Status200OK, BodyTypes[0], BodyTypes[1..])
-            .WithSummary("Move a version through Draft → InReview → Published → Retired.");
+            .WithSummary("Move a version through Draft → InReview → Published → Retired, or abandon a draft.");
 
         group.MapGet($"/{Kind}/{{slug}}/{{version}}/validate", (string kind, string slug, string version, PlaybookStore store) =>
                 Validate(store, store.Get($"{kind}/{slug}", version)))
@@ -110,7 +120,7 @@ public static class PlaybookEndpoints
     private static PlaybookStatus? ParseStatus(string? status) =>
         status is null ? null
         : Enum.TryParse<PlaybookStatus>(status, ignoreCase: true, out var parsed) && Enum.IsDefined(parsed) ? parsed
-        : throw new StoreException(StoreError.Invalid, $"Unknown status '{status}'; use draft, inReview, published or retired.");
+        : throw new StoreException(StoreError.Invalid, $"Unknown status '{status}'; use draft, inReview, published, retired or abandoned.");
 
     private static ValidationResponse Validate(PlaybookStore store, Playbook playbook)
     {
