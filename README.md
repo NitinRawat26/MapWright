@@ -2,8 +2,8 @@
 Playbook-driven data mapping for merchant acquiring systems
 
 MapWright generates field-level mapping documents between two systems that exchange merchant
-application data (e.g. a CRM-based sales system sending JSON → an XML underwriting intake), without
-requiring a shared canonical model.
+application data (e.g. a sales system → an underwriting system, or underwriting → boarding), without
+requiring a shared canonical model. Either side may use JSON or XML, in any combination.
 
 ## Output model
 
