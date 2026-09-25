@@ -180,7 +180,7 @@ export class Api {
     return this.http.get<Suggestion[]>('/api/suggestions', { params: status ? { status } : {} });
   }
 
-  approveSuggestion(id: number, request: { concept?: string; comment?: string }): Observable<ApprovedSuggestion> {
+  approveSuggestion(id: number, request: { concept?: string; comment?: string; create?: boolean }): Observable<ApprovedSuggestion> {
     return this.http.post<ApprovedSuggestion>(`/api/suggestions/${id}/approve`, request);
   }
 

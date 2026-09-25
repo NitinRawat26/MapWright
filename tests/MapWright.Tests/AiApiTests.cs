@@ -116,6 +116,49 @@ public sealed class AiApiTests
     }
 
     [Fact]
+    public async Task Approving_with_create_drafts_new_concepts_and_attributes()
+    {
+        using var api = new ApiFactory(new FakeProvider("fake", _ => AiSamples.Answer(
+            new { path = "$.account.mcc", newConcept = "Merchant.Mcc", meaning = "Merchant category code", confidence = 88, reasoning = "4-digit codes." },
+            new { path = "$.account.salesRepId", newConcept = "merchant.sales_rep", meaning = "Sales rep", confidence = 80, reasoning = "Rep ids." },
+            new { path = "$.account.leadSource", newConcept = "ChannelMix.LeadSource", meaning = "Where the lead came from", confidence = 80, reasoning = "Web, referral." })));
+        var ana = await WithProfiles(api);
+        var ben = api.As("ben");
+        var filed = (await (await ana.Post("/api/profiles/sales-alpha/detect", new { useAi = true })).Node())["suggestions"]!.AsArray();
+        Assert.Equal(["$.account.mcc", "$.account.salesRepId", "$.account.leadSource"], filed.Select(s => s!["content"]!["path"].Text()));
+        var ids = filed.Select(s => s!["id"]!.GetValue<long>()).ToList();
+
+        var refused = await ben.Post($"/api/suggestions/{ids[0]}/approve", new { concept = "Merchant.Mcc" });
+        Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+        Assert.Contains("send create: true", (await refused.Node())["detail"].Text());
+
+        var created = await (await ben.Post($"/api/suggestions/{ids[0]}/approve", new { create = true })).Node();
+        Assert.Equal(("domain/merchant", "0.1.0", true), (created["playbookId"].Text(), created["version"].Text(), created["created"]!.GetValue<bool>()));
+        var merchant = PlaybookSerializer.Deserialize(await ben.GetStringAsync("/api/playbooks/domain/merchant/0.1.0"));
+        Assert.Equal((PlaybookStatus.Draft, "Merchant", "ben"), (merchant.Status, merchant.Domain!.Concept.Name, merchant.Owner));
+        Assert.Equal(("Mcc", "Merchant category code"), (Assert.Single(merchant.Domain.Concept.Attributes).Name, merchant.Domain.Concept.Attributes[0].Description));
+        Assert.Empty(merchant.Domain.Vocabulary);
+        Assert.Contains("AI suggestion", Assert.Single(merchant.ChangeNotes).Description);
+
+        var added = await (await ben.Post($"/api/suggestions/{ids[1]}/approve", new { create = true })).Node();
+        Assert.Equal(("domain/merchant", "0.1.0", false), (added["playbookId"].Text(), added["version"].Text(), added["created"]!.GetValue<bool>()));
+        merchant = PlaybookSerializer.Deserialize(await ben.GetStringAsync("/api/playbooks/domain/merchant/0.1.0"));
+        Assert.Equal(["Mcc", "SalesRep"], merchant.Domain!.Concept.Attributes.Select(a => a.Name));
+        Assert.Equal("SalesRep", Assert.Single(merchant.Domain.Vocabulary).AppliesTo);
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await ben.Post($"/api/suggestions/{ids[2]}/approve", new { })).StatusCode);
+        var attribute = await (await ben.Post($"/api/suggestions/{ids[2]}/approve", new { create = true })).Node();
+        Assert.Equal(("domain/channel-mix", "1.1.0", false), (attribute["playbookId"].Text(), attribute["version"].Text(), attribute["created"]!.GetValue<bool>()));
+        var channelMix = PlaybookSerializer.Deserialize(await ben.GetStringAsync("/api/playbooks/domain/channel-mix/1.1.0"));
+        Assert.Contains(channelMix.Domain!.Concept.Attributes, a => a.Name == "LeadSource");
+        Assert.DoesNotContain(channelMix.Domain.Vocabulary, v => v.AppliesTo == "LeadSource");
+        Assert.DoesNotContain(PlaybookSerializer.Deserialize(await ben.GetStringAsync("/api/playbooks/domain/channel-mix/1.0.0")).Domain!.Concept.Attributes, a => a.Name == "LeadSource");
+
+        Assert.Equal(HttpStatusCode.Conflict, (await ben.DeleteAsync("/api/playbooks/domain/merchant/0.1.0")).StatusCode);
+        Assert.Equal(["approved", "approved", "approved"], (await (await ben.GetAsync("/api/suggestions")).Node()).AsArray().Select(s => s!["status"].Text()));
+    }
+
+    [Fact]
     public async Task Ai_pairs_unmapped_targets_for_review_only()
     {
         using var api = new ApiFactory(Fake());

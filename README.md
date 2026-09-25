@@ -463,7 +463,7 @@ need review. If the provider fails, the API returns 502 and saves nothing.
 | `POST /api/profiles/{id}/detect` with `{ "useAi": true }` | Asks AI about the fields no playbook recognised and files each answer in the inbox |
 | `POST /api/mappings` with `"useAi": true` | AI suggests sources for unmapped targets; those rows need review like any other |
 | `GET /api/suggestions?status=&profile=` | The inbox (`pending`, `approved`, `rejected`) |
-| `POST /api/suggestions/{id}/approve` | `{ "concept": "Concept.Attribute", "comment": "…" }`: adds the field's name as a vocabulary term to a draft of that concept's domain playbook |
+| `POST /api/suggestions/{id}/approve` | `{ "concept": "Concept.Attribute", "comment": "…", "create": false }`: adds the field's name as a vocabulary term to a draft of that concept's domain playbook. With `create: true`, a concept no published playbook defines becomes a new draft playbook `domain/<concept>` at 0.1.0 (a later approval for the same concept adds to that draft), and a missing attribute is added to a draft of the concept's playbook; the response's `created` says whether a playbook was created. Add signals and tests before submitting it |
 | `POST /api/suggestions/{id}/reject` | `{ "comment": "…" }` |
 
 Approving never publishes anything. It opens a draft (the next minor version, or the open draft if there is
@@ -546,7 +546,8 @@ Pages:
 - **Replay** (a tab on each mapping): upload source samples, pick the target profile, and see each sample's passed,
   failed and skipped checks and the target payload it produced; optionally save the runs on the mapping.
 - **AI suggestions:** the inbox of AI answers from detection. Approve one (optionally changing the concept) to add the
-  field name to a draft of the domain playbook, or reject it with a comment.
+  field name to a draft of the domain playbook, or reject it with a comment. **Create if missing** (ticked for
+  concepts the AI proposed) drafts a new domain playbook or attribute instead.
 
 ## Build and test
 

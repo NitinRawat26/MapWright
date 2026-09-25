@@ -3,13 +3,15 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MapWright.Api;
 
-/// <param name="Concept"><c>Concept</c> or <c>Concept.Attribute</c>; defaults to the concept the AI suggested.</param>
-public sealed record ApproveSuggestionRequest(string? Concept = null, string? Comment = null);
+/// <param name="Concept"><c>Concept</c> or <c>Concept.Attribute</c>; defaults to the concept the AI suggested (or proposed, with <paramref name="Create"/>).</param>
+/// <param name="Create">Draft a concept or attribute no published playbook has yet: a new domain playbook, or a new attribute on the concept's playbook.</param>
+public sealed record ApproveSuggestionRequest(string? Concept = null, string? Comment = null, bool Create = false);
 
 public sealed record RejectSuggestionRequest(string? Comment = null);
 
-/// <param name="PlaybookId">The domain playbook whose draft now carries the field's name as a vocabulary term.</param>
-public sealed record ApprovedSuggestion(Suggestion Suggestion, string PlaybookId, string Version);
+/// <param name="PlaybookId">The domain playbook whose draft now carries the field's name as a vocabulary term (or new attribute).</param>
+/// <param name="Created">The approval created a new draft domain playbook.</param>
+public sealed record ApprovedSuggestion(Suggestion Suggestion, string PlaybookId, string Version, bool Created);
 
 /// <summary>The AI suggestions inbox: review what AI said about unrecognised fields and turn approvals into draft playbook changes.</summary>
 public static class SuggestionEndpoints
@@ -32,10 +34,10 @@ public static class SuggestionEndpoints
         group.MapPost("/{id:long}/approve", (
                 long id, ApproveSuggestionRequest? body, SuggestionStore store, [FromHeader(Name = ApiErrors.UserHeader)] string? user) =>
             {
-                var (suggestion, draft) = store.Approve(id, ApiErrors.Actor(user), body?.Concept, body?.Comment);
-                return new ApprovedSuggestion(suggestion, draft.Id, draft.Version);
+                var (suggestion, draft, created) = store.Approve(id, ApiErrors.Actor(user), body?.Concept, body?.Comment, body?.Create ?? false);
+                return new ApprovedSuggestion(suggestion, draft.Id, draft.Version, created);
             })
-            .WithSummary("Approve: add the field's name as a vocabulary term to a draft of the concept's domain playbook.");
+            .WithSummary("Approve: add the field's name as a vocabulary term to a draft of the concept's domain playbook; with create, draft a new concept or attribute.");
 
         group.MapPost("/{id:long}/reject", (
                 long id, RejectSuggestionRequest? body, SuggestionStore store, [FromHeader(Name = ApiErrors.UserHeader)] string? user) =>

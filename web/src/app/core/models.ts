@@ -357,4 +357,5 @@ export interface ApprovedSuggestion {
   suggestion: Suggestion;
   playbookId: string;
   version: string;
+  created?: boolean;
 }
