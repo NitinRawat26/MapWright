@@ -22,6 +22,21 @@
       </div>
     }
 
+    @if (m.aiPass; as ai) {
+      <div class="ai-pass" data-testid="ai-pass">
+        <div>
+          AI ({{ ai.provider }}, capped at {{ ai.maxConfidence }}%) suggested sources for {{ ai.suggestedRows?.length ?? 0 }} row(s);
+          {{ ai.unmatched?.length ?? 0 }} target field(s) were still unmatched.
+        </div>
+        @if (ai.unmatched?.length) {
+          <div class="muted">Still unmatched: <span class="mono" data-testid="ai-unmatched">{{ ai.unmatched?.join(', ') }}</span></div>
+        }
+        @for (w of ai.warnings ?? []; track $index) {
+          <div class="warn-text" data-testid="ai-warning">{{ w }}</div>
+        }
+      </div>
+    }
+
     <mat-tab-group animationDuration="0ms" (selectedIndexChange)="$event === 3 && loadReviews()">
       <mat-tab label="Rows">
         <div class="tab">

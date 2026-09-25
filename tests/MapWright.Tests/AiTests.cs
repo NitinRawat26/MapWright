@@ -469,6 +469,11 @@ public sealed class AiMappingTests
         Assert.StartsWith("AI suggestion (fake/fake-model)", row.Reasoning);
 
         Assert.Contains("/UnderwritingRequest/Merchant/WebsiteUrl", result.Unresolved);
+        var pass = Assert.IsType<AiPass>(result.Document.AiPass);
+        Assert.Equal(("fake/fake-model", AiFieldAssistant.DefaultMaxConfidence), (pass.Provider, pass.MaxConfidence));
+        Assert.Equal(result.Suggested, pass.SuggestedRows);
+        Assert.Equal(result.Unresolved, pass.Unmatched);
+        Assert.Empty(pass.Warnings);
         Assert.Equal(MappingType.Unmapped, result.Document.Row("/UnderwritingRequest/Merchant/WebsiteUrl").Type);
         Assert.DoesNotContain(result.Document.OrphanSourceFields, o => o.Field.Path == "$.account.incorporationDate");
         Assert.Equal(Playbooks.Mappings.Where(m => m.Type != MappingType.Unmapped), result.Document.Mappings.Where(m => m.Type != MappingType.Unmapped && m.Id != row.Id));
@@ -491,6 +496,7 @@ public sealed class AiMappingTests
         var result = await Pair(ai);
 
         Assert.Equal(2, result.Warnings.Count);
+        Assert.Equal(result.Warnings, result.Document.AiPass!.Warnings);
         Assert.Equal(Playbooks.Row("/UnderwritingRequest/Merchant/TaxId/Number"), result.Document.Row("/UnderwritingRequest/Merchant/TaxId/Number"));
         Assert.Equal(MappingType.Unmapped, result.Document.Row("/UnderwritingRequest/Merchant/YearsInBusiness").Type);
         var many = result.Document.Row("/UnderwritingRequest/Merchant/WebsiteUrl");
@@ -508,6 +514,7 @@ public sealed class AiMappingTests
 
         Assert.Empty(ai.Prompts);
         Assert.Same(complete, result.Document);
+        Assert.Null(result.Document.AiPass);
     }
 }
 

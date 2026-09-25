@@ -423,7 +423,7 @@ curl -X POST localhost:5080/api/playbooks -H 'X-MapWright-User: ana' -H 'Content
 | `GET` / `PUT` / `DELETE /api/profiles/{id}` | Get, store (profile JSON, e.g. from the CLI) or delete a profile |
 | `POST /api/profiles/{id}/detect` | Which business concept the published playbooks recognise in each field |
 | `GET /api/mappings` | List mappings |
-| `POST /api/mappings` | Generate a mapping: `{ "source": "<profile id>", "target": "<profile id>", "id": "…", "title": "…", "replace": false }` |
+| `POST /api/mappings` | Generate a mapping: `{ "source": "<profile id>", "target": "<profile id>", "id": "…", "title": "…", "replace": false, "useAi": false }`. With `useAi`, the mapping's `aiPass` gives the provider, the cap, the rows AI filled in (`suggestedRows`), the target fields still unmatched (`unmatched`) and the AI's `warnings`; it is stored with the mapping |
 | `GET` / `PUT` / `DELETE /api/mappings/{id}` | Get, store (mapping JSON) or delete a mapping |
 | `GET /api/mappings/{id}/summary` | Coverage, confidence bands, review status and validation counts |
 | `GET /api/mappings/{id}/export/{xlsx\|csv\|html}` | Download the mapping document |

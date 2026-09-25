@@ -27,6 +27,22 @@ public sealed record MappingDocument
     public IReadOnlyList<Finding> Findings { get; init; } = [];
     public IReadOnlyList<ValidationRun> ValidationRuns { get; init; } = [];
     public IReadOnlyList<ChangeLogEntry> ChangeLog { get; init; } = [];
+
+    /// <summary>What the AI pass reported when the mapping was generated with AI; absent without one.</summary>
+    public AiPass? AiPass { get; init; }
+}
+
+public sealed record AiPass
+{
+    /// <summary>"provider/model" that answered.</summary>
+    public required string Provider { get; init; }
+    public required int MaxConfidence { get; init; }
+    /// <summary>Ids of the rows the AI filled in.</summary>
+    public IReadOnlyList<string> SuggestedRows { get; init; } = [];
+    /// <summary>Target paths still unmapped after the AI pass.</summary>
+    public IReadOnlyList<string> Unmatched { get; init; } = [];
+    /// <summary>Answers that were ignored, e.g. unknown fields or an unreadable reply.</summary>
+    public IReadOnlyList<string> Warnings { get; init; } = [];
 }
 
 public sealed record SystemRef

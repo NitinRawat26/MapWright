@@ -49,3 +49,16 @@ tr.selected {
   min-height: 280px;
   box-sizing: border-box;
 }
+
+.ai-pass {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--mat-sys-outline-variant, #ccc);
+  display: grid;
+  gap: 4px;
+}
+
+.warn-text {
+  color: var(--mat-sys-error, #b3261e);
+}

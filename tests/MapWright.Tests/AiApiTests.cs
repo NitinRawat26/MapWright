@@ -127,6 +127,18 @@ public sealed class AiApiTests
         var row = document.Mappings.Single(m => m.Target.Path == "/UnderwritingRequest/Merchant/EstablishedDate");
         Assert.Equal(("$.account.incorporationDate", 70, ReviewStatus.NeedsReview), (row.Sources.Single().Path, row.ConfidencePercent, row.Review.Status));
         Assert.Contains(row.Evidence, e => e.Kind == EvidenceKind.AiSuggestion);
+
+        var pass = Assert.IsType<AiPass>(document.AiPass);
+        Assert.Equal([row.Id], pass.SuggestedRows);
+        Assert.Equal(document.Mappings.Where(m => m.Type == MappingType.Unmapped).Select(m => m.Target.Path), pass.Unmatched);
+        Assert.NotEmpty(pass.Unmatched);
+        var stored = MappingSpecSerializer.Deserialize(await (await client.GetAsync("/api/mappings/sales-alpha__uw-core")).Content.ReadAsStringAsync()).AiPass!;
+        Assert.Equal(pass.Provider, stored.Provider);
+        Assert.Equal(pass.SuggestedRows, stored.SuggestedRows);
+        Assert.Equal(pass.Unmatched, stored.Unmatched);
+
+        var plain = await client.Post("/api/mappings", new { source = "sales-alpha", target = "uw-core", id = "plain" });
+        Assert.DoesNotContain("aiPass", await plain.Content.ReadAsStringAsync(), StringComparison.Ordinal);
     }
 
     [Fact]

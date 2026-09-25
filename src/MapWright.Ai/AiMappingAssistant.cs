@@ -105,15 +105,24 @@ public sealed class AiMappingAssistant(IAiProvider provider, int maxConfidence =
         }
 
         var nowUsed = rows.SelectMany(m => m.Sources).Select(f => f.Path).ToHashSet(StringComparer.Ordinal);
+        List<string> unresolved = [.. rows.Where(m => m.Type == MappingType.Unmapped).Select(m => m.Target.Path)];
         return new()
         {
             Document = document with
             {
                 Mappings = rows,
                 OrphanSourceFields = [.. document.OrphanSourceFields.Where(o => !nowUsed.Contains(o.Field.Path))],
+                AiPass = new()
+                {
+                    Provider = $"{reply.Provider}/{reply.Model}",
+                    MaxConfidence = maxConfidence,
+                    SuggestedRows = suggested,
+                    Unmatched = unresolved,
+                    Warnings = warnings,
+                },
             },
             Suggested = suggested,
-            Unresolved = [.. rows.Where(m => m.Type == MappingType.Unmapped).Select(m => m.Target.Path)],
+            Unresolved = unresolved,
             Warnings = warnings,
         };
     }

@@ -297,6 +297,7 @@ export interface MappingDocument {
   orphanSourceFields?: { field: FieldDescriptor; suggestedResolution?: string }[];
   findings?: { id: string; kind: string; description: string; mappingIds?: string[]; sources?: string[]; resolution?: string }[];
   validationRuns?: ValidationRun[];
+  aiPass?: { provider: string; maxConfidence: number; suggestedRows?: string[]; unmatched?: string[]; warnings?: string[] };
 }
 
 export interface MappingSummary {
