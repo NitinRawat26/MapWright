@@ -31,6 +31,9 @@ public static class MappingGenerator
         var builder = new MappingBuilder(RecognisedField.From(source, library), library, options.ConfidencePolicy);
         var targets = RecognisedField.From(target, library);
         var mappings = targets.Select((t, i) => builder.Map(t, $"M{i + 1:000}")).ToList();
+        var used = mappings.SelectMany(m => m.Sources).Select(s => s.Path).ToHashSet(StringComparer.Ordinal);
+        var orphans = builder.Sources.Where(s => !used.Contains(s.Path)).Select(Orphan).ToList();
+        var findings = builder.Findings().Concat(ProfileFindings(source, target, mappings)).Select((f, i) => f with { Id = $"F{i + 1:000}" }).ToList();
 
         var createdAt = options.CreatedAt ?? DateTimeOffset.UtcNow;
         var usedPlaybooks = library.Active
@@ -52,6 +55,8 @@ public static class MappingGenerator
             Inputs = [.. Inputs(source, SystemSide.Source), .. Inputs(target, SystemSide.Target)],
             Playbooks = usedPlaybooks,
             Mappings = mappings,
+            OrphanSourceFields = orphans,
+            Findings = findings,
             ChangeLog =
             [
                 new()
@@ -63,6 +68,34 @@ public static class MappingGenerator
                 },
             ],
         };
+    }
+
+    private static OrphanSourceField Orphan(RecognisedField field) => new()
+    {
+        Field = Describe(field.Field, field.Repeats),
+        SuggestedResolution = field.Detection is { } d
+            ? $"Recognised as {d.BusinessConcept} by {d.Playbook}, but the target has no field for it; confirm it is not needed."
+            : "No target field uses it; confirm it is not needed by the target.",
+    };
+
+    /// <summary>Profile conflicts (e.g. samples disagreeing on a type) on fields the mapping uses.</summary>
+    private static IEnumerable<Finding> ProfileFindings(SystemProfile source, SystemProfile target, IReadOnlyList<FieldMapping> mappings)
+    {
+        var conflicts = new[] { ProfileFindingKind.TypeConflict, ProfileFindingKind.KindConflict, ProfileFindingKind.AmbiguousDateFormat, ProfileFindingKind.MixedFormats };
+        return new[] { source, target }
+            .SelectMany(p => p.Findings.Where(f => conflicts.Contains(f.Kind) && f.Path is not null).Select(f => (Profile: p, Finding: f)))
+            .Select(x => (x.Profile, x.Finding, Ids: mappings
+                .Where(m => m.Target.Path == x.Finding.Path || m.Sources.Any(s => s.Path == x.Finding.Path))
+                .Select(m => m.Id).ToList()))
+            .Where(x => x.Ids.Count > 0)
+            .Select(x => new Finding
+            {
+                Id = "",
+                Kind = FindingKind.Conflict,
+                Description = $"{x.Profile.System} {x.Finding.Path}: {x.Finding.Message}",
+                MappingIds = x.Ids,
+                Sources = x.Finding.Inputs,
+            });
     }
 
     public static FieldDescriptor Describe(ProfileField field, bool repeats = false) => new()

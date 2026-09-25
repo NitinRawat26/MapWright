@@ -14,6 +14,10 @@ public sealed record RecognisedField
     /// <summary>The field or one of its ancestors is a list, so the field can hold several values per payload.</summary>
     public bool Repeats { get; init; }
 
+    /// <summary>The nearest list (the field itself or an ancestor) and how the playbooks recognised it, e.g. $.owners → Principal.</summary>
+    public string? ListPath { get; init; }
+    public DetectionResult? ListDetection { get; init; }
+
     public string Path => Field.Path;
 
     public IReadOnlyList<string> Values => [.. Field.AllowedValues.Concat(Field.ObservedValues).Distinct(StringComparer.Ordinal)];
@@ -22,28 +26,34 @@ public sealed record RecognisedField
     public static IReadOnlyList<RecognisedField> From(SystemProfile profile, PlaybookLibrary library)
     {
         var byPath = profile.Fields.ToDictionary(f => f.Path, StringComparer.Ordinal);
+        var contexts = profile.Fields.Zip(FieldContext.FromProfile(profile)).ToDictionary(p => p.First.Path, p => p.Second, StringComparer.Ordinal);
         return [.. profile.Fields
-            .Zip(FieldContext.FromProfile(profile))
-            .Where(p => p.First.Kind == FieldNodeKind.Value)
-            .Select(p => new RecognisedField
+            .Where(f => f.Kind == FieldNodeKind.Value)
+            .Select(f =>
             {
-                Field = p.First,
-                Context = p.Second,
-                Detection = library.Detect(p.Second),
-                Repeats = Repeating(p.First, byPath),
+                var list = NearestList(f, byPath);
+                return new RecognisedField
+                {
+                    Field = f,
+                    Context = contexts[f.Path],
+                    Detection = library.Detect(contexts[f.Path]),
+                    Repeats = list is not null,
+                    ListPath = list?.Path,
+                    ListDetection = list is null ? null : library.Detect(contexts[list.Path]),
+                };
             })];
     }
 
-    private static bool Repeating(ProfileField field, Dictionary<string, ProfileField> byPath)
+    private static ProfileField? NearestList(ProfileField field, Dictionary<string, ProfileField> byPath)
     {
         for (ProfileField? current = field; current is not null; current = current.ParentPath is { } parent ? byPath.GetValueOrDefault(parent) : null)
         {
             if (current.Cardinality == Cardinality.Array)
             {
-                return true;
+                return current;
             }
         }
 
-        return false;
+        return null;
     }
 }

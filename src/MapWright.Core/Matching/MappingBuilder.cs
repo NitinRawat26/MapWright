@@ -14,13 +14,27 @@ internal sealed class MappingBuilder(IReadOnlyList<RecognisedField> sources, Pla
         policy.HighThreshold,
         library.Active.Select(p => p.Process).OfType<ProcessDefinition>().Select(p => p.Thresholds.AutoAcceptAt).DefaultIfEmpty(new ProcessThresholds().AutoAcceptAt).Max());
 
+    private readonly List<(FindingKind Kind, string Key, string Description, string MappingId, string? Source)> _findings = [];
+
     public IReadOnlyList<RecognisedField> Sources => sources;
 
     public FieldMapping Map(RecognisedField target, string id)
     {
-        var draft = ByConcept(target) ?? ByDerivation(target) ?? ByCondition(target) ?? Unmapped(target);
+        var draft = ByConcept(target) ?? ByDerivation(target) ?? ByCondition(target) ?? ByName(target) ?? Unmapped(target);
         return Finish(id, target, draft);
     }
+
+    /// <summary>Assumptions and conflicts noted while mapping; findings about the same thing are merged.</summary>
+    public IEnumerable<Finding> Findings() => _findings
+        .GroupBy(f => (f.Kind, f.Key))
+        .Select((g, i) => new Finding
+        {
+            Id = $"F{i + 1:000}",
+            Kind = g.Key.Kind,
+            Description = g.First().Description,
+            MappingIds = [.. g.Select(f => f.MappingId).Distinct(StringComparer.Ordinal)],
+            Sources = [.. g.Select(f => f.Source).OfType<string>().Distinct(StringComparer.Ordinal)],
+        });
 
     // ------------------------------------------------------------ concept pairing
 
@@ -34,7 +48,7 @@ internal sealed class MappingBuilder(IReadOnlyList<RecognisedField> sources, Pla
         var candidates = sources
             .Where(s => s.Detection is { } d && d.BusinessConcept == wanted.BusinessConcept && QualifiersAgree(d, wanted))
             .OrderByDescending(s => s.Detection!.Score)
-            .ThenByDescending(s => NameSimilarity(s.Field.Name, target.Field.Name))
+            .ThenByDescending(s => NameMatcher.Similarity(s.Field.Name, target.Field.Name))
             .ToList();
 
         return candidates.Count == 0 ? null : Direct(target, candidates[0], candidates.Skip(1));
@@ -66,8 +80,8 @@ internal sealed class MappingBuilder(IReadOnlyList<RecognisedField> sources, Pla
         }
 
         draft.Transformation = Transform(source, target, draft);
-        AddDetectionReview(draft, "Source", s);
-        AddDetectionReview(draft, "Target", t);
+        AddDetectionReview(draft, "Source", source);
+        AddDetectionReview(draft, "Target", target);
         AddRepeatRisk(draft, source, target);
         draft.Evidence.AddRange(PlaybookEvidence(source, "Source"));
         draft.Evidence.AddRange(PlaybookEvidence(target, "Target"));
@@ -81,7 +95,7 @@ internal sealed class MappingBuilder(IReadOnlyList<RecognisedField> sources, Pla
         var from = source.Field;
         var to = target.Field;
 
-        if (ValueMapFor(target.Detection!) is { } map && source.Values.Count > 0
+        if (target.Detection is { } detection && ValueMapFor(detection) is { } map && source.Values.Count > 0
             && ValueMap(map, source, target, draft) is { Count: > 0 } entries
             && entries.Any(e => e.SourceValue != e.TargetValue))
         {
@@ -203,10 +217,34 @@ internal sealed class MappingBuilder(IReadOnlyList<RecognisedField> sources, Pla
         {
             draft.Loss(RiskLevel.High, "Source repeats (one value per list item) but the target holds a single value; decide which item to send.");
         }
+
+        if (source.Repeats && target.Repeats)
+        {
+            AddListPairing(draft, source, target);
+        }
     }
 
-    private void AddDetectionReview(Draft draft, string side, DetectionResult detection)
+    /// <summary>Items of the source list become items of the target list; a related-term list (Officers vs Owners) needs review.</summary>
+    private static void AddListPairing(Draft draft, RecognisedField source, RecognisedField target)
     {
+        var lists = new[] { source.ListDetection, target.ListDetection }.OfType<DetectionResult>().ToList();
+        var concept = lists.Select(l => l.BusinessConcept).FirstOrDefault();
+        var description = $"Each item of source list {source.ListPath} becomes an item of target list {target.ListPath}"
+            + (concept is null ? "." : $" (both {concept}).");
+        var questions = lists.Where(l => l.RequiresReview).SelectMany(l => l.Questions).Distinct(StringComparer.Ordinal).ToList();
+        if (lists.Any(l => l.RequiresReview))
+        {
+            draft.Review.Add($"List pairing {source.ListPath} → {target.ListPath} needs review.");
+            draft.Questions.AddRange(questions);
+            description += questions.Count == 0 ? "" : $" {string.Join(" ", questions)}";
+        }
+
+        draft.Findings.Add((FindingKind.Assumption, $"{source.ListPath}|{target.ListPath}", description, lists.Select(l => l.Playbook).FirstOrDefault()));
+    }
+
+    private void AddDetectionReview(Draft draft, string side, RecognisedField field)
+    {
+        var detection = field.Detection!;
         if (!detection.RequiresReview)
         {
             return;
@@ -214,6 +252,12 @@ internal sealed class MappingBuilder(IReadOnlyList<RecognisedField> sources, Pla
 
         var rules = _playbooks.GetValueOrDefault(detection.Playbook)?.Domain?.Confidence ?? new();
         draft.Review.Add($"{side} match needs review ({string.Join(", ", detection.Triggers.Where(rules.ReviewTriggers.Contains))}).");
+        if (detection.Triggers.Contains(ReviewTrigger.QualifierConflict))
+        {
+            draft.Findings.Add((FindingKind.Conflict, $"{side}|{field.Path}",
+                $"{side} field {field.Path}: its name and its sample values disagree on a qualifier; read as {detection.BusinessConcept}{Qualifiers(detection)}.",
+                detection.Playbook));
+        }
     }
 
     private static IEnumerable<Evidence> PlaybookEvidence(RecognisedField field, string side)
@@ -276,6 +320,7 @@ internal sealed class MappingBuilder(IReadOnlyList<RecognisedField> sources, Pla
         if (rule.Note is { } note)
         {
             draft.Reasons.Add($"Assumption: {note}");
+            draft.Findings.Add((FindingKind.Assumption, $"{target.Path}|{rule.Id}", $"{target.Path} uses rule {rule.Id}: {note}", $"{wanted.Playbook} {rule.Id}"));
         }
 
         var others = applicable.Where(c => c.Rule != rule).Select(c => $"{c.Rule.Id} ({c.Rule.Expression ?? c.Rule.Description})").ToList();
@@ -366,6 +411,7 @@ internal sealed class MappingBuilder(IReadOnlyList<RecognisedField> sources, Pla
         draft.Reasons.Add($"No source field is {wanted.BusinessConcept}; {wanted.Playbook} infers it with conditional rule {rule.Id} from "
             + $"{string.Join(" and ", inputs.Select(i => i.Detection!.BusinessConcept))}.");
         draft.Review.Add($"Conditional rule {rule.Id} infers the value; confirm the exceptions with the business.");
+        draft.Findings.Add((FindingKind.Assumption, $"{target.Path}|{rule.Id}", $"{target.Path} is inferred, not sent: {rule.Description}", $"{wanted.Playbook} {rule.Id}"));
         draft.Evidence.Add(new() { Kind = EvidenceKind.Playbook, Reference = wanted.Playbook, Detail = $"Condition {rule.Id}: {draft.Transformation.Condition}" });
         AddInputs(draft, inputs, target);
         return draft;
@@ -404,13 +450,13 @@ internal sealed class MappingBuilder(IReadOnlyList<RecognisedField> sources, Pla
     {
         foreach (var input in inputs)
         {
-            AddDetectionReview(draft, "Source", input.Detection!);
+            AddDetectionReview(draft, "Source", input);
             AddRepeatRisk(draft, input, target);
             draft.Evidence.AddRange(PlaybookEvidence(input, "Source"));
             draft.Questions.AddRange(input.Detection!.Questions);
         }
 
-        AddDetectionReview(draft, "Target", target.Detection!);
+        AddDetectionReview(draft, "Target", target);
         draft.Evidence.AddRange(PlaybookEvidence(target, "Target"));
         draft.Questions.AddRange(target.Detection!.Questions);
     }
@@ -418,6 +464,44 @@ internal sealed class MappingBuilder(IReadOnlyList<RecognisedField> sources, Pla
     private DomainDefinition? DomainOf(DetectionResult detection) => _playbooks.GetValueOrDefault(detection.Playbook)?.Domain;
 
     private static bool Same(string? a, string? b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+
+    // ------------------------------------------------------------ name-only fallback
+
+    /// <summary>Best field-name match for targets no playbook rule covers; never auto-accepted.</summary>
+    private Draft? ByName(RecognisedField target)
+    {
+        var best = sources
+            .Where(s => s.Detection is null || target.Detection is null)
+            .Select(s => (Source: s, Score: NameMatcher.Score(s.Field, target.Field)))
+            .Where(c => c.Score >= NameMatcher.MinimumScore)
+            .OrderByDescending(c => c.Score)
+            .ThenByDescending(c => NameMatcher.Similarity(ParentName(c.Source), ParentName(target)))
+            .FirstOrDefault();
+        if (best.Source is not { } source)
+        {
+            return null;
+        }
+
+        var draft = new Draft
+        {
+            Type = MappingType.OneToOne,
+            Sources = [source],
+            Confidence = Math.Min(best.Score, NameMatcher.MaximumConfidence),
+            Playbook = source.Detection?.Playbook ?? target.Detection?.Playbook,
+            Concept = source.Detection?.BusinessConcept ?? target.Detection?.BusinessConcept,
+        };
+
+        draft.Reasons.Add($"Matched by field name only ({source.Field.Name} ~ {target.Field.Name}); no playbook rule links the two fields.");
+        draft.Review.Add("Name-only match; confirm the meaning, then add the terms to a playbook.");
+        draft.Transformation = Transform(source, target, draft);
+        AddRepeatRisk(draft, source, target);
+        draft.Evidence.Add(new() { Kind = EvidenceKind.NameSimilarity, Reference = $"{source.Field.Name} ~ {target.Field.Name}", Detail = $"Name score {best.Score}" });
+        draft.Evidence.AddRange(PlaybookEvidence(source, "Source"));
+        draft.Evidence.AddRange(PlaybookEvidence(target, "Target"));
+        return draft;
+    }
+
+    private static string ParentName(RecognisedField field) => field.Context.Ancestors.FirstOrDefault() ?? "";
 
     // ------------------------------------------------------------ unmapped
 
@@ -436,6 +520,11 @@ internal sealed class MappingBuilder(IReadOnlyList<RecognisedField> sources, Pla
         {
             draft.Reasons.Add("No playbook recognises this field and no source field matches it.");
             draft.Resolution = "Confirm the field's meaning, then add a playbook term, agree a default or ask the source team.";
+        }
+
+        if (target.Field.ObservedValues is [var only] && target.Field.SeenIn.Count > 1 && !target.Field.Sensitive)
+        {
+            draft.Resolution += $" Every target sample holds '{only}'; if it is fixed for this source system, map it as a constant.";
         }
 
         return draft;
@@ -459,11 +548,12 @@ internal sealed class MappingBuilder(IReadOnlyList<RecognisedField> sources, Pla
         var needsReview = draft.Type == MappingType.Unmapped || draft.Review.Count > 0;
         if (draft.Type != MappingType.Unmapped && draft.Review.Count > 0)
         {
-            draft.Reasons.Add($"Needs review: {string.Join(" ", draft.Review)}");
+            draft.Reasons.Add($"Needs review: {string.Join(" ", draft.Review.Distinct(StringComparer.Ordinal))}");
         }
 
         var sensitivity = Sensitivity(target, draft.Sources);
 
+        _findings.AddRange(draft.Findings.Select(f => (f.Kind, f.Key, f.Description, id, f.Source)));
         var questions = draft.Questions.Distinct(StringComparer.Ordinal).ToList();
         return new()
         {
@@ -555,13 +645,6 @@ internal sealed class MappingBuilder(IReadOnlyList<RecognisedField> sources, Pla
     internal static string Qualifiers(DetectionResult detection) =>
         detection.Qualifiers.Count == 0 ? "" : $" [{string.Join(", ", detection.Qualifiers.Select(q => $"{q.Key}={q.Value}"))}]";
 
-    /// <summary>Share of name tokens the two names have in common (0–1).</summary>
-    internal static double NameSimilarity(string a, string b)
-    {
-        var left = NameTokens.Split(a).ToHashSet(StringComparer.Ordinal);
-        var right = NameTokens.Split(b).ToHashSet(StringComparer.Ordinal);
-        return left.Count + right.Count == 0 ? 0 : (double)left.Intersect(right).Count() / left.Union(right).Count();
-    }
 }
 
 /// <summary>A mapping row under construction.</summary>
@@ -580,6 +663,7 @@ internal sealed class Draft
     public List<string> Review { get; } = [];
     public List<string> Questions { get; } = [];
     public List<Evidence> Evidence { get; } = [];
+    public List<(FindingKind Kind, string Key, string Description, string? Source)> Findings { get; } = [];
 
     public void Loss(RiskLevel level, string note)
     {

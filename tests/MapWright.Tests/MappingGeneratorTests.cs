@@ -278,3 +278,124 @@ public sealed class MappingRuleTests
         Assert.NotEqual(TransformationType.UnitConversion, row.Transformation.Type);
     }
 }
+
+public sealed class MappingCompletionTests
+{
+    private static readonly MappingDocument SalesToUw = SampleProfiles.Map(SampleProfiles.Load("sales-alpha"), SampleProfiles.Load("uw-core"));
+
+    [Fact]
+    public void Fields_no_playbook_covers_fall_back_to_name_matching_and_need_review()
+    {
+        var legal = SalesToUw.Row("/UnderwritingRequest/Merchant/LegalName");
+        Assert.Equal("$.account.legalName", Assert.Single(legal.Sources).Path);
+        Assert.Equal(70, legal.ConfidencePercent);
+        Assert.Equal(ReviewStatus.NeedsReview, legal.Review.Status);
+        Assert.Contains(legal.Evidence, e => e.Kind == EvidenceKind.NameSimilarity);
+
+        var dba = SalesToUw.Row("/UnderwritingRequest/Merchant/DoingBusinessAs");
+        Assert.Equal("$.account.dbaName", Assert.Single(dba.Sources).Path);
+        Assert.Equal(TransformationType.Rename, dba.Transformation.Type);
+        Assert.Equal(60, dba.ConfidencePercent);
+
+        Assert.All(
+            SalesToUw.Mappings.Where(m => m.Evidence.Any(e => e.Kind == EvidenceKind.NameSimilarity)),
+            m => Assert.True(m.ConfidencePercent <= NameMatcher.MaximumConfidence));
+    }
+
+    [Theory]
+    [InlineData("legalName", "LegalName", 70)]
+    [InlineData("dbaName", "DoingBusinessAs", 60)]
+    [InlineData("incorporationDate", "requestId", 0)]
+    [InlineData("merchantPhone", "phone", 54)]
+    public void Name_scores(string source, string target, int expected)
+    {
+        static ProfileField Field(string name) => new()
+        {
+            Path = $"$.{name}",
+            Name = name,
+            Kind = FieldNodeKind.Value,
+            DataType = FieldDataType.String,
+            Cardinality = Cardinality.Single,
+        };
+
+        Assert.Equal(expected, NameMatcher.Score(Field(source), Field(target)));
+    }
+
+    [Fact]
+    public void Unused_source_fields_are_orphans()
+    {
+        var orphans = SalesToUw.OrphanSourceFields.Select(o => o.Field.Path).ToList();
+
+        Assert.Contains("$.account.salesRepId", orphans);
+        Assert.Contains("$.owners[*].email", orphans);
+        Assert.DoesNotContain("$.account.taxId", orphans);
+        Assert.DoesNotContain("$.processing.motoPercent", orphans);
+        Assert.StartsWith("Recognised as Principal.Email", SalesToUw.OrphanSourceFields.Single(o => o.Field.Path == "$.owners[*].email").SuggestedResolution);
+    }
+
+    [Fact]
+    public void List_pairing_on_a_related_term_is_an_assumption_every_child_row_reviews()
+    {
+        var officerRows = SalesToUw.Mappings.Where(m => m.Target.Path.StartsWith("/UnderwritingRequest/Officers/Officer/", StringComparison.Ordinal) && m.Type != MappingType.Unmapped).ToList();
+        var finding = Assert.Single(SalesToUw.Findings, f => f.Description.StartsWith("Each item of source list $.owners", StringComparison.Ordinal));
+
+        Assert.Equal(FindingKind.Assumption, finding.Kind);
+        Assert.Equal(officerRows.Select(m => m.Id), finding.MappingIds);
+        Assert.Contains("beneficial owners", finding.Description);
+        Assert.All(officerRows, m => Assert.Equal(ReviewStatus.NeedsReview, m.Review.Status));
+        Assert.All(officerRows, m => Assert.Single(m.Reasoning.Split("List pairing").Skip(1)));
+    }
+
+    [Fact]
+    public void Rule_assumptions_and_qualifier_conflicts_become_findings()
+    {
+        Assert.Contains(SalesToUw.Findings, f => f.Kind == FindingKind.Assumption && f.Sources.Contains("domain/processing-volume@1.0.0 VOL-PERIOD-01"));
+        Assert.Contains(SalesToUw.Findings, f => f.Kind == FindingKind.Assumption && f.Sources.Contains("domain/tax-id@1.0.0 TIN-TYPE-01"));
+
+        var conflict = Assert.Single(SalesToUw.Findings, f => f.Kind == FindingKind.Conflict);
+        Assert.Contains("$.owners[*].ownershipPercent", conflict.Description);
+        Assert.Equal([SalesToUw.Row("/UnderwritingRequest/Officers/Officer/OwnershipPct").Id], conflict.MappingIds);
+
+        Assert.Equal(SalesToUw.Findings.Select((_, i) => $"F{i + 1:000}"), SalesToUw.Findings.Select(f => f.Id));
+    }
+
+    [Fact]
+    public void Profile_type_conflicts_on_mapped_fields_become_findings()
+    {
+        var source = SampleProfiles.FromJson("A", """{ "legalName": "Acme" }""", """{ "legalName": 42 }""");
+        var target = SampleProfiles.FromJson("B", """{ "legalName": "Acme" }""");
+
+        var document = SampleProfiles.Map(source, target);
+
+        var conflict = Assert.Single(document.Findings, f => f.Kind == FindingKind.Conflict);
+        Assert.StartsWith("A $.legalName:", conflict.Description);
+        Assert.Equal([document.Row("$.legalName").Id], conflict.MappingIds);
+    }
+
+    [Fact]
+    public void A_target_value_that_never_changes_is_suggested_as_a_constant()
+    {
+        var channel = SalesToUw.Row("/UnderwritingRequest/@sourceChannel");
+
+        Assert.Equal(MappingType.Unmapped, channel.Type);
+        Assert.Contains("Every target sample holds 'SALES_ALPHA'", channel.SuggestedResolution);
+    }
+
+    [Fact]
+    public void Only_high_confidence_rows_without_review_are_auto_accepted()
+    {
+        var policy = SalesToUw.ConfidencePolicy;
+
+        Assert.All(
+            SalesToUw.Mappings.Where(m => m.Review.Status == ReviewStatus.AutoAccepted),
+            m =>
+            {
+                Assert.True(m.ConfidencePercent >= policy.HighThreshold);
+                Assert.Equal(RiskLevel.None, m.Risk.DataLoss);
+                Assert.DoesNotContain("Needs review", m.Reasoning);
+            });
+        Assert.Equal(
+            ["M006", "M017", "M018", "M020", "M021"],
+            SalesToUw.Mappings.Where(m => m.Review.Status == ReviewStatus.AutoAccepted).Select(m => m.Id));
+    }
+}
