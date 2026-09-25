@@ -50,6 +50,31 @@ A system profile is a normalized description of one system's contract, built fro
 JSON or XML sample payloads, JSON Schema, OpenAPI (JSON), XSD, WSDL, field specs (CSV or Excel) and PDF or
 Word (.docx) specifications. All inputs of one system are merged into one profile.
 
+### Data dictionaries
+
+A data dictionary is read like a field spec (CSV with comma, semicolon or tab, or Excel). Besides the field-spec
+headers it recognises:
+
+- **Field column**: `Field Name`, `Attribute Name`, `Element Name`, `Column Name`, `Data Element`, `Property`.
+  A technical column (`API Name`, `Technical Name`, `JSON Field`, `XML Tag`) wins when both are present. A name
+  with spaces (`Legal Name`, `TAX ID (EIN)`) becomes a camelCase field (`legalName`, `taxIdEin`), with a
+  finding so it can be checked.
+- **Parent column**: `Parent`, `Parent Path`, `Group`, `Section`, `Entity`, `Object`, `Record`, `Segment`,
+  `Table`. A plain field name is placed under it: `owners[]` + `name` is `owners[*].name`, `/Request/Merchant` +
+  `Name` is `/Request/Merchant/Name`, `Merchant Details` + `legalName` is `merchantDetails.legalName`. A full
+  path in the field column ignores the parent.
+- **Required**: also `Mandatory Y/N`, `Is Required`, or a `Nullable` column (`N`/`NOT NULL` = required,
+  `Y` = optional). Types such as `VARCHAR(100)`, `CHAR(9)` and `NUMBER(12,2)` give length and scale.
+- **Other columns**: `Business Name`/`Label` (the description when there is none), `Domain Values`,
+  `Permitted Values`, `Code List`, `Width`, `Field Size`, `PII Flag`, `Personal Data`, `Multiplicity` and more.
+- **Several worksheets**: every sheet with a field column is read; sheets without one (cover, change log, code
+  lists) are skipped. With several such sheets, a sheet's name is the parent of its plain field names
+  (`Merchant` + `legalName` is `merchant.legalName`), unless the sheet is named `Sheet1`, `Sheet2`… A parent
+  column wins over the sheet name. Provenance names the sheet: `Sheet 'Owners' row 4`. A field listed on two
+  sheets is an error.
+- Sample: `samples/systems/sales-gamma/dictionary` has the same dictionary as Excel (three sheets) and CSV,
+  with a sample in `samples/systems/sales-gamma/samples`.
+
 ### PDF and Word specifications
 
 - **Field tables are read by rules.** A table whose header row has a path column (the same names as a field
@@ -99,6 +124,7 @@ seen in, and the source of each attribute.
 | XSD | `.xsd`, or an `xs:schema` root | One global element: sequences, `xs:all`, choices (optional), groups, attributes and attribute groups, named and inline types, extensions, `simpleContent` (`/text()`), `minOccurs`/`maxOccurs`, enumerations, length, range and `fractionDigits` facets, `fixed`, annotations |
 | WSDL 1.1 / 2.0 | `.wsdl`, or a WSDL root | The input element of one document/literal operation, read from the XSD in `types` |
 | Field spec | `.csv`, `.xlsx` | One row per field. Only a path column is required (`Path`, `Field Path`, `XPath`, `JSON Path`, `Field`, `Element`). Also recognised: type (`String(20)`, `Decimal(12,2)`, `Date`…), required/mandatory (`Y`, `M`, `C` = conditional…), format (`YYYY-MM-DD`), min/max length, min/max value, scale, allowed values (`CORP = Corporation; LLC = …`), description, sensitive/PII and repeats. `owners[].ssn` and `/uw:Merchant/uw:Name` style paths are normalized |
+| Data dictionary | `.csv`, `.xlsx` | Read like a field spec, with the column names data dictionaries use (see below) |
 
 - **`--root`** picks the XSD root element, the WSDL operation, or the OpenAPI `operationId`, `"POST /path"` or
   schema name, when a contract has more than one. The profiled part is recorded in the input's notes.

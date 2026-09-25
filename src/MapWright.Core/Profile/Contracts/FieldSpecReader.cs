@@ -6,9 +6,10 @@ using MapWright.Core.Spec;
 namespace MapWright.Core.Profile.Contracts;
 
 /// <summary>
-/// Reads a field specification table (CSV, or rows from a spreadsheet) with one row per field. Only a path
-/// column is required; type, required, format, length, range, scale, allowed values, description, sensitive and
-/// repeats columns are recognised by common header names.
+/// Reads a field specification or data dictionary table (CSV, or rows from a spreadsheet) with one row per
+/// field. Only a path column is required; type, required or nullable, format, length, range, scale, allowed
+/// values, description or business name, sensitive, repeats and parent columns are recognised by common header
+/// names. A field name with spaces (<c>Legal Name</c>) is read as <c>legalName</c>.
 /// </summary>
 public static partial class FieldSpecReader
 {
@@ -27,24 +28,32 @@ public static partial class FieldSpecReader
         Description,
         Sensitive,
         Repeats,
+        Parent,
+        Label,
+        Nullable,
     }
 
     private static readonly (Column Column, string[] Names)[] Headers =
     [
-        (Column.Path, ["path", "fieldpath", "xpath", "jsonpath", "elementpath", "field", "element"]),
-        (Column.Type, ["type", "datatype", "fieldtype"]),
-        (Column.Required, ["required", "mandatory", "optionality", "requirement", "req", "mo", "usage"]),
-        (Column.Format, ["format", "dateformat"]),
+        (Column.Path, ["path", "fieldpath", "xpath", "jsonpath", "elementpath", "apiname", "apifield", "apifieldname", "technicalname", "technicalfieldname", "jsonfield", "jsonname", "xmlelement", "xmltag", "tagname", "propertyname", "property", "attributename", "elementname", "dataelement", "dataelementname", "columnname", "fieldname", "field", "element", "attribute"]),
+        (Column.Type, ["type", "datatype", "fieldtype", "dtype", "dbtype", "sqltype", "columntype", "valuetype", "datatypelength"]),
+        (Column.Required, ["required", "mandatory", "optionality", "requirement", "req", "mo", "usage", "mandatoryyn", "requiredyn", "isrequired", "ismandatory", "mandatoryoptional"]),
+        (Column.Format, ["format", "dateformat", "displayformat", "mask"]),
         (Column.MinLength, ["minlength", "minlen"]),
-        (Column.MaxLength, ["maxlength", "maxlen", "length", "size", "fieldlength"]),
-        (Column.Min, ["min", "minvalue", "minimum"]),
-        (Column.Max, ["max", "maxvalue", "maximum"]),
-        (Column.Scale, ["scale", "decimals", "decimalplaces"]),
-        (Column.AllowedValues, ["allowedvalues", "validvalues", "values", "enum", "enumeration", "codes", "codevalues", "listofvalues", "lov", "picklist"]),
-        (Column.Description, ["description", "definition", "businessdescription", "notes", "comments", "remarks"]),
-        (Column.Sensitive, ["sensitive", "pii", "sensitivity", "classification", "dataclassification"]),
-        (Column.Repeats, ["repeats", "repeating", "multiple", "cardinality", "occurs", "maxoccurs", "array", "list"]),
+        (Column.MaxLength, ["maxlength", "maxlen", "length", "size", "fieldlength", "maxsize", "fieldsize", "width", "charlength", "characterlength", "maxchars", "len"]),
+        (Column.Min, ["min", "minvalue", "minimum", "minval", "lowerbound"]),
+        (Column.Max, ["max", "maxvalue", "maximum", "maxval", "upperbound"]),
+        (Column.Scale, ["scale", "decimals", "decimalplaces", "decimalscale"]),
+        (Column.AllowedValues, ["allowedvalues", "validvalues", "values", "enum", "enumeration", "codes", "codevalues", "listofvalues", "lov", "picklist", "permittedvalues", "possiblevalues", "domainvalues", "referencevalues", "lookupvalues", "codelist", "validcodes", "acceptablevalues", "domain"]),
+        (Column.Description, ["description", "definition", "businessdescription", "notes", "comments", "remarks", "fielddescription", "businessdefinition", "meaning", "purpose"]),
+        (Column.Sensitive, ["sensitive", "pii", "sensitivity", "classification", "dataclassification", "piiflag", "ispii", "personaldata", "confidentiality", "securityclassification"]),
+        (Column.Repeats, ["repeats", "repeating", "multiple", "cardinality", "occurs", "maxoccurs", "array", "list", "maxoccurrences", "occurrences", "multiplicity", "repeatable", "isarray"]),
+        (Column.Parent, ["parentpath", "parent", "parentfield", "parentelement", "parentobject", "group", "section", "segment", "entity", "entityname", "object", "objectname", "record", "recordtype", "container", "table", "tablename"]),
+        (Column.Label, ["businessname", "label", "displayname", "caption", "businessterm", "fieldlabel"]),
+        (Column.Nullable, ["nullable", "isnullable", "allownull", "allownulls", "null", "nulls"]),
     ];
+
+    private const string PathHeaderExamples = "'Path', 'Field Path', 'XPath', 'JSON Path', 'Field Name', 'Element Name', 'API Name' or 'Column Name'";
 
     public static ContractDocument ReadCsv(string name, string content) =>
         Read(name, Csv(content), ContractDocument.Hash(content));
@@ -62,7 +71,7 @@ public static partial class FieldSpecReader
     /// </summary>
     public static ContractDocument Read(string name, IReadOnlyList<FieldTable> tables, string sha256, InputKind kind)
     {
-        var entries = new List<(string Where, int Row, string Path, PayloadFormat Format, bool RepeatsFromPath, Func<Column, string?> Cell)>();
+        var entries = new List<(string Where, int Row, string Path, PayloadFormat Format, bool RepeatsFromPath, Func<Column, string?> Cell, string? Note)>();
         var found = false;
         foreach (var table in tables)
         {
@@ -89,21 +98,38 @@ public static partial class FieldSpecReader
                     continue;
                 }
 
-                if (group is not null)
+                var where = table.Label is null ? $"Row {r + 1}" : $"{table.Label} row {r + 1}";
+                string? note = null;
+                if (IsLabel(raw))
+                {
+                    if (Identifier(raw) is not { } id)
+                    {
+                        continue;
+                    }
+
+                    note = $"{where}: '{raw}' is a name, not a path; read as '{id}'.";
+                    raw = id;
+                }
+
+                if (Cell(Column.Parent) is { } parent && IsPlainName(raw))
+                {
+                    raw = Join(parent, raw);
+                }
+                else if (group is not null)
                 {
                     raw = $"{group}.{raw.Trim()}";
                 }
 
                 var (path, pathFormat, repeats) = Normalize(raw);
-                entries.Add((table.Label is null ? $"Row {r + 1}" : $"{table.Label} row {r + 1}", r + 1, path, pathFormat, repeats, Cell));
+                entries.Add((where, r + 1, path, pathFormat, repeats, Cell, note));
             }
         }
 
         if (!found)
         {
             throw new ProfileException(tables.Count == 1
-                ? $"Field spec '{name}' has no path column; expected a header such as {string.Join(", ", Headers[0].Names.Select(n => $"'{n}'"))}."
-                : $"'{name}' has no field table; expected a header row with a column such as {string.Join(", ", Headers[0].Names.Select(n => $"'{n}'"))}.");
+                ? $"Field spec '{name}' has no path column; expected a header such as {PathHeaderExamples}."
+                : $"'{name}' has no field table; expected a header row with a column such as {PathHeaderExamples}.");
         }
 
         if (entries.Count == 0)
@@ -129,6 +155,11 @@ public static partial class FieldSpecReader
         entries = [.. entries.Except(skipped)];
         var format = entries[0].Format;
         var builder = new ContractBuilder(name, kind, format);
+        foreach (var entry in entries.Where(e => e.Note is not null))
+        {
+            builder.Finding(ProfileFindingKind.SchemaSimplified, entry.Path, entry.Note!);
+        }
+
         foreach (var extra in skipped)
         {
             builder.Finding(ProfileFindingKind.SchemaSimplified, extra.Path, $"{extra.Where}: listed again; the first definition was used.");
@@ -164,6 +195,11 @@ public static partial class FieldSpecReader
                 (field.Required, var note) = ParseRequired(required);
                 field.Details[ProfileAttribute.Required] = $"{entry.Where}: '{required}'{note}.";
             }
+            else if (cell(Column.Nullable) is { } nullable && (IsYes(nullable, "nullable", "null") || IsNo(nullable)))
+            {
+                field.Required = IsNo(nullable) ? Requirement.Required : Requirement.Optional;
+                field.Details[ProfileAttribute.Required] = $"{entry.Where}: nullable '{nullable}'.";
+            }
 
             field.MinLength = Int(cell(Column.MinLength)) ?? field.MinLength;
             field.MaxLength = Int(cell(Column.MaxLength)) ?? field.MaxLength;
@@ -176,7 +212,7 @@ public static partial class FieldSpecReader
                 field.Details[ProfileAttribute.AllowedValues] = $"{entry.Where}: allowed values.";
             }
 
-            field.Description = cell(Column.Description);
+            field.Description = cell(Column.Description) ?? cell(Column.Label);
             if (cell(Column.Sensitive) is { } sensitive && IsYes(sensitive, "pii", "spi", "sensitive", "confidential", "restricted", "secret"))
             {
                 field.SensitivityReason = $"Marked '{sensitive}' in the field spec.";
@@ -214,6 +250,40 @@ public static partial class FieldSpecReader
     public static string PathOf(string raw) => Normalize(raw).Path;
 
     private static bool IsPlainName(string raw) => raw.Trim() is var text && text.IndexOfAny(['.', '/', '$', '[']) < 0;
+
+    private static bool IsLabel(string raw) => raw.Trim() is var text && !text.StartsWith('$') && !text.StartsWith('/') && text.Any(char.IsWhiteSpace);
+
+    private static string Join(string parent, string name)
+    {
+        var text = parent.Trim();
+        if (text.StartsWith('/') || text.StartsWith('$'))
+        {
+            return text.StartsWith('/') ? $"{text.TrimEnd('/')}/{name.Trim()}" : $"{text.TrimEnd('.')}.{name.Trim()}";
+        }
+
+        var array = text.EndsWith("[]", StringComparison.Ordinal);
+        var segments = (array ? text[..^2] : text).Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(s => s.Any(char.IsWhiteSpace) ? Identifier(s) ?? s : s);
+        return $"{string.Join(".", segments)}{(array ? "[]" : "")}.{name.Trim()}";
+    }
+
+    /// <summary>
+    /// A camelCase identifier for a name such as <c>Legal Name</c> or <c>TAX ID (EIN)</c>: <c>legalName</c>,
+    /// <c>taxIdEin</c>. Null when the text has no letters or starts with a digit.
+    /// </summary>
+    public static string? Identifier(string text)
+    {
+        var words = IdentifierWord().Matches(text).Select(m => m.Value).ToList();
+        if (words.Count == 0 || !char.IsLetter(words[0][0]))
+        {
+            return null;
+        }
+
+        static string Word(string w) => w.Length > 1 && w.All(c => !char.IsLower(c)) ? w.ToLowerInvariant() : w;
+        return string.Concat(words.Select((w, i) => Word(w) is var word && i == 0
+            ? char.ToLowerInvariant(word[0]) + word[1..]
+            : char.ToUpperInvariant(word[0]) + word[1..]));
+    }
 
     private static (string Path, PayloadFormat Format, bool Repeats) Normalize(string raw)
     {
@@ -388,6 +458,8 @@ public static partial class FieldSpecReader
         return IsYes(value, "array", "list", "repeating", "repeats", "multiple", "many", "*", "unbounded");
     }
 
+    private static bool IsNo(string text) => text.Trim().ToLowerInvariant() is "n" or "no" or "false" or "0" or "not null";
+
     private static bool IsYes(string text, params string[] extra) =>
         text.Trim().ToLowerInvariant() is "y" or "yes" or "true" or "1" or "x" || extra.Contains(text.Trim().ToLowerInvariant());
 
@@ -485,6 +557,9 @@ public static partial class FieldSpecReader
 
         return rows;
     }
+
+    [GeneratedRegex(@"[A-Za-z0-9]+")]
+    private static partial Regex IdentifierWord();
 
     [GeneratedRegex(@"\[(\d+|)\]")]
     private static partial Regex IndexPattern();

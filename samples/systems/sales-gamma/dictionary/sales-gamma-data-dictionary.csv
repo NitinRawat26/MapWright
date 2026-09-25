@@ -1,0 +1,12 @@
+Entity;Attribute Name;Business Name;Type;Nullable;Length;Valid Values;Description;PII
+merchant;applicationNumber;Application Number;VARCHAR(20);N;;;Number the sales system gives the application;N
+merchant;legalName;Legal Name;VARCHAR(100);N;;;Registered legal name of the business;N
+merchant;Trading Name;;VARCHAR(100);Y;;;Doing-business-as name;N
+merchant;taxId;Tax ID;CHAR(9);N;;;EIN, or the owner's SSN for a sole proprietor;Y
+merchant;entityType;Entity Type;VARCHAR(4);N;;C=Corporation| L=Limited liability company| S=Sole proprietor;;N
+merchant;monthlyCardVolume;Monthly Card Volume;NUMBER(12,2);N;;;Expected monthly card sales in US dollars;N
+owners[];firstName;;VARCHAR;N;40;;Owner's first name;Y
+owners[];lastName;;VARCHAR;N;40;;Owner's last name;Y
+owners[];ownershipPct;;NUMBER(5,2);N;;;Share of the business the owner holds, 0 to 100;N
+owners[].homeAddress;line1;;VARCHAR;N;60;;Street address;Y
+owners[].homeAddress;postalCode;;VARCHAR;N;10;;ZIP code;Y
