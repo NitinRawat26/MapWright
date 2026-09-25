@@ -1,8 +1,11 @@
+using MapWright.Ai;
+using MapWright.Core;
 using MapWright.Core.Playbooks;
 using MapWright.Core.Profile;
 using MapWright.Core.Spec;
 using MapWright.Output.Renderers;
 using MapWright.Output.Report;
+using System.Text.Json;
 
 namespace MapWright.Cli;
 
@@ -23,7 +26,8 @@ public static class CliApp
                             [--out <profile.json>] [--no-values]
           mapwright playbook validate <playbook|dir>...
           mapwright playbook test <playbook|dir>...
-          mapwright playbook detect <profile.json> [--playbooks <playbook|dir>]...
+          mapwright playbook detect <profile.json> [--playbooks <playbook|dir>]... [--ai ask|yes|no]
+                            [--out <report.json>]
 
         Render options:
           --out <dir>       Output directory (default: directory of the spec)
@@ -40,9 +44,23 @@ public static class CliApp
           test              Validate, then run each playbook's tests and rule examples
           detect            Show which business concept each profile field is recognised as
           --playbooks       Playbook files or directories for detect (default: ./playbooks)
+          --ai <mode>       After the playbooks, offer AI for the remaining fields: ask (default), yes or no
+          --out <file>      Write playbook matches, AI suggestions and remaining fields as JSON
+
+        AI (optional; without it MapWright uses playbooks only):
+          {AiProviders.VertexProjectVariable}    Google Cloud project; enables Vertex AI (credentials from
+                                       GOOGLE_APPLICATION_CREDENTIALS or other Application Default Credentials)
+          {AiProviders.VertexLocationVariable}   Default {VertexAiOptions.DefaultLocation}
+          {AiProviders.VertexModelVariable}      Default {VertexAiOptions.DefaultModel}
+          {AiProviders.OllamaUrlVariable}        Ollama server URL, e.g. http://localhost:11434; the fallback after Vertex AI
+          {AiProviders.OllamaModelVariable}      Default {OllamaOptions.DefaultModel}
+          {AiProviders.TimeoutVariable} Per-request timeout (default {(int)AiProviders.DefaultTimeout.TotalSeconds})
         """;
 
-    public static int Run(string[] args, TextWriter stdout, TextWriter stderr)
+    public static int Run(string[] args, TextWriter stdout, TextWriter stderr) =>
+        Run(args, TextReader.Null, stdout, stderr, ai: null);
+
+    public static int Run(string[] args, TextReader stdin, TextWriter stdout, TextWriter stderr, IAiProvider? ai)
     {
         if (args.Length == 0 || args[0] is "-h" or "--help" or "help")
         {
@@ -55,7 +73,7 @@ public static class CliApp
             "validate" => Validate(args[1..], stdout, stderr),
             "render" => Render(args[1..], stdout, stderr),
             "profile" => Profile(args[1..], stdout, stderr),
-            "playbook" => Playbook(args[1..], stdout, stderr),
+            "playbook" => Playbook(args[1..], stdin, stdout, stderr, ai),
             _ => Fail(stderr, $"Unknown command '{args[0]}'."),
         };
     }
@@ -248,7 +266,7 @@ public static class CliApp
         return Success;
     }
 
-    private static int Playbook(string[] args, TextWriter stdout, TextWriter stderr)
+    private static int Playbook(string[] args, TextReader stdin, TextWriter stdout, TextWriter stderr, IAiProvider? ai)
     {
         if (args.Length == 0)
         {
@@ -260,7 +278,7 @@ public static class CliApp
             "validate" or "test" when args.Length > 1 && !args[1..].Any(a => a.StartsWith("--", StringComparison.Ordinal)) =>
                 ValidatePlaybooks(args[1..], runTests: args[0] == "test", stdout, stderr),
             "validate" or "test" => Fail(stderr, $"playbook {args[0]} expects playbook files or directories."),
-            "detect" => Detect(args[1..], stdout, stderr),
+            "detect" => Detect(args[1..], stdin, stdout, stderr, ai),
             _ => Fail(stderr, $"Unknown playbook command '{args[0]}'."),
         };
     }
@@ -288,9 +306,11 @@ public static class CliApp
         return failed == 0 ? Success : InvalidInput;
     }
 
-    private static int Detect(string[] args, TextWriter stdout, TextWriter stderr)
+    private static int Detect(string[] args, TextReader stdin, TextWriter stdout, TextWriter stderr, IAiProvider? ai)
     {
         string? profilePath = null;
+        string? outPath = null;
+        var aiMode = "ask";
         var playbookPaths = new List<string>();
 
         for (var i = 0; i < args.Length; i++)
@@ -299,6 +319,12 @@ public static class CliApp
             {
                 case "--playbooks" when i + 1 < args.Length:
                     playbookPaths.Add(args[++i]);
+                    break;
+                case "--ai" when i + 1 < args.Length && args[i + 1] is "ask" or "yes" or "no":
+                    aiMode = args[++i];
+                    break;
+                case "--out" when i + 1 < args.Length:
+                    outPath = args[++i];
                     break;
                 case var arg when !arg.StartsWith("--", StringComparison.Ordinal) && profilePath is null:
                     profilePath = arg;
@@ -329,18 +355,20 @@ public static class CliApp
             return InvalidInput;
         }
 
-        var fields = FieldContext.FromProfile(profile).Where(f => f.Kind == Core.Profile.FieldNodeKind.Value || f.Cardinality == Cardinality.Array).ToList();
-        var recognised = 0;
+        var fields = FieldContext.FromProfile(profile).Where(f => f.Kind == FieldNodeKind.Value || f.Cardinality == Cardinality.Array).ToList();
+        var recognised = new List<PlaybookMatch>();
+        var remaining = new List<string>();
         stdout.WriteLine($"{profile.System}: {fields.Count} field(s) checked against {library.Domains.Count()} domain playbook(s).");
         foreach (var field in fields)
         {
             if (library.Detect(field) is not { } result)
             {
+                remaining.Add(field.Path!);
                 stdout.WriteLine($"  {field.Path}  -");
                 continue;
             }
 
-            recognised++;
+            recognised.Add(new(field.Path!, result));
             var qualifiers = result.Qualifiers.Count == 0 ? "" : $" [{string.Join(", ", result.Qualifiers.Select(q => $"{q.Key}={q.Value}"))}]";
             stdout.WriteLine($"  {field.Path}  {result.BusinessConcept}{qualifiers} {result.Score}%{(result.RequiresReview ? " review" : "")}");
             foreach (var question in result.Questions)
@@ -349,8 +377,95 @@ public static class CliApp
             }
         }
 
-        stdout.WriteLine($"{recognised} of {fields.Count} field(s) recognised; {fields.Count - recognised} remaining.");
+        stdout.WriteLine($"{recognised.Count} of {fields.Count} field(s) recognised; {remaining.Count} remaining.");
+
+        var suggestions = new List<AiSuggestion>();
+        if (remaining.Count > 0 && aiMode != "no")
+        {
+            if (DecodeWithAi(profile, remaining, library, aiMode, ai, stdin, stdout, stderr) is { } decoded)
+            {
+                suggestions.AddRange(decoded.Suggestions);
+                remaining = [.. decoded.Unresolved];
+            }
+        }
+
+        if (outPath is not null)
+        {
+            if (Path.GetDirectoryName(Path.GetFullPath(outPath)) is { } directory)
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            var report = new DecodeReport { System = profile.System, Recognised = recognised, AiSuggestions = suggestions, Remaining = remaining };
+            File.WriteAllText(outPath, JsonSerializer.Serialize(report, MapWrightJson.Options) + Environment.NewLine);
+            stdout.WriteLine($"Wrote {outPath}");
+        }
+
         return Success;
+    }
+
+    private static AiDecodeResult? DecodeWithAi(
+        SystemProfile profile, IReadOnlyList<string> remaining, PlaybookLibrary library, string mode,
+        IAiProvider? ai, TextReader stdin, TextWriter stdout, TextWriter stderr)
+    {
+        if (ai is null)
+        {
+            if (mode == "yes")
+            {
+                stderr.WriteLine($"No AI provider is configured (set {AiProviders.VertexProjectVariable} or {AiProviders.OllamaUrlVariable}); continuing with playbooks only.");
+            }
+
+            return null;
+        }
+
+        if (mode == "ask")
+        {
+            stdout.Write($"Do you want to use AI to decode the remaining {remaining.Count} field(s)? Masked field details are sent to {ai.Name}. [y/N] ");
+            stdout.Flush();
+            var answer = stdin.ReadLine()?.Trim();
+            stdout.WriteLine();
+            if (answer is null || !(answer.Equals("y", StringComparison.OrdinalIgnoreCase) || answer.Equals("yes", StringComparison.OrdinalIgnoreCase)))
+            {
+                stdout.WriteLine("Skipped AI; continuing with playbooks only.");
+                return null;
+            }
+        }
+
+        var cap = library.Active
+            .SelectMany(p => p.Process?.Steps ?? [])
+            .FirstOrDefault(s => s.Kind == StepKind.AiAssist)?.MaxConfidence ?? AiFieldAssistant.DefaultMaxConfidence;
+
+        AiDecodeResult result;
+        try
+        {
+            result = new AiFieldAssistant(ai, cap).DecodeAsync(profile, remaining, library.Domains).GetAwaiter().GetResult();
+        }
+        catch (AiProviderException ex)
+        {
+            stderr.WriteLine($"AI assist failed: {ex.Message}");
+            stderr.WriteLine("Continuing with playbooks only.");
+            return null;
+        }
+
+        foreach (var warning in result.Warnings)
+        {
+            stderr.WriteLine($"  warning: {warning}");
+        }
+
+        stdout.WriteLine($"AI suggestions (capped at {cap}%, all need review):");
+        foreach (var s in result.Suggestions)
+        {
+            var concept = s.BusinessConcept ?? (s.ProposedConcept is { } proposed ? $"new: {proposed}" : "unclassified");
+            stdout.WriteLine($"  {s.Path}  {concept} {s.ConfidencePercent}% review ({s.Provider}/{s.Model})");
+            stdout.WriteLine($"      {s.Meaning}. {s.Reasoning}");
+            if (s.Question is { } question)
+            {
+                stdout.WriteLine($"      ? {question}");
+            }
+        }
+
+        stdout.WriteLine($"{result.Suggestions.Count} AI suggestion(s); {result.Unresolved.Count} field(s) still unresolved.");
+        return result;
     }
 
     private static bool TryLoadPlaybooks(IReadOnlyList<string> paths, TextWriter stdout, TextWriter stderr, out PlaybookLibrary library)

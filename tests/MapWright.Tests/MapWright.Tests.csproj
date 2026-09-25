@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\MapWright.Ai\MapWright.Ai.csproj" />
     <ProjectReference Include="..\..\src\MapWright.Core\MapWright.Core.csproj" />
     <ProjectReference Include="..\..\src\MapWright.Output\MapWright.Output.csproj" />
     <ProjectReference Include="..\..\src\MapWright.Cli\MapWright.Cli.csproj" />

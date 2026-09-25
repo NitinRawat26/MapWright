@@ -104,6 +104,31 @@ attributes, qualifiers, value maps and other playbooks, regexes and expressions,
 one published version per ID). `playbook test` also runs every detection test and rule example; a published
 domain playbook must have tests.
 
+## AI assist (optional)
+
+Playbooks always run first. When fields are left unrecognised, `playbook detect` asks
+*"Do you want to use AI to decode the remaining N field(s)?"* and calls AI only on **yes** (`--ai yes` skips
+the question, `--ai no` never asks). Providers are tried in order and are configured by environment variables;
+with none configured MapWright uses playbooks only.
+
+| Provider | Variables |
+|---|---|
+| Vertex AI (Gemini, first) | `MAPWRIGHT_VERTEX_PROJECT` (enables it), `MAPWRIGHT_VERTEX_LOCATION` (default `global`), `MAPWRIGHT_VERTEX_MODEL` (default `gemini-3.5-flash`); credentials from Application Default Credentials, e.g. `GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json` |
+| Ollama (fallback) | `MAPWRIGHT_OLLAMA_URL` (enables it, e.g. `http://localhost:11434`), `MAPWRIGHT_OLLAMA_MODEL` (default `qwen3`) |
+| Both | `MAPWRIGHT_AI_TIMEOUT_SECONDS` (default 180) |
+
+What the AI sees and what it can do:
+- Only the remaining fields: path, name, parents, children, type, cardinality, description, value shapes, and
+  short code-like values (`CORP`, `5411`, `0.5`). Sensitive fields, free text (names, e-mails, phones,
+  addresses) and sample values are never sent.
+- The domain playbooks' concepts, attributes and `aiGuidance`, so answers use playbook concepts
+  (`Principal.Email`) or propose a new one (`new: Merchant.Mcc`) as a candidate for a playbook change.
+- Every suggestion is `needsReview`, records the provider and model, and its confidence is capped at the
+  process playbook's AI step `maxConfidence` (70), below auto-accept. AI never publishes anything.
+- If the AI call fails, detection still succeeds with the playbook results.
+
+`--out <report.json>` writes the playbook matches, AI suggestions and still-remaining fields.
+
 ## Usage
 
 ```bash
@@ -120,6 +145,7 @@ dotnet run --project src/MapWright.Cli -- profile a.xml b.xml --system "UW Core"
 dotnet run --project src/MapWright.Cli -- playbook validate playbooks
 dotnet run --project src/MapWright.Cli -- playbook test playbooks
 dotnet run --project src/MapWright.Cli -- playbook detect samples/systems/uw-core/profile.json --playbooks playbooks
+dotnet run --project src/MapWright.Cli -- playbook detect samples/systems/sales-alpha/profile.json --ai yes --out out/sales-alpha.decode.json
 ```
 
 `profile` accepts files and directories (their `*.json` and `*.xml` files). All samples of one system must
@@ -145,6 +171,7 @@ dotnet format MapWright.slnx --verify-no-changes
 ```
 src/MapWright.Core     Mapping spec model, system profiles and sample readers, playbook model, validator and matcher
 src/MapWright.Output   Report model and Excel / CSV / HTML renderers
+src/MapWright.Ai       Optional AI assist: Vertex AI and Ollama providers, fallback, masked field prompts
 src/MapWright.Cli      `mapwright` command-line tool
 tests/MapWright.Tests  Unit tests
 samples/mappings       Example mapping specs
