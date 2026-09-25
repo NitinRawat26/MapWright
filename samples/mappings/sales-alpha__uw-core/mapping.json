@@ -1,0 +1,386 @@
+{
+  "specVersion": "1.0",
+  "id": "sales-alpha__uw-core",
+  "title": "SalesAlpha CRM → UW Core merchant application mapping",
+  "version": "0.2.0",
+  "createdAt": "2026-09-20T10:00:00+00:00",
+  "description": "Illustrative mapping of a CRM-based sales system (JSON) to an XML underwriting request. Field names and values are synthetic.",
+  "source": {
+    "name": "SalesAlpha CRM",
+    "version": "2026.3",
+    "format": "json",
+    "description": "CRM-based merchant application capture"
+  },
+  "target": {
+    "name": "UW Core",
+    "version": "4.2",
+    "format": "xml",
+    "description": "Underwriting intake (UnderwritingRequest XML)"
+  },
+  "confidencePolicy": { "highThreshold": 85, "mediumThreshold": 60 },
+  "inputs": [
+    { "name": "sales-alpha-sample-llc.json", "kind": "samplePayload", "side": "source" },
+    { "name": "sales-alpha-sample-soleprop.json", "kind": "samplePayload", "side": "source" },
+    { "name": "SalesAlpha_Field_Dictionary.xlsx", "kind": "fieldSpec", "side": "source" },
+    { "name": "uw-core-request-4.2.xsd", "kind": "xsd", "side": "target" },
+    { "name": "UW_Core_Integration_Guide_v4.2.pdf", "kind": "documentation", "side": "target" }
+  ],
+  "playbooks": [
+    { "name": "process/onboard-new-system", "version": "1.0.0" },
+    { "name": "domain/principals", "version": "1.0.0" },
+    { "name": "domain/processing-volume", "version": "1.0.0" },
+    { "name": "domain/channel-mix", "version": "1.0.0" },
+    { "name": "domain/tax-id", "version": "1.0.0" },
+    { "name": "domain/entity-type", "version": "1.0.0" }
+  ],
+  "mappings": [
+    {
+      "id": "M001",
+      "type": "oneToOne",
+      "sources": [
+        { "name": "legalName", "path": "$.account.legalName", "dataType": "string", "maxLength": 120, "required": true, "sampleValue": "Blue Harbor Coffee LLC", "description": "Registered legal name" }
+      ],
+      "target": { "name": "LegalName", "path": "/UnderwritingRequest/Merchant/LegalName", "dataType": "xs:string", "maxLength": 100, "required": true, "description": "Legal entity name as registered with the state" },
+      "businessConcept": "LegalEntity.LegalName",
+      "transformation": { "type": "direct", "rule": "Copy; truncate to 100 characters", "expression": "substring($.account.legalName, 0, 100)" },
+      "confidencePercent": 98,
+      "reasoning": "Exact name match after normalization; both described as the registered legal name.",
+      "evidence": [
+        { "kind": "sample", "reference": "sales-alpha-sample-llc.json", "detail": "Value is an entity name with legal suffix" },
+        { "kind": "documentation", "reference": "UW_Core_Integration_Guide_v4.2.pdf p.6" }
+      ],
+      "risk": { "dataLoss": "low", "dataLossNote": "Source allows 120 chars, target 100", "targetValidationRules": ["Required", "Max length 100"] },
+      "review": { "status": "autoAccepted" }
+    },
+    {
+      "id": "M002",
+      "type": "oneToOne",
+      "sources": [
+        { "name": "dbaName", "path": "$.account.dbaName", "dataType": "string", "maxLength": 80, "required": true, "sampleValue": "Blue Harbor Coffee" }
+      ],
+      "target": { "name": "DoingBusinessAs", "path": "/UnderwritingRequest/Merchant/DoingBusinessAs", "dataType": "xs:string", "maxLength": 80, "required": true },
+      "businessConcept": "LegalEntity.DbaName",
+      "transformation": { "type": "rename", "rule": "Copy", "expression": "$.account.dbaName" },
+      "confidencePercent": 96,
+      "reasoning": "Synonym match: DBA = Doing Business As (entity-type playbook alias list).",
+      "evidence": [
+        { "kind": "playbook", "reference": "domain/entity-type@1.0.0", "detail": "Alias dbaName ↔ DoingBusinessAs" }
+      ],
+      "risk": { "targetValidationRules": ["Required"] },
+      "review": { "status": "autoAccepted" }
+    },
+    {
+      "id": "M003",
+      "type": "oneToOne",
+      "sources": [
+        { "name": "taxId", "path": "$.account.taxId", "dataType": "string", "format": "#########", "required": true, "sampleValue": "*****6789", "description": "SSN for sole proprietors, EIN otherwise" }
+      ],
+      "target": { "name": "TaxId", "path": "/UnderwritingRequest/Merchant/TaxId/Number", "dataType": "xs:string", "format": "9 digits, no dashes", "required": true },
+      "businessConcept": "LegalEntity.TaxId",
+      "domainPlaybook": "domain/tax-id@1.0.0",
+      "transformation": { "type": "typeCast", "rule": "Strip dashes and spaces", "expression": "replace($.account.taxId, /[^0-9]/, '')" },
+      "confidencePercent": 95,
+      "reasoning": "Both are the merchant tax identifier; value pattern is 9 digits in all samples.",
+      "evidence": [
+        { "kind": "sample", "reference": "sales-alpha-sample-llc.json", "detail": "9-digit pattern" },
+        { "kind": "schema", "reference": "uw-core-request-4.2.xsd", "detail": "pattern [0-9]{9}" }
+      ],
+      "risk": { "sensitivity": "sensitivePii", "targetValidationRules": ["Required", "Pattern [0-9]{9}"] },
+      "review": { "status": "autoAccepted" }
+    },
+    {
+      "id": "M004",
+      "type": "derived",
+      "sources": [
+        { "name": "entityType", "path": "$.account.entityType", "dataType": "string", "required": true, "allowedValues": ["SOLE_PROP", "LLC", "CORP", "PARTNERSHIP", "NON_PROFIT"], "sampleValue": "LLC" }
+      ],
+      "target": { "name": "TaxIdType", "path": "/UnderwritingRequest/Merchant/TaxId/@type", "dataType": "xs:string", "required": true, "allowedValues": ["SSN", "EIN"] },
+      "businessConcept": "LegalEntity.TaxIdType",
+      "domainPlaybook": "domain/tax-id@1.0.0",
+      "transformation": { "type": "conditional", "rule": "SSN when entity is a sole proprietor, otherwise EIN", "expression": "$.account.entityType = 'SOLE_PROP' ? 'SSN' : 'EIN'", "condition": "entityType = SOLE_PROP" },
+      "confidencePercent": 90,
+      "reasoning": "SalesAlpha has no explicit tax-id type; tax-id playbook derives it from entity type.",
+      "evidence": [
+        { "kind": "playbook", "reference": "domain/tax-id@1.0.0", "detail": "Rule TIN-TYPE-01" },
+        { "kind": "documentation", "reference": "UW_Core_Integration_Guide_v4.2.pdf p.7" }
+      ],
+      "review": { "status": "approved", "reviewer": "a.sharma", "reviewedOn": "2026-09-21" }
+    },
+    {
+      "id": "M005",
+      "type": "oneToOne",
+      "sources": [
+        { "name": "entityType", "path": "$.account.entityType", "dataType": "string", "required": true, "allowedValues": ["SOLE_PROP", "LLC", "CORP", "PARTNERSHIP", "NON_PROFIT"], "sampleValue": "LLC" }
+      ],
+      "target": { "name": "OwnershipType", "path": "/UnderwritingRequest/Merchant/OwnershipType", "dataType": "xs:string", "required": true, "allowedValues": ["SP", "LLC", "C", "P", "NP"] },
+      "businessConcept": "LegalEntity.EntityType",
+      "domainPlaybook": "domain/entity-type@1.0.0",
+      "transformation": {
+        "type": "enumMap",
+        "rule": "Map SalesAlpha entity codes to UW ownership codes",
+        "expression": "lookup(entityTypeMap, $.account.entityType)",
+        "valueMap": [
+          { "sourceValue": "SOLE_PROP", "targetValue": "SP" },
+          { "sourceValue": "LLC", "targetValue": "LLC" },
+          { "sourceValue": "CORP", "targetValue": "C", "notes": "Covers both C-Corp and S-Corp; UW Core has no S-Corp code" },
+          { "sourceValue": "PARTNERSHIP", "targetValue": "P" },
+          { "sourceValue": "NON_PROFIT", "targetValue": "NP" }
+        ]
+      },
+      "confidencePercent": 88,
+      "reasoning": "Both fields enumerate legal structure; all 5 source codes have a playbook-known target code.",
+      "evidence": [
+        { "kind": "fieldSpec", "reference": "SalesAlpha_Field_Dictionary.xlsx row 14" },
+        { "kind": "schema", "reference": "uw-core-request-4.2.xsd", "detail": "enumeration SP|LLC|C|P|NP" }
+      ],
+      "risk": { "dataLoss": "low", "dataLossNote": "S-Corp distinction is lost" },
+      "review": { "status": "approved", "reviewer": "a.sharma", "reviewedOn": "2026-09-21", "comments": "S-Corp loss acceptable for UW rules" }
+    },
+    {
+      "id": "M006",
+      "type": "manyToOne",
+      "sources": [
+        { "name": "owners[].firstName", "path": "$.owners[*].firstName", "dataType": "string", "required": true, "cardinality": "array", "sampleValue": "Maria" },
+        { "name": "owners[].lastName", "path": "$.owners[*].lastName", "dataType": "string", "required": true, "cardinality": "array", "sampleValue": "Lopez" }
+      ],
+      "target": { "name": "Officer/FullName", "path": "/UnderwritingRequest/Officers/Officer/FullName", "dataType": "xs:string", "required": true, "cardinality": "array" },
+      "businessConcept": "Principal.FullName",
+      "domainPlaybook": "domain/principals@1.0.0",
+      "transformation": { "type": "concat", "rule": "firstName + ' ' + lastName, one Officer per owner", "expression": "$.owners[*].(firstName & ' ' & lastName)" },
+      "confidencePercent": 90,
+      "reasoning": "Owners[] and Officers[] are both principal collections (principals playbook alias). Child fields match on name parts.",
+      "evidence": [
+        { "kind": "playbook", "reference": "domain/principals@1.0.0", "detail": "Alias Owners ↔ Officers" },
+        { "kind": "sample", "reference": "sales-alpha-sample-llc.json", "detail": "2 owners" }
+      ],
+      "risk": { "sensitivity": "pii" },
+      "review": { "status": "autoAccepted" }
+    },
+    {
+      "id": "M007",
+      "type": "oneToOne",
+      "sources": [
+        { "name": "owners[].ownershipPercent", "path": "$.owners[*].ownershipPercent", "dataType": "number", "format": "fraction 0-1", "cardinality": "array", "sampleValue": "0.25" }
+      ],
+      "target": { "name": "Officer/OwnershipPct", "path": "/UnderwritingRequest/Officers/Officer/OwnershipPct", "dataType": "xs:decimal", "format": "0-100", "required": true, "cardinality": "array" },
+      "businessConcept": "Principal.OwnershipPercent",
+      "domainPlaybook": "domain/principals@1.0.0",
+      "transformation": { "type": "unitConversion", "rule": "Fraction → percent (× 100)", "expression": "$.owners[*].ownershipPercent * 100" },
+      "confidencePercent": 72,
+      "reasoning": "Same concept, but samples show fractions (0.25) while UW expects 0-100. Unit inferred from 2 samples only.",
+      "evidence": [
+        { "kind": "sample", "reference": "sales-alpha-sample-llc.json", "detail": "Values 0.25 and 0.75" },
+        { "kind": "documentation", "reference": "UW_Core_Integration_Guide_v4.2.pdf p.8", "detail": "OwnershipPct 0-100" }
+      ],
+      "risk": { "dataLoss": "medium", "dataLossNote": "Wrong unit assumption would under-report ownership 100×", "targetValidationRules": ["Sum of OwnershipPct <= 100"] },
+      "review": { "status": "needsReview", "openQuestion": "Confirm with SalesAlpha team that ownershipPercent is always a fraction." }
+    },
+    {
+      "id": "M008",
+      "type": "oneToOne",
+      "sources": [
+        { "name": "owners[].ssn", "path": "$.owners[*].ssn", "dataType": "string", "required": true, "cardinality": "array", "sampleValue": "***-**-4321" }
+      ],
+      "target": { "name": "Officer/SSN", "path": "/UnderwritingRequest/Officers/Officer/SSN", "dataType": "xs:string", "format": "9 digits", "required": true, "cardinality": "array" },
+      "businessConcept": "Principal.Ssn",
+      "domainPlaybook": "domain/principals@1.0.0",
+      "transformation": { "type": "typeCast", "rule": "Strip dashes", "expression": "replace($.owners[*].ssn, '-', '')" },
+      "confidencePercent": 97,
+      "reasoning": "Exact concept and pattern match (SSN).",
+      "risk": { "sensitivity": "sensitivePii", "targetValidationRules": ["Pattern [0-9]{9}"] },
+      "review": { "status": "autoAccepted" }
+    },
+    {
+      "id": "M009",
+      "type": "oneToOne",
+      "sources": [
+        { "name": "annualCardVolume", "path": "$.processing.annualCardVolume", "dataType": "number", "format": "USD", "required": true, "sampleValue": "500000" }
+      ],
+      "target": { "name": "MonthlyVolume", "path": "/UnderwritingRequest/Processing/MonthlyVolume", "dataType": "xs:decimal", "format": "USD, 2 dp", "required": true },
+      "businessConcept": "ProcessingVolume.Monthly",
+      "domainPlaybook": "domain/processing-volume@1.0.0",
+      "transformation": { "type": "periodConversion", "rule": "Annual → monthly (÷ 12), round to 2 dp", "expression": "round($.processing.annualCardVolume / 12, 2)" },
+      "confidencePercent": 92,
+      "reasoning": "Same concept (card processing volume), different period qualifier: annual vs monthly.",
+      "evidence": [
+        { "kind": "playbook", "reference": "domain/processing-volume@1.0.0", "detail": "Rule VOL-PERIOD-01" },
+        { "kind": "fieldSpec", "reference": "SalesAlpha_Field_Dictionary.xlsx row 31", "detail": "Expected annual card sales" }
+      ],
+      "risk": { "dataLoss": "low", "dataLossNote": "Rounding to cents", "targetValidationRules": ["> 0"] },
+      "review": { "status": "autoAccepted" }
+    },
+    {
+      "id": "M010",
+      "type": "oneToOne",
+      "sources": [
+        { "name": "averageTicket", "path": "$.processing.averageTicket", "dataType": "number", "format": "USD", "required": true, "sampleValue": "12.50" }
+      ],
+      "target": { "name": "AverageTicket", "path": "/UnderwritingRequest/Processing/AverageTicket", "dataType": "xs:decimal", "required": true },
+      "businessConcept": "ProcessingVolume.AverageTicket",
+      "domainPlaybook": "domain/processing-volume@1.0.0",
+      "transformation": { "type": "direct", "expression": "$.processing.averageTicket" },
+      "confidencePercent": 97,
+      "reasoning": "Exact name match after normalization.",
+      "review": { "status": "autoAccepted" }
+    },
+    {
+      "id": "M011",
+      "type": "manyToOne",
+      "sources": [
+        { "name": "motoPercent", "path": "$.processing.motoPercent", "dataType": "number", "format": "0-100", "sampleValue": "10" },
+        { "name": "ecommPercent", "path": "$.processing.ecommPercent", "dataType": "number", "format": "0-100", "sampleValue": "30" }
+      ],
+      "target": { "name": "CardNotPresentPct", "path": "/UnderwritingRequest/Processing/CardNotPresentPct", "dataType": "xs:decimal", "format": "0-100", "required": true },
+      "businessConcept": "ChannelMix.CardNotPresent",
+      "domainPlaybook": "domain/channel-mix@1.0.0",
+      "transformation": { "type": "aggregate", "rule": "CNP = MOTO + ECOMM", "expression": "$.processing.motoPercent + $.processing.ecommPercent", "defaultValue": "0" },
+      "confidencePercent": 91,
+      "reasoning": "Channel-mix playbook: card-not-present is the sum of mail/telephone order and e-commerce.",
+      "evidence": [
+        { "kind": "playbook", "reference": "domain/channel-mix@1.0.0", "detail": "Rule MIX-CNP-01" }
+      ],
+      "risk": { "targetValidationRules": ["CardPresentPct + CardNotPresentPct = 100"] },
+      "review": { "status": "approved", "reviewer": "a.sharma", "reviewedOn": "2026-09-21" }
+    },
+    {
+      "id": "M012",
+      "type": "oneToOne",
+      "sources": [
+        { "name": "cardPresentPercent", "path": "$.processing.cardPresentPercent", "dataType": "number", "format": "0-100", "required": true, "sampleValue": "60" }
+      ],
+      "target": { "name": "CardPresentPct", "path": "/UnderwritingRequest/Processing/CardPresentPct", "dataType": "xs:decimal", "format": "0-100", "required": true },
+      "businessConcept": "ChannelMix.CardPresent",
+      "domainPlaybook": "domain/channel-mix@1.0.0",
+      "transformation": { "type": "direct", "expression": "$.processing.cardPresentPercent" },
+      "confidencePercent": 99,
+      "reasoning": "Exact concept match; same unit (0-100).",
+      "review": { "status": "autoAccepted" }
+    },
+    {
+      "id": "M013",
+      "type": "oneToOne",
+      "sources": [
+        { "name": "mcc", "path": "$.account.mcc", "dataType": "string", "format": "4 digits", "required": true, "sampleValue": "5814" }
+      ],
+      "target": { "name": "MCC", "path": "/UnderwritingRequest/Merchant/MCC", "dataType": "xs:string", "format": "4 digits", "required": true },
+      "businessConcept": "LegalEntity.Mcc",
+      "transformation": { "type": "direct", "expression": "$.account.mcc" },
+      "confidencePercent": 99,
+      "reasoning": "Exact name and 4-digit value pattern match.",
+      "review": { "status": "autoAccepted" }
+    },
+    {
+      "id": "M014",
+      "type": "derived",
+      "sources": [
+        { "name": "incorporationDate", "path": "$.account.incorporationDate", "dataType": "string", "format": "yyyy-MM-dd", "sampleValue": "2019-04-01" }
+      ],
+      "target": { "name": "YearsInBusiness", "path": "/UnderwritingRequest/Merchant/YearsInBusiness", "dataType": "xs:int", "required": true },
+      "businessConcept": "LegalEntity.YearsInBusiness",
+      "transformation": { "type": "derived", "rule": "Whole years between incorporationDate and submission date", "expression": "floor(yearsBetween($.account.incorporationDate, $now()))", "defaultValue": "0" },
+      "confidencePercent": 80,
+      "reasoning": "No direct source; derivable from incorporation date. Business may have operated before incorporating.",
+      "evidence": [
+        { "kind": "documentation", "reference": "UW_Core_Integration_Guide_v4.2.pdf p.9", "detail": "Years the business has operated" }
+      ],
+      "risk": { "dataLoss": "medium", "dataLossNote": "Understates tenure for businesses that incorporated later" },
+      "review": { "status": "needsReview", "openQuestion": "Is incorporation date an acceptable proxy for business start date?" }
+    },
+    {
+      "id": "M015",
+      "type": "oneToOne",
+      "sources": [
+        { "name": "bank.routingNumber", "path": "$.bank.routingNumber", "dataType": "string", "format": "9 digits", "required": true, "sampleValue": "*****0021" }
+      ],
+      "target": { "name": "RoutingNumber", "path": "/UnderwritingRequest/Settlement/RoutingNumber", "dataType": "xs:string", "format": "9 digits", "required": true },
+      "businessConcept": "BankAccount.RoutingNumber",
+      "transformation": { "type": "direct", "expression": "$.bank.routingNumber" },
+      "confidencePercent": 98,
+      "reasoning": "Exact concept match; ABA routing number pattern.",
+      "risk": { "sensitivity": "financial", "targetValidationRules": ["ABA checksum"] },
+      "review": { "status": "autoAccepted" }
+    },
+    {
+      "id": "M016",
+      "type": "constant",
+      "target": { "name": "SourceChannel", "path": "/UnderwritingRequest/@sourceChannel", "dataType": "xs:string", "required": true },
+      "transformation": { "type": "default", "rule": "Always SALES_ALPHA", "defaultValue": "SALES_ALPHA" },
+      "confidencePercent": 100,
+      "reasoning": "UW Core requires the originating channel; constant per integration.",
+      "review": { "status": "autoAccepted" }
+    },
+    {
+      "id": "M017",
+      "type": "unmapped",
+      "target": { "name": "WebsiteUrl", "path": "/UnderwritingRequest/Merchant/WebsiteUrl", "dataType": "xs:anyURI", "required": true, "description": "Required when CardNotPresentPct > 0" },
+      "businessConcept": "LegalEntity.Website",
+      "confidencePercent": 0,
+      "reasoning": "No source field carries a website; searched names, descriptions and sample values.",
+      "review": { "status": "needsReview", "openQuestion": "Can SalesAlpha add a website field?" },
+      "suggestedResolution": "Add website field to SalesAlpha application; until then send only for CP-only merchants (CardNotPresentPct = 0)."
+    },
+    {
+      "id": "M018",
+      "type": "unmapped",
+      "target": { "name": "HighTicket", "path": "/UnderwritingRequest/Processing/HighTicket", "dataType": "xs:decimal" },
+      "businessConcept": "ProcessingVolume.HighTicket",
+      "confidencePercent": 0,
+      "reasoning": "No highest-ticket field in SalesAlpha.",
+      "review": { "status": "needsReview" },
+      "suggestedResolution": "Optional in UW Core; leave empty."
+    }
+  ],
+  "orphanSourceFields": [
+    {
+      "field": { "name": "salesRepId", "path": "$.account.salesRepId", "dataType": "string", "sampleValue": "REP-0042" },
+      "suggestedResolution": "Internal CRM field; not needed for underwriting."
+    },
+    {
+      "field": { "name": "leadSource", "path": "$.account.leadSource", "dataType": "string", "sampleValue": "Partner Referral" },
+      "suggestedResolution": "Not used by UW Core; consider for ISO/partner risk rules later."
+    }
+  ],
+  "findings": [
+    {
+      "id": "F001",
+      "kind": "conflict",
+      "description": "SalesAlpha field dictionary marks ownershipPercent optional; UW Core guide requires OwnershipPct for every officer.",
+      "mappingIds": ["M007"],
+      "sources": ["SalesAlpha_Field_Dictionary.xlsx row 22", "UW_Core_Integration_Guide_v4.2.pdf p.8"],
+      "resolution": "Pending: default to equal split when missing, or reject at intake."
+    },
+    {
+      "id": "F002",
+      "kind": "assumption",
+      "description": "Owners are treated as Officers. Non-owner officers (0% ownership) cannot be captured in SalesAlpha.",
+      "mappingIds": ["M006", "M007"],
+      "sources": ["domain/principals@1.0.0"]
+    },
+    {
+      "id": "F003",
+      "kind": "assumption",
+      "description": "annualCardVolume is assumed to be gross USD sales across all card brands, including AMEX.",
+      "mappingIds": ["M009"],
+      "sources": ["SalesAlpha_Field_Dictionary.xlsx row 31"]
+    }
+  ],
+  "validationRuns": [
+    {
+      "id": "V001",
+      "ranAt": "2026-09-21T14:30:00+00:00",
+      "samplePayload": "sales-alpha-sample-llc.json",
+      "results": [
+        { "mappingId": "M001", "outcome": "pass" },
+        { "mappingId": "M005", "outcome": "pass", "expected": "LLC", "actual": "LLC" },
+        { "mappingId": "M007", "outcome": "fail", "expected": "25", "actual": "0.25", "message": "Run on v0.1.0 before the ×100 unit conversion was added" },
+        { "mappingId": "M009", "outcome": "pass", "expected": "41666.67", "actual": "41666.67" },
+        { "mappingId": "M011", "outcome": "pass", "expected": "40", "actual": "40" },
+        { "mappingId": "M017", "outcome": "skipped", "message": "Unmapped" }
+      ]
+    }
+  ],
+  "changeLog": [
+    { "version": "0.1.0", "date": "2026-09-20", "author": "mapwright", "description": "Initial generated draft." },
+    { "version": "0.2.0", "date": "2026-09-21", "author": "a.sharma", "description": "Approved entity-type value map, tax-id type rule and CNP aggregation; added ×100 to ownership percent." }
+  ]
+}

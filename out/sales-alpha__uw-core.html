@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SalesAlpha CRM → UW Core merchant application mapping</title>
+<style>
+:root { --ink:#1f2933; --muted:#616e7c; --line:#d9e2ec; --bg:#f5f7fa; }
+* { box-sizing:border-box; }
+body { margin:0; font:14px/1.45 "Segoe UI", Inter, Roboto, Arial, sans-serif; color:var(--ink); background:var(--bg); }
+header { background:#263238; color:#fff; padding:24px 32px; }
+header h1 { margin:0 0 4px; font-size:22px; }
+header p { margin:0; color:#cfd8dc; }
+main { padding:24px 32px; }
+section { background:#fff; border:1px solid var(--line); border-radius:8px; padding:16px 20px; margin-bottom:20px; }
+h2 { margin:0 0 12px; font-size:17px; }
+.cards { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
+.card { border:1px solid var(--line); border-radius:8px; padding:10px 14px; min-width:150px; }
+.card b { display:block; font-size:20px; }
+.card span { color:var(--muted); font-size:12px; }
+dl { display:grid; grid-template-columns:260px 1fr; gap:6px 16px; margin:0; }
+dt { font-weight:600; }
+dd { margin:0; white-space:pre-line; }
+.scroll { overflow-x:auto; }
+table { border-collapse:collapse; width:max-content; min-width:100%; }
+th, td { border:1px solid var(--line); padding:6px 8px; vertical-align:top; text-align:left; white-space:pre-line; max-width:420px; }
+thead th { background:#37474f; color:#fff; position:sticky; top:0; }
+thead tr.groups th { text-align:center; }
+.g-identity { background:#37474f !important; } .g-source { background:#1565c0 !important; } .g-target { background:#2e7d32 !important; }
+.g-semantics { background:#6a1b9a !important; } .g-transformation { background:#ef6c00 !important; } .g-confidence { background:#00838f !important; }
+.g-risk { background:#c62828 !important; } .g-review { background:#4e342e !important; }
+.band-High { background:#c8e6c9; } .band-Medium { background:#ffe0b2; } .band-Low { background:#ffcdd2; } .band-unmapped { background:#e0e0e0; }
+.outcome-Pass { background:#c8e6c9; } .outcome-Fail { background:#ffcdd2; } .outcome-Skipped { background:#e0e0e0; }
+.empty { color:var(--muted); font-style:italic; }
+@media print { body { background:#fff; } .scroll { overflow:visible; } thead th { position:static; } }
+</style>
+</head>
+<body>
+<header><h1>SalesAlpha CRM → UW Core merchant application mapping</h1><p>SalesAlpha CRM v2026.3 → UW Core v4.2 &#183; mapping sales-alpha__uw-core v0.2.0</p></header>
+<main>
+<section id="summary"><h2>Summary</h2>
+<div class="cards"><div class="card"><b>94.1%</b><span>Required target coverage</span></div><div class="card"><b>16/18</b><span>Target fields mapped</span></div><div class="card"><b>0</b><span>Low-confidence mappings</span></div><div class="card"><b>4</b><span>Awaiting review</span></div><div class="card"><b>4</b><span>Gaps</span></div><div class="card"><b>1</b><span>Validation failures</span></div></div>
+<dl><dt>Mapping</dt><dd>SalesAlpha CRM → UW Core merchant application mapping</dd><dt>Mapping ID</dt><dd>sales-alpha__uw-core</dd><dt>Mapping Version</dt><dd>0.2.0</dd><dt>Spec Version</dt><dd>1.0</dd><dt>Created</dt><dd>2026-09-20 10:00 UTC+00:00</dd><dt>Description</dt><dd>Illustrative mapping of a Salesforce-based sales system (JSON) to an XML underwriting request. Field names and values are synthetic.</dd><dt>Source System</dt><dd>SalesAlpha CRM v2026.3 (JSON)</dd><dt>Target System</dt><dd>UW Core v4.2 (XML)</dd><dt>Inputs Used</dt><dd>[Source] sales-alpha-sample-llc.json (Sample Payload)
+[Source] sales-alpha-sample-soleprop.json (Sample Payload)
+[Source] SalesAlpha_Field_Dictionary.xlsx (Field Spec)
+[Target] uw-core-request-4.2.xsd (XSD)
+[Target] UW_Core_Integration_Guide_v4.2.pdf (Documentation)</dd><dt>Playbooks Applied</dt><dd>process/onboard-new-system@1.0.0
+domain/principals@1.0.0
+domain/processing-volume@1.0.0
+domain/channel-mix@1.0.0
+domain/tax-id@1.0.0
+domain/entity-type@1.0.0</dd><dt>Confidence Bands</dt><dd>High &gt;= 85%, Medium &gt;= 60%, Low below</dd><dt>Target Fields</dt><dd>18</dd><dt>Mapped</dt><dd>16</dd><dt>Unmapped</dt><dd>2</dd><dt>Required Target Coverage</dt><dd>94.1% (16 of 17)</dd><dt>High / Medium / Low Confidence</dt><dd>14 / 2 / 0</dd><dt>Review Status</dt><dd>Auto-accepted: 11, Needs review: 4, Approved: 3</dd><dt>Orphan Source Fields</dt><dd>2</dd><dt>Conflicts / Assumptions</dt><dd>1 / 2</dd><dt>Validation (pass / fail / skipped)</dt><dd>4 / 1 / 1</dd></dl></section>
+<section id="mapping"><h2>Mapping</h2>
+<div class="scroll"><table>
+<thead>
+<tr class="groups"><th colspan="2" class="g-identity">Identity</th><th colspan="9" class="g-source">Source: SalesAlpha CRM</th><th colspan="9" class="g-target">Target: UW Core</th><th colspan="2" class="g-semantics">Semantics</th><th colspan="5" class="g-transformation">Transformation</th><th colspan="4" class="g-confidence">Confidence</th><th colspan="3" class="g-risk">Risk</th><th colspan="5" class="g-review">Review</th></tr>
+<tr><th>Mapping ID</th><th>Mapping Type</th><th>Source Field Name</th><th>Source Field Path</th><th>Source Datatype</th><th>Source Format / Length</th><th>Source Required</th><th>Source Cardinality</th><th>Source Allowed Values</th><th>Source Sample Value (masked)</th><th>Source Description</th><th>Target Field Name</th><th>Target Field Path</th><th>Target Datatype</th><th>Target Format / Length</th><th>Target Required</th><th>Target Cardinality</th><th>Target Allowed Values</th><th>Target Sample Value (masked)</th><th>Target Description</th><th>Business Concept</th><th>Domain Playbook</th><th>Transformation Type</th><th>Transformation Rule</th><th>Transformation Expression</th><th>Condition</th><th>Default Value</th><th>Confidence %</th><th>Confidence Band</th><th>Reasoning</th><th>Evidence Sources</th><th>Data Loss Risk</th><th>PII / Sensitivity</th><th>Target Validation Rules</th><th>Review Status</th><th>Reviewer</th><th>Review Date</th><th>Reviewer Comments</th><th>Open Question</th></tr>
+</thead>
+<tbody>
+<tr><td>M001</td><td>1:1</td><td>legalName</td><td>$.account.legalName</td><td>string</td><td>max 120</td><td>Yes</td><td>Single</td><td></td><td>Blue Harbor Coffee LLC</td><td>Registered legal name</td><td>LegalName</td><td>/UnderwritingRequest/Merchant/LegalName</td><td>xs:string</td><td>max 100</td><td>Yes</td><td>Single</td><td></td><td></td><td>Legal entity name as registered with the state</td><td>LegalEntity.LegalName</td><td></td><td>Direct</td><td>Copy; truncate to 100 characters</td><td>substring($.account.legalName, 0, 100)</td><td></td><td></td><td class="band-High">98</td><td class="band-High">High</td><td>Exact name match after normalization; both described as the registered legal name.</td><td>Sample: sales-alpha-sample-llc.json — Value is an entity name with legal suffix
+Documentation: UW_Core_Integration_Guide_v4.2.pdf p.6</td><td>Low — Source allows 120 chars, target 100</td><td>None</td><td>Required
+Max length 100</td><td>Auto-accepted</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>M002</td><td>1:1</td><td>dbaName</td><td>$.account.dbaName</td><td>string</td><td>max 80</td><td>Yes</td><td>Single</td><td></td><td>Blue Harbor Coffee</td><td></td><td>DoingBusinessAs</td><td>/UnderwritingRequest/Merchant/DoingBusinessAs</td><td>xs:string</td><td>max 80</td><td>Yes</td><td>Single</td><td></td><td></td><td></td><td>LegalEntity.DbaName</td><td></td><td>Rename</td><td>Copy</td><td>$.account.dbaName</td><td></td><td></td><td class="band-High">96</td><td class="band-High">High</td><td>Synonym match: DBA = Doing Business As (entity-type playbook alias list).</td><td>Playbook: domain/entity-type@1.0.0 — Alias dbaName ↔ DoingBusinessAs</td><td>None</td><td>None</td><td>Required</td><td>Auto-accepted</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>M003</td><td>1:1</td><td>taxId</td><td>$.account.taxId</td><td>string</td><td>#########</td><td>Yes</td><td>Single</td><td></td><td>*****6789</td><td>SSN for sole proprietors, EIN otherwise</td><td>TaxId</td><td>/UnderwritingRequest/Merchant/TaxId/Number</td><td>xs:string</td><td>9 digits, no dashes</td><td>Yes</td><td>Single</td><td></td><td></td><td></td><td>LegalEntity.TaxId</td><td>domain/tax-id@1.0.0</td><td>Type Cast</td><td>Strip dashes and spaces</td><td>replace($.account.taxId, /[^0-9]/, &#39;&#39;)</td><td></td><td></td><td class="band-High">95</td><td class="band-High">High</td><td>Both are the merchant tax identifier; value pattern is 9 digits in all samples.</td><td>Sample: sales-alpha-sample-llc.json — 9-digit pattern
+Schema: uw-core-request-4.2.xsd — pattern [0-9]{9}</td><td>None</td><td>Sensitive PII</td><td>Required
+Pattern [0-9]{9}</td><td>Auto-accepted</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>M004</td><td>Derived</td><td>entityType</td><td>$.account.entityType</td><td>string</td><td></td><td>Yes</td><td>Single</td><td>SOLE_PROP, LLC, CORP, PARTNERSHIP, NON_PROFIT</td><td>LLC</td><td></td><td>TaxIdType</td><td>/UnderwritingRequest/Merchant/TaxId/@type</td><td>xs:string</td><td></td><td>Yes</td><td>Single</td><td>SSN, EIN</td><td></td><td></td><td>LegalEntity.TaxIdType</td><td>domain/tax-id@1.0.0</td><td>Conditional</td><td>SSN when entity is a sole proprietor, otherwise EIN</td><td>$.account.entityType = &#39;SOLE_PROP&#39; ? &#39;SSN&#39; : &#39;EIN&#39;</td><td>entityType = SOLE_PROP</td><td></td><td class="band-High">90</td><td class="band-High">High</td><td>SalesAlpha has no explicit tax-id type; tax-id playbook derives it from entity type.</td><td>Playbook: domain/tax-id@1.0.0 — Rule TIN-TYPE-01
+Documentation: UW_Core_Integration_Guide_v4.2.pdf p.7</td><td>None</td><td>None</td><td></td><td>Approved</td><td>a.sharma</td><td>2026-09-21</td><td></td><td></td></tr>
+<tr><td>M005</td><td>1:1</td><td>entityType</td><td>$.account.entityType</td><td>string</td><td></td><td>Yes</td><td>Single</td><td>SOLE_PROP, LLC, CORP, PARTNERSHIP, NON_PROFIT</td><td>LLC</td><td></td><td>OwnershipType</td><td>/UnderwritingRequest/Merchant/OwnershipType</td><td>xs:string</td><td></td><td>Yes</td><td>Single</td><td>SP, LLC, C, P, NP</td><td></td><td></td><td>LegalEntity.EntityType</td><td>domain/entity-type@1.0.0</td><td>Enum Map</td><td>Map SalesAlpha entity codes to UW ownership codes</td><td>lookup(entityTypeMap, $.account.entityType)</td><td></td><td></td><td class="band-High">88</td><td class="band-High">High</td><td>Both fields enumerate legal structure; all 5 source codes have a playbook-known target code.</td><td>Field Spec: SalesAlpha_Field_Dictionary.xlsx row 14
+Schema: uw-core-request-4.2.xsd — enumeration SP|LLC|C|P|NP</td><td>Low — S-Corp distinction is lost</td><td>None</td><td></td><td>Approved</td><td>a.sharma</td><td>2026-09-21</td><td>S-Corp loss acceptable for UW rules</td><td></td></tr>
+<tr><td>M006</td><td>Many:1</td><td>owners[].firstName
+owners[].lastName</td><td>$.owners[*].firstName
+$.owners[*].lastName</td><td>string
+string</td><td></td><td>Yes
+Yes</td><td>Array
+Array</td><td></td><td>Maria
+Lopez</td><td></td><td>Officer/FullName</td><td>/UnderwritingRequest/Officers/Officer/FullName</td><td>xs:string</td><td></td><td>Yes</td><td>Array</td><td></td><td></td><td></td><td>Principal.FullName</td><td>domain/principals@1.0.0</td><td>Concat</td><td>firstName + &#39; &#39; + lastName, one Officer per owner</td><td>$.owners[*].(firstName &amp; &#39; &#39; &amp; lastName)</td><td></td><td></td><td class="band-High">90</td><td class="band-High">High</td><td>Owners[] and Officers[] are both principal collections (principals playbook alias). Child fields match on name parts.</td><td>Playbook: domain/principals@1.0.0 — Alias Owners ↔ Officers
+Sample: sales-alpha-sample-llc.json — 2 owners</td><td>None</td><td>PII</td><td></td><td>Auto-accepted</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>M007</td><td>1:1</td><td>owners[].ownershipPercent</td><td>$.owners[*].ownershipPercent</td><td>number</td><td>fraction 0-1</td><td>No</td><td>Array</td><td></td><td>0.25</td><td></td><td>Officer/OwnershipPct</td><td>/UnderwritingRequest/Officers/Officer/OwnershipPct</td><td>xs:decimal</td><td>0-100</td><td>Yes</td><td>Array</td><td></td><td></td><td></td><td>Principal.OwnershipPercent</td><td>domain/principals@1.0.0</td><td>Unit Conversion</td><td>Fraction → percent (&#215; 100)</td><td>$.owners[*].ownershipPercent * 100</td><td></td><td></td><td class="band-Medium">72</td><td class="band-Medium">Medium</td><td>Same concept, but samples show fractions (0.25) while UW expects 0-100. Unit inferred from 2 samples only.</td><td>Sample: sales-alpha-sample-llc.json — Values 0.25 and 0.75
+Documentation: UW_Core_Integration_Guide_v4.2.pdf p.8 — OwnershipPct 0-100</td><td>Medium — Wrong unit assumption would under-report ownership 100&#215;</td><td>None</td><td>Sum of OwnershipPct &lt;= 100</td><td>Needs review</td><td></td><td></td><td></td><td>Confirm with SalesAlpha team that ownershipPercent is always a fraction.</td></tr>
+<tr><td>M008</td><td>1:1</td><td>owners[].ssn</td><td>$.owners[*].ssn</td><td>string</td><td></td><td>Yes</td><td>Array</td><td></td><td>***-**-4321</td><td></td><td>Officer/SSN</td><td>/UnderwritingRequest/Officers/Officer/SSN</td><td>xs:string</td><td>9 digits</td><td>Yes</td><td>Array</td><td></td><td></td><td></td><td>Principal.Ssn</td><td>domain/principals@1.0.0</td><td>Type Cast</td><td>Strip dashes</td><td>replace($.owners[*].ssn, &#39;-&#39;, &#39;&#39;)</td><td></td><td></td><td class="band-High">97</td><td class="band-High">High</td><td>Exact concept and pattern match (SSN).</td><td></td><td>None</td><td>Sensitive PII</td><td>Pattern [0-9]{9}</td><td>Auto-accepted</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>M009</td><td>1:1</td><td>annualCardVolume</td><td>$.processing.annualCardVolume</td><td>number</td><td>USD</td><td>Yes</td><td>Single</td><td></td><td>500000</td><td></td><td>MonthlyVolume</td><td>/UnderwritingRequest/Processing/MonthlyVolume</td><td>xs:decimal</td><td>USD, 2 dp</td><td>Yes</td><td>Single</td><td></td><td></td><td></td><td>ProcessingVolume.Monthly</td><td>domain/processing-volume@1.0.0</td><td>Period Conversion</td><td>Annual → monthly (&#247; 12), round to 2 dp</td><td>round($.processing.annualCardVolume / 12, 2)</td><td></td><td></td><td class="band-High">92</td><td class="band-High">High</td><td>Same concept (card processing volume), different period qualifier: annual vs monthly.</td><td>Playbook: domain/processing-volume@1.0.0 — Rule VOL-PERIOD-01
+Field Spec: SalesAlpha_Field_Dictionary.xlsx row 31 — Expected annual card sales</td><td>Low — Rounding to cents</td><td>None</td><td>&gt; 0</td><td>Auto-accepted</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>M010</td><td>1:1</td><td>averageTicket</td><td>$.processing.averageTicket</td><td>number</td><td>USD</td><td>Yes</td><td>Single</td><td></td><td>12.50</td><td></td><td>AverageTicket</td><td>/UnderwritingRequest/Processing/AverageTicket</td><td>xs:decimal</td><td></td><td>Yes</td><td>Single</td><td></td><td></td><td></td><td>ProcessingVolume.AverageTicket</td><td>domain/processing-volume@1.0.0</td><td>Direct</td><td></td><td>$.processing.averageTicket</td><td></td><td></td><td class="band-High">97</td><td class="band-High">High</td><td>Exact name match after normalization.</td><td></td><td>None</td><td>None</td><td></td><td>Auto-accepted</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>M011</td><td>Many:1</td><td>motoPercent
+ecommPercent</td><td>$.processing.motoPercent
+$.processing.ecommPercent</td><td>number
+number</td><td>0-100
+0-100</td><td>No
+No</td><td>Single
+Single</td><td></td><td>10
+30</td><td></td><td>CardNotPresentPct</td><td>/UnderwritingRequest/Processing/CardNotPresentPct</td><td>xs:decimal</td><td>0-100</td><td>Yes</td><td>Single</td><td></td><td></td><td></td><td>ChannelMix.CardNotPresent</td><td>domain/channel-mix@1.0.0</td><td>Aggregate</td><td>CNP = MOTO + ECOMM</td><td>$.processing.motoPercent + $.processing.ecommPercent</td><td></td><td>0</td><td class="band-High">91</td><td class="band-High">High</td><td>Channel-mix playbook: card-not-present is the sum of mail/telephone order and e-commerce.</td><td>Playbook: domain/channel-mix@1.0.0 — Rule MIX-CNP-01</td><td>None</td><td>None</td><td>CardPresentPct + CardNotPresentPct = 100</td><td>Approved</td><td>a.sharma</td><td>2026-09-21</td><td></td><td></td></tr>
+<tr><td>M012</td><td>1:1</td><td>cardPresentPercent</td><td>$.processing.cardPresentPercent</td><td>number</td><td>0-100</td><td>Yes</td><td>Single</td><td></td><td>60</td><td></td><td>CardPresentPct</td><td>/UnderwritingRequest/Processing/CardPresentPct</td><td>xs:decimal</td><td>0-100</td><td>Yes</td><td>Single</td><td></td><td></td><td></td><td>ChannelMix.CardPresent</td><td>domain/channel-mix@1.0.0</td><td>Direct</td><td></td><td>$.processing.cardPresentPercent</td><td></td><td></td><td class="band-High">99</td><td class="band-High">High</td><td>Exact concept match; same unit (0-100).</td><td></td><td>None</td><td>None</td><td></td><td>Auto-accepted</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>M013</td><td>1:1</td><td>mcc</td><td>$.account.mcc</td><td>string</td><td>4 digits</td><td>Yes</td><td>Single</td><td></td><td>5814</td><td></td><td>MCC</td><td>/UnderwritingRequest/Merchant/MCC</td><td>xs:string</td><td>4 digits</td><td>Yes</td><td>Single</td><td></td><td></td><td></td><td>LegalEntity.Mcc</td><td></td><td>Direct</td><td></td><td>$.account.mcc</td><td></td><td></td><td class="band-High">99</td><td class="band-High">High</td><td>Exact name and 4-digit value pattern match.</td><td></td><td>None</td><td>None</td><td></td><td>Auto-accepted</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>M014</td><td>Derived</td><td>incorporationDate</td><td>$.account.incorporationDate</td><td>string</td><td>yyyy-MM-dd</td><td>No</td><td>Single</td><td></td><td>2019-04-01</td><td></td><td>YearsInBusiness</td><td>/UnderwritingRequest/Merchant/YearsInBusiness</td><td>xs:int</td><td></td><td>Yes</td><td>Single</td><td></td><td></td><td></td><td>LegalEntity.YearsInBusiness</td><td></td><td>Derived</td><td>Whole years between incorporationDate and submission date</td><td>floor(yearsBetween($.account.incorporationDate, $now()))</td><td></td><td>0</td><td class="band-Medium">80</td><td class="band-Medium">Medium</td><td>No direct source; derivable from incorporation date. Business may have operated before incorporating.</td><td>Documentation: UW_Core_Integration_Guide_v4.2.pdf p.9 — Years the business has operated</td><td>Medium — Understates tenure for businesses that incorporated later</td><td>None</td><td></td><td>Needs review</td><td></td><td></td><td></td><td>Is incorporation date an acceptable proxy for business start date?</td></tr>
+<tr><td>M015</td><td>1:1</td><td>bank.routingNumber</td><td>$.bank.routingNumber</td><td>string</td><td>9 digits</td><td>Yes</td><td>Single</td><td></td><td>*****0021</td><td></td><td>RoutingNumber</td><td>/UnderwritingRequest/Settlement/RoutingNumber</td><td>xs:string</td><td>9 digits</td><td>Yes</td><td>Single</td><td></td><td></td><td></td><td>BankAccount.RoutingNumber</td><td></td><td>Direct</td><td></td><td>$.bank.routingNumber</td><td></td><td></td><td class="band-High">98</td><td class="band-High">High</td><td>Exact concept match; ABA routing number pattern.</td><td></td><td>None</td><td>Financial</td><td>ABA checksum</td><td>Auto-accepted</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>M016</td><td>Constant</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>SourceChannel</td><td>/UnderwritingRequest/@sourceChannel</td><td>xs:string</td><td></td><td>Yes</td><td>Single</td><td></td><td></td><td></td><td></td><td></td><td>Default</td><td>Always SALES_ALPHA</td><td></td><td></td><td>SALES_ALPHA</td><td class="band-High">100</td><td class="band-High">High</td><td>UW Core requires the originating channel; constant per integration.</td><td></td><td>None</td><td>None</td><td></td><td>Auto-accepted</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>M017</td><td>Unmapped</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>WebsiteUrl</td><td>/UnderwritingRequest/Merchant/WebsiteUrl</td><td>xs:anyURI</td><td></td><td>Yes</td><td>Single</td><td></td><td></td><td>Required when CardNotPresentPct &gt; 0</td><td>LegalEntity.Website</td><td></td><td>Direct</td><td></td><td></td><td></td><td></td><td class="band-unmapped"></td><td class="band-unmapped"></td><td>No source field carries a website; searched names, descriptions and sample values.</td><td></td><td>None</td><td>None</td><td></td><td>Needs review</td><td></td><td></td><td></td><td>Can SalesAlpha add a website field?</td></tr>
+<tr><td>M018</td><td>Unmapped</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>HighTicket</td><td>/UnderwritingRequest/Processing/HighTicket</td><td>xs:decimal</td><td></td><td>No</td><td>Single</td><td></td><td></td><td></td><td>ProcessingVolume.HighTicket</td><td></td><td>Direct</td><td></td><td></td><td></td><td></td><td class="band-unmapped"></td><td class="band-unmapped"></td><td>No highest-ticket field in SalesAlpha.</td><td></td><td>None</td><td>None</td><td></td><td>Needs review</td><td></td><td></td><td></td><td></td></tr>
+</tbody>
+</table></div></section>
+<section id="gaps"><h2>Gaps</h2>
+<div class="scroll"><table>
+<thead>
+<tr><th>Gap Type</th><th>Mapping ID</th><th>Field Name</th><th>Field Path</th><th>Datatype</th><th>Required</th><th>Suggested Resolution</th></tr>
+</thead>
+<tbody>
+<tr><td>Unmapped required target</td><td>M017</td><td>WebsiteUrl</td><td>/UnderwritingRequest/Merchant/WebsiteUrl</td><td>xs:anyURI</td><td>Yes</td><td>Add website field to SalesAlpha application; until then send only for CP-only merchants (CardNotPresentPct = 0).</td></tr>
+<tr><td>Unmapped optional target</td><td>M018</td><td>HighTicket</td><td>/UnderwritingRequest/Processing/HighTicket</td><td>xs:decimal</td><td>No</td><td>Optional in UW Core; leave empty.</td></tr>
+<tr><td>Orphan source field</td><td></td><td>salesRepId</td><td>$.account.salesRepId</td><td>string</td><td>No</td><td>Internal CRM field; not needed for underwriting.</td></tr>
+<tr><td>Orphan source field</td><td></td><td>leadSource</td><td>$.account.leadSource</td><td>string</td><td>No</td><td>Not used by UW Core; consider for ISO/partner risk rules later.</td></tr>
+</tbody>
+</table></div></section>
+<section id="value-maps"><h2>Value Maps</h2>
+<div class="scroll"><table>
+<thead>
+<tr><th>Mapping ID</th><th>Source Field</th><th>Target Field</th><th>Source Value</th><th>Target Value</th><th>Notes</th></tr>
+</thead>
+<tbody>
+<tr><td>M005</td><td>entityType</td><td>OwnershipType</td><td>SOLE_PROP</td><td>SP</td><td></td></tr>
+<tr><td>M005</td><td>entityType</td><td>OwnershipType</td><td>LLC</td><td>LLC</td><td></td></tr>
+<tr><td>M005</td><td>entityType</td><td>OwnershipType</td><td>CORP</td><td>C</td><td>Covers both C-Corp and S-Corp; UW Core has no S-Corp code</td></tr>
+<tr><td>M005</td><td>entityType</td><td>OwnershipType</td><td>PARTNERSHIP</td><td>P</td><td></td></tr>
+<tr><td>M005</td><td>entityType</td><td>OwnershipType</td><td>NON_PROFIT</td><td>NP</td><td></td></tr>
+</tbody>
+</table></div></section>
+<section id="findings"><h2>Conflicts &amp; Assumptions</h2>
+<div class="scroll"><table>
+<thead>
+<tr><th>Finding ID</th><th>Kind</th><th>Description</th><th>Mapping IDs</th><th>Sources</th><th>Resolution</th></tr>
+</thead>
+<tbody>
+<tr><td>F001</td><td>Conflict</td><td>SalesAlpha field dictionary marks ownershipPercent optional; UW Core guide requires OwnershipPct for every officer.</td><td>M007</td><td>SalesAlpha_Field_Dictionary.xlsx row 22
+UW_Core_Integration_Guide_v4.2.pdf p.8</td><td>Pending: default to equal split when missing, or reject at intake.</td></tr>
+<tr><td>F002</td><td>Assumption</td><td>Owners are treated as Officers. Non-owner officers (0% ownership) cannot be captured in SalesAlpha.</td><td>M006, M007</td><td>domain/principals@1.0.0</td><td></td></tr>
+<tr><td>F003</td><td>Assumption</td><td>annualCardVolume is assumed to be gross USD sales across all card brands, including AMEX.</td><td>M009</td><td>SalesAlpha_Field_Dictionary.xlsx row 31</td><td></td></tr>
+</tbody>
+</table></div></section>
+<section id="validation"><h2>Validation</h2>
+<div class="scroll"><table>
+<thead>
+<tr><th>Run ID</th><th>Ran At</th><th>Sample Payload</th><th>Mapping ID</th><th>Target Field</th><th>Outcome</th><th>Expected</th><th>Actual</th><th>Message</th></tr>
+</thead>
+<tbody>
+<tr><td>V001</td><td>2026-09-21 14:30 UTC+00:00</td><td>sales-alpha-sample-llc.json</td><td>M001</td><td>LegalName</td><td class="outcome-Pass">Pass</td><td></td><td></td><td></td></tr>
+<tr><td>V001</td><td>2026-09-21 14:30 UTC+00:00</td><td>sales-alpha-sample-llc.json</td><td>M005</td><td>OwnershipType</td><td class="outcome-Pass">Pass</td><td>LLC</td><td>LLC</td><td></td></tr>
+<tr><td>V001</td><td>2026-09-21 14:30 UTC+00:00</td><td>sales-alpha-sample-llc.json</td><td>M007</td><td>Officer/OwnershipPct</td><td class="outcome-Fail">Fail</td><td>25</td><td>0.25</td><td>Run on v0.1.0 before the &#215;100 unit conversion was added</td></tr>
+<tr><td>V001</td><td>2026-09-21 14:30 UTC+00:00</td><td>sales-alpha-sample-llc.json</td><td>M009</td><td>MonthlyVolume</td><td class="outcome-Pass">Pass</td><td>41666.67</td><td>41666.67</td><td></td></tr>
+<tr><td>V001</td><td>2026-09-21 14:30 UTC+00:00</td><td>sales-alpha-sample-llc.json</td><td>M011</td><td>CardNotPresentPct</td><td class="outcome-Pass">Pass</td><td>40</td><td>40</td><td></td></tr>
+<tr><td>V001</td><td>2026-09-21 14:30 UTC+00:00</td><td>sales-alpha-sample-llc.json</td><td>M017</td><td>WebsiteUrl</td><td class="outcome-Skipped">Skipped</td><td></td><td></td><td>Unmapped</td></tr>
+</tbody>
+</table></div></section>
+<section id="change-log"><h2>Change Log</h2>
+<div class="scroll"><table>
+<thead>
+<tr><th>Version</th><th>Date</th><th>Author</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>0.1.0</td><td>2026-09-20</td><td>mapwright</td><td>Initial generated draft.</td></tr>
+<tr><td>0.2.0</td><td>2026-09-21</td><td>a.sharma</td><td>Approved entity-type value map, tax-id type rule and CNP aggregation; added &#215;100 to ownership percent.</td></tr>
+</tbody>
+</table></div></section>
+</main>
+</body>
+</html>
