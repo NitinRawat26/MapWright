@@ -535,8 +535,19 @@ Keep key files out of git: `secrets/` and `*-key.json` are ignored by both `.git
 
 ### Render
 
-`render.yaml` is a Render Blueprint: a Docker web service with a 1 GB persistent disk at `/var/data` for the
-SQLite file and a `/health` check. Persistent disks need a paid instance type, which is why the plan is `starter`.
+`render.yaml` is a Render Blueprint: a Docker web service on the free plan with a `/health` check. The free plan
+has no persistent disk, so the SQLite file at `/var/data/mapwright.db` is reset on every deploy or restart: the
+starter playbooks are seeded again, but profiles, mappings, drafts and suggestions are lost. A free service also
+sleeps when idle, so the first request after a pause is slow. To keep data, change `plan: free` to a paid plan
+(e.g. `starter`) and add a disk:
+
+```yaml
+    plan: starter
+    disk:
+      name: mapwright-data
+      mountPath: /var/data
+      sizeGB: 1
+```
 
 1. In Render, choose **New > Blueprint** and pick this repository.
 2. When asked, fill in `MAPWRIGHT_VERTEX_PROJECT` (and optionally `MAPWRIGHT_VERTEX_LOCATION`, `MAPWRIGHT_VERTEX_MODEL`),
