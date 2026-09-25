@@ -18,7 +18,7 @@ internal sealed class MappingBuilder(IReadOnlyList<RecognisedField> sources, Pla
 
     public FieldMapping Map(RecognisedField target, string id)
     {
-        var draft = ByConcept(target) ?? Unmapped(target);
+        var draft = ByConcept(target) ?? ByDerivation(target) ?? ByCondition(target) ?? Unmapped(target);
         return Finish(id, target, draft);
     }
 
@@ -228,6 +228,196 @@ internal sealed class MappingBuilder(IReadOnlyList<RecognisedField> sources, Pla
             yield return new() { Kind = EvidenceKind.Sample, Reference = string.Join(", ", field.Field.SeenIn), Detail = $"{side} {field.Path} observed" };
         }
     }
+
+    // ------------------------------------------------------------ derivation rules
+
+    /// <summary>Applies the first derivation rule whose output is the target and whose inputs the source provides.</summary>
+    private Draft? ByDerivation(RecognisedField target)
+    {
+        if (target.Detection is not { Attribute: not null } wanted || DomainOf(wanted) is not { } domain)
+        {
+            return null;
+        }
+
+        var applicable = domain.Derivations
+            .Where(r => Same(r.Output.Attribute, wanted.Attribute)
+                && r.Output.Qualifiers.All(q => !wanted.Qualifiers.TryGetValue(q.Key, out var v) || v == q.Value))
+            .Select(r => (Rule: r, Inputs: r.Inputs.Select(i => BestSource(domain.Concept.Name, i.Attribute, i.Qualifiers)).ToList()))
+            .Where(c => c.Inputs.All(i => i is not null))
+            .ToList();
+        if (applicable.Count == 0)
+        {
+            return null;
+        }
+
+        var (rule, found) = applicable
+            .OrderBy(c => c.Rule.RequiresReview)
+            .ThenBy(c => c.Rule.DataLoss)
+            .First();
+        var inputs = found.Select(i => i!).ToList();
+
+        var draft = new Draft
+        {
+            Type = inputs.Count > 1 ? MappingType.ManyToOne : rule.Transformation == TransformationType.Derived ? MappingType.Derived : MappingType.OneToOne,
+            Sources = inputs,
+            Confidence = inputs.Select(i => i.Detection!.Score).Append(wanted.Score).Min(),
+            Playbook = wanted.Playbook,
+            Concept = wanted.BusinessConcept,
+            Transformation = new()
+            {
+                Type = rule.Transformation,
+                Rule = $"{rule.Description} ({rule.Id}: {string.Join(", ", rule.Inputs.Zip(inputs).Select(p => $"{p.First.Name} = {p.Second.Path}"))})",
+                Expression = rule.Expression,
+            },
+        };
+
+        draft.Reasons.Add($"Target is {wanted.BusinessConcept}{Qualifiers(wanted)}; {wanted.Playbook} derives it with rule {rule.Id} from "
+            + $"{string.Join(" and ", inputs.Select(i => $"{i.Detection!.BusinessConcept}{Qualifiers(i.Detection)}"))}.");
+        if (rule.Note is { } note)
+        {
+            draft.Reasons.Add($"Assumption: {note}");
+        }
+
+        var others = applicable.Where(c => c.Rule != rule).Select(c => $"{c.Rule.Id} ({c.Rule.Expression ?? c.Rule.Description})").ToList();
+        if (others.Count > 0)
+        {
+            draft.Reasons.Add($"Rule(s) {string.Join(", ", others)} also apply and can cross-check the result.");
+        }
+
+        if (rule.RequiresReview)
+        {
+            draft.Confidence -= 10;
+            draft.Review.Add($"Rule {rule.Id} rests on an assumption.");
+        }
+
+        if (rule.DataLoss != RiskLevel.None)
+        {
+            draft.Confidence -= rule.DataLoss >= RiskLevel.Medium ? 10 : 0;
+            draft.Loss(rule.DataLoss, rule.Note ?? $"Rule {rule.Id} loses information.");
+        }
+
+        draft.Evidence.Add(new() { Kind = EvidenceKind.Playbook, Reference = wanted.Playbook, Detail = $"Derivation {rule.Id}: {rule.Expression ?? rule.Description}" });
+        AddInputs(draft, inputs, target);
+        return draft;
+    }
+
+    /// <summary>The highest-scoring source recognised as Concept.Attribute with exactly these qualifiers.</summary>
+    private RecognisedField? BestSource(string concept, string attribute, IReadOnlyDictionary<string, string> qualifiers) => sources
+        .Where(s => s.Detection is { } d && Same(d.Concept, concept) && Same(d.Attribute, attribute)
+            && qualifiers.All(q => d.Qualifiers.TryGetValue(q.Key, out var v) && v == q.Value))
+        .OrderByDescending(s => s.Detection!.Score)
+        .FirstOrDefault();
+
+    // ------------------------------------------------------------ conditional rules
+
+    /// <summary>Applies a conditional rule (e.g. SSN for sole proprietors, otherwise EIN) using the source fields its clauses name.</summary>
+    private Draft? ByCondition(RecognisedField target)
+    {
+        if (target.Detection is not { Attribute: not null } wanted || DomainOf(wanted) is not { } domain)
+        {
+            return null;
+        }
+
+        foreach (var rule in domain.Conditions.Where(r => Same(r.Output.Attribute, wanted.Attribute)))
+        {
+            var concepts = rule.Cases.SelectMany(c => c.When).Select(w => w.Concept).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            var inputs = concepts.Select(c => sources
+                    .Where(s => s.Detection is { } d && Same(d.BusinessConcept, c))
+                    .OrderByDescending(s => s.Detection!.Score)
+                    .FirstOrDefault())
+                .ToList();
+            if (inputs.Any(i => i is null))
+            {
+                continue;
+            }
+
+            return Conditional(target, rule, [.. inputs.Select(i => i!)]);
+        }
+
+        return null;
+    }
+
+    private Draft Conditional(RecognisedField target, ConditionalRule rule, IReadOnlyList<RecognisedField> inputs)
+    {
+        var wanted = target.Detection!;
+        var targetMap = ValueMapFor(wanted);
+        string Spell(string code) => targetMap is null ? code : target.Values.FirstOrDefault(v => PlaybookMatcher.ResolveCode(targetMap, v) == code) ?? code;
+
+        var cases = rule.Cases.Select(c => $"{string.Join(" and ", c.When.Select(w => Clause(w, inputs)))} → {Spell(c.Then)}").ToList();
+        var otherwise = rule.Otherwise is null ? null : Spell(rule.Otherwise);
+
+        var draft = new Draft
+        {
+            Type = inputs.Count > 1 ? MappingType.ManyToOne : MappingType.Derived,
+            Sources = inputs,
+            Confidence = inputs.Select(i => i.Detection!.Score).Append(wanted.Score).Min() - 10,
+            Playbook = wanted.Playbook,
+            Concept = wanted.BusinessConcept,
+            Transformation = new()
+            {
+                Type = TransformationType.Conditional,
+                Rule = $"{rule.Description} ({rule.Id})",
+                Condition = string.Join("; ", otherwise is null ? cases : [.. cases, $"otherwise → {otherwise}"]),
+                DefaultValue = otherwise,
+                ValueMap = inputs.Count == 1 ? ConditionTable(rule, inputs[0], Spell) : [],
+            },
+        };
+
+        draft.Reasons.Add($"No source field is {wanted.BusinessConcept}; {wanted.Playbook} infers it with conditional rule {rule.Id} from "
+            + $"{string.Join(" and ", inputs.Select(i => i.Detection!.BusinessConcept))}.");
+        draft.Review.Add($"Conditional rule {rule.Id} infers the value; confirm the exceptions with the business.");
+        draft.Evidence.Add(new() { Kind = EvidenceKind.Playbook, Reference = wanted.Playbook, Detail = $"Condition {rule.Id}: {draft.Transformation.Condition}" });
+        AddInputs(draft, inputs, target);
+        return draft;
+    }
+
+    /// <summary>"entityType in (SOLE_PROP)", using the source's own spellings of the clause's codes.</summary>
+    private string Clause(ConditionClause clause, IReadOnlyList<RecognisedField> inputs)
+    {
+        var input = inputs.First(i => Same(i.Detection!.BusinessConcept, clause.Concept));
+        var map = ValueMapFor(input.Detection!);
+        var spellings = clause.In
+            .SelectMany(code => input.Values.Where(v => map is not null && PlaybookMatcher.ResolveCode(map, v) == code).DefaultIfEmpty(code))
+            .Distinct(StringComparer.Ordinal);
+        return $"{input.Field.Name} in ({string.Join(", ", spellings)})";
+    }
+
+    /// <summary>Each observed source value and the target value the rule gives it.</summary>
+    private List<ValueMapEntry> ConditionTable(ConditionalRule rule, RecognisedField input, Func<string, string> spell)
+    {
+        var map = ValueMapFor(input.Detection!);
+        var entries = new List<ValueMapEntry>();
+        foreach (var value in input.Values)
+        {
+            var code = map is null ? value : PlaybookMatcher.ResolveCode(map, value) ?? value;
+            var match = rule.Cases.FirstOrDefault(c => c.When.All(w => w.In.Contains(code, StringComparer.OrdinalIgnoreCase)));
+            if ((match?.Then ?? rule.Otherwise) is { } then)
+            {
+                entries.Add(new() { SourceValue = value, TargetValue = spell(then), Notes = match is null ? "otherwise" : null });
+            }
+        }
+
+        return entries;
+    }
+
+    private void AddInputs(Draft draft, IReadOnlyList<RecognisedField> inputs, RecognisedField target)
+    {
+        foreach (var input in inputs)
+        {
+            AddDetectionReview(draft, "Source", input.Detection!);
+            AddRepeatRisk(draft, input, target);
+            draft.Evidence.AddRange(PlaybookEvidence(input, "Source"));
+            draft.Questions.AddRange(input.Detection!.Questions);
+        }
+
+        AddDetectionReview(draft, "Target", target.Detection!);
+        draft.Evidence.AddRange(PlaybookEvidence(target, "Target"));
+        draft.Questions.AddRange(target.Detection!.Questions);
+    }
+
+    private DomainDefinition? DomainOf(DetectionResult detection) => _playbooks.GetValueOrDefault(detection.Playbook)?.Domain;
+
+    private static bool Same(string? a, string? b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 
     // ------------------------------------------------------------ unmapped
 

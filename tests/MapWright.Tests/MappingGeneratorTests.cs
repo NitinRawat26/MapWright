@@ -180,3 +180,101 @@ public sealed class MappingGeneratorTests
         Assert.Equal(ReviewStatus.NeedsReview, ticket.Review.Status);
     }
 }
+
+public sealed class MappingRuleTests
+{
+    private static readonly MappingDocument SalesToUw = SampleProfiles.Map(SampleProfiles.Load("sales-alpha"), SampleProfiles.Load("uw-core"));
+    private static readonly MappingDocument UwToSales = SampleProfiles.Map(SampleProfiles.Load("uw-core"), SampleProfiles.Load("sales-alpha"));
+
+    [Fact]
+    public void Annual_volume_is_converted_to_monthly()
+    {
+        var monthly = SalesToUw.Row("/UnderwritingRequest/Processing/MonthlyVolume");
+
+        Assert.Equal(MappingType.OneToOne, monthly.Type);
+        Assert.Equal("$.processing.annualCardVolume", Assert.Single(monthly.Sources).Path);
+        Assert.Equal(TransformationType.PeriodConversion, monthly.Transformation.Type);
+        Assert.Equal("annual / 12", monthly.Transformation.Expression);
+        Assert.Contains("annual = $.processing.annualCardVolume", monthly.Transformation.Rule);
+        Assert.Contains("Assumption: Assumes volume is spread evenly", monthly.Reasoning);
+        Assert.Contains(monthly.Evidence, e => e.Detail == "Derivation VOL-PERIOD-01: annual / 12");
+
+        var annual = UwToSales.Row("$.processing.annualCardVolume");
+        Assert.Equal("monthly * 12", annual.Transformation.Expression);
+    }
+
+    [Fact]
+    public void Card_not_present_is_the_sum_of_moto_and_ecommerce()
+    {
+        var cnp = SalesToUw.Row("/UnderwritingRequest/Processing/CardNotPresentPct");
+
+        Assert.Equal(MappingType.ManyToOne, cnp.Type);
+        Assert.Equal(["$.processing.motoPercent", "$.processing.ecommPercent"], cnp.Sources.Select(s => s.Path));
+        Assert.Equal(TransformationType.Aggregate, cnp.Transformation.Type);
+        Assert.Equal("moto + ecomm", cnp.Transformation.Expression);
+        Assert.Contains("MIX-CNP-02 (100 - cp) also apply", cnp.Reasoning);
+    }
+
+    [Fact]
+    public void Fraction_ownership_is_converted_to_percent()
+    {
+        var pct = SalesToUw.Row("/UnderwritingRequest/Officers/Officer/OwnershipPct");
+
+        Assert.Equal(TransformationType.UnitConversion, pct.Transformation.Type);
+        Assert.Equal("fraction * 100", pct.Transformation.Expression);
+        Assert.Equal("$.owners[*].ownershipPercent", Assert.Single(pct.Sources).Path);
+
+        Assert.Equal("percent / 100", UwToSales.Row("$.owners[*].ownershipPercent").Transformation.Expression);
+    }
+
+    [Fact]
+    public void Full_name_is_concatenated_from_first_and_last_name()
+    {
+        var name = SalesToUw.Row("/UnderwritingRequest/Officers/Officer/FullName");
+
+        Assert.Equal(MappingType.ManyToOne, name.Type);
+        Assert.Equal(TransformationType.Concat, name.Transformation.Type);
+        Assert.Equal(["$.owners[*].firstName", "$.owners[*].lastName"], name.Sources.Select(s => s.Path));
+    }
+
+    [Fact]
+    public void Tax_id_type_is_decided_by_the_entity_type()
+    {
+        var type = SalesToUw.Row("/UnderwritingRequest/Merchant/TaxId/@type");
+
+        Assert.Equal(MappingType.Derived, type.Type);
+        Assert.Equal("$.account.entityType", Assert.Single(type.Sources).Path);
+        Assert.Equal(TransformationType.Conditional, type.Transformation.Type);
+        Assert.Equal("entityType in (SOLE_PROP) → SSN; otherwise → EIN", type.Transformation.Condition);
+        Assert.Equal("EIN", type.Transformation.DefaultValue);
+        Assert.Equal(
+            ["CORP→EIN", "LLC→EIN", "SOLE_PROP→SSN"],
+            type.Transformation.ValueMap.Select(v => $"{v.SourceValue}→{v.TargetValue}").Order(StringComparer.Ordinal));
+        Assert.Equal(ReviewStatus.NeedsReview, type.Review.Status);
+    }
+
+    [Fact]
+    public void Lossy_rules_carry_their_risk_and_always_need_review()
+    {
+        var ecomm = UwToSales.Row("$.processing.ecommPercent");
+
+        Assert.Equal(TransformationType.Split, ecomm.Transformation.Type);
+        Assert.Equal(RiskLevel.High, ecomm.Risk.DataLoss);
+        Assert.Contains("MOTO is 0", ecomm.Risk.DataLossNote);
+        Assert.Equal(ReviewStatus.NeedsReview, ecomm.Review.Status);
+        Assert.True(ecomm.ConfidencePercent < 90);
+
+        Assert.Equal(MappingType.Unmapped, UwToSales.Row("$.processing.motoPercent").Type);
+    }
+
+    [Fact]
+    public void Derivation_inputs_need_the_exact_qualifier()
+    {
+        var source = SampleProfiles.FromJson("A", """{ "cardVolume": 250000 }""");
+        var target = SampleProfiles.FromJson("B", """{ "volumeInCents": 25000000 }""");
+
+        var row = SampleProfiles.Map(source, target).Row("$.volumeInCents");
+
+        Assert.NotEqual(TransformationType.UnitConversion, row.Transformation.Type);
+    }
+}
