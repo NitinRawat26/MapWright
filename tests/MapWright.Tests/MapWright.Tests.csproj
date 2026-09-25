@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\samples\**\*.json;..\..\samples\**\*.xml;..\..\samples\**\*.xsd;..\..\samples\**\*.wsdl;..\..\samples\**\*.csv" LinkBase="samples" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\samples\**\*.json;..\..\samples\**\*.xml;..\..\samples\**\*.xsd;..\..\samples\**\*.wsdl;..\..\samples\**\*.csv;..\..\samples\**\*.pdf;..\..\samples\**\*.docx;..\..\samples\**\*.xlsx" LinkBase="samples" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\playbooks\**\*.yaml;..\..\playbooks\**\*.yml;..\..\playbooks\**\*.json" LinkBase="playbooks" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

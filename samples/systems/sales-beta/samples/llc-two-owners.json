@@ -1,0 +1,16 @@
+{
+  "applicationRef": "SB-2026-000187",
+  "merchant": {
+    "legalName": "Harbor Street Coffee LLC",
+    "tradingName": "Harbor Coffee",
+    "taxNumber": "84-1234567",
+    "businessType": "LLC",
+    "categoryCode": "5814",
+    "annualCardVolume": 480000.00
+  },
+  "owners": [
+    { "fullName": "Dana Whitfield", "ownershipPercent": 60, "dateOfBirth": "1984-03-12", "email": "dana@harborcoffee.example" },
+    { "fullName": "Luis Ortega", "ownershipPercent": 40, "dateOfBirth": "1979-11-02" }
+  ],
+  "channel": { "cardPresentPercent": 85, "ecommercePercent": 15 }
+}

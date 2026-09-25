@@ -47,9 +47,54 @@ Unknown JSON properties and missing required properties are rejected.
 ## System profiles
 
 A system profile is a normalized description of one system's contract, built from any number of its inputs:
-JSON or XML sample payloads, JSON Schema, OpenAPI (JSON), XSD, WSDL and field specs (CSV or Excel). All
-inputs of one system are merged into one profile. PDF and Word documentation will feed the same profile in a
-later release.
+JSON or XML sample payloads, JSON Schema, OpenAPI (JSON), XSD, WSDL, field specs (CSV or Excel) and PDF or
+Word (.docx) specifications. All inputs of one system are merged into one profile.
+
+### Data dictionaries
+
+A data dictionary is read like a field spec (CSV with comma, semicolon or tab, or Excel). Besides the field-spec
+headers it recognises:
+
+- **Field column**: `Field Name`, `Attribute Name`, `Element Name`, `Column Name`, `Data Element`, `Property`.
+  A technical column (`API Name`, `Technical Name`, `JSON Field`, `XML Tag`) wins when both are present. A name
+  with spaces (`Legal Name`, `TAX ID (EIN)`) becomes a camelCase field (`legalName`, `taxIdEin`), with a
+  finding so it can be checked.
+- **Parent column**: `Parent`, `Parent Path`, `Group`, `Section`, `Entity`, `Object`, `Record`, `Segment`,
+  `Table`. A plain field name is placed under it: `owners[]` + `name` is `owners[*].name`, `/Request/Merchant` +
+  `Name` is `/Request/Merchant/Name`, `Merchant Details` + `legalName` is `merchantDetails.legalName`. A full
+  path in the field column ignores the parent.
+- **Required**: also `Mandatory Y/N`, `Is Required`, or a `Nullable` column (`N`/`NOT NULL` = required,
+  `Y` = optional). Types such as `VARCHAR(100)`, `CHAR(9)` and `NUMBER(12,2)` give length and scale.
+- **Other columns**: `Business Name`/`Label` (the description when there is none), `Domain Values`,
+  `Permitted Values`, `Code List`, `Width`, `Field Size`, `PII Flag`, `Personal Data`, `Multiplicity` and more.
+- **Several worksheets**: every sheet with a field column is read; sheets without one (cover, change log, code
+  lists) are skipped. With several such sheets, a sheet's name is the parent of its plain field names
+  (`Merchant` + `legalName` is `merchant.legalName`), unless the sheet is named `Sheet1`, `Sheet2`… A parent
+  column wins over the sheet name. Provenance names the sheet: `Sheet 'Owners' row 4`. A field listed on two
+  sheets is an error.
+- Sample: `samples/systems/sales-gamma/dictionary` has the same dictionary as Excel (three sheets) and CSV,
+  with a sample in `samples/systems/sales-gamma/samples`.
+
+### PDF and Word specifications
+
+- **Field tables are read by rules.** A table whose header row has a path column (the same names as a field
+  spec, e.g. `Field Path`, `Field`, `XPath`) is read like a field spec: type, mandatory, lengths, valid values
+  and description. Word tables are read as they are; PDF tables are rebuilt from the positions of the words
+  under the header row, a description that wraps onto the next line included, and a header repeated on the next
+  page continues the table. Page numbers are ignored.
+- **Plain field names** (`legalName`) in a document with several field tables get the table's heading as their
+  parent: under "4.2 Merchant details" they become `merchantDetails.legalName`.
+- **A field listed twice** in a document keeps its first definition and gets a finding (a field spec treats it
+  as an error).
+- **Text outside the tables** is read by AI only when you ask (`useAi=true` on `POST /api/profiles`, or
+  **Let AI read document text** on the Profiles page). E-mail addresses and runs of six or more digits are masked
+  before sending. Fields the tables already define are skipped. Each field AI adds gets an `aiExtracted` finding
+  with its confidence (capped like other AI answers, 70% by default) and a quote from the text, so it can be
+  reviewed. Its input is listed as `<document> (read by AI)`.
+- **A document with no field table** is refused unless AI is asked to read it.
+- `.doc` (Word 97-2003) and scanned PDFs without text are not read; save them as `.docx` or a text PDF.
+- Sample: `samples/systems/sales-beta/docs` has the same specification as PDF and Word, with a sample in
+  `samples/systems/sales-beta/samples`.
 
 Each field records its path, parent, kind (object/value), cardinality, inferred data type and date format,
 required signal, length/value ranges, observed values and value shapes, presence counts, the samples it was
@@ -79,6 +124,7 @@ seen in, and the source of each attribute.
 | XSD | `.xsd`, or an `xs:schema` root | One global element: sequences, `xs:all`, choices (optional), groups, attributes and attribute groups, named and inline types, extensions, `simpleContent` (`/text()`), `minOccurs`/`maxOccurs`, enumerations, length, range and `fractionDigits` facets, `fixed`, annotations |
 | WSDL 1.1 / 2.0 | `.wsdl`, or a WSDL root | The input element of one document/literal operation, read from the XSD in `types` |
 | Field spec | `.csv`, `.xlsx` | One row per field. Only a path column is required (`Path`, `Field Path`, `XPath`, `JSON Path`, `Field`, `Element`). Also recognised: type (`String(20)`, `Decimal(12,2)`, `Date`…), required/mandatory (`Y`, `M`, `C` = conditional…), format (`YYYY-MM-DD`), min/max length, min/max value, scale, allowed values (`CORP = Corporation; LLC = …`), description, sensitive/PII and repeats. `owners[].ssn` and `/uw:Merchant/uw:Name` style paths are normalized |
+| Data dictionary | `.csv`, `.xlsx` | Read like a field spec, with the column names data dictionaries use (see below) |
 
 - **`--root`** picks the XSD root element, the WSDL operation, or the OpenAPI `operationId`, `"POST /path"` or
   schema name, when a contract has more than one. The profiled part is recorded in the input's notes.
@@ -475,6 +521,10 @@ Pages:
   changes, publish, retire or draft a new version, see the audit history, and compare any two versions side by side.
 - **Profiles:** upload sample payloads and contracts to build a profile, browse its fields, findings and inputs, and
   run detection to see which business concepts the published playbooks recognise (optionally asking AI about the rest).
+  A preset picks the kind of system: JSON REST API, SOAP/XML service, XML file or batch, Field spec, Data dictionary,
+  PDF/Word spec, Samples only or Mixed/custom (the default, which accepts every input). Each preset says what to
+  upload, limits the file picker to its file types, hints at Root and fills in a description you can change. A file
+  outside the preset's types is flagged but still uploaded. The AI option appears only for PDF/Word files.
 - **Mappings:** generate a mapping from two profiles, see coverage and confidence, filter and search the rows, open a row
   to see why it was mapped, approve, reject or override it, see the review history, and download Excel, CSV or HTML.
 - **Replay** (a tab on each mapping): upload source samples, pick the target profile, and see each sample's passed,

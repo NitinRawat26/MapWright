@@ -137,4 +137,5 @@ public enum ProfileFindingKind
     UndeclaredField,
     UnresolvedReference,
     SchemaSimplified,
+    AiExtracted,
 }

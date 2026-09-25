@@ -17,8 +17,22 @@
   </table>
 
   <h2>Build a profile</h2>
-  <p class="muted">Upload sample payloads (JSON or XML) and any contracts: JSON Schema, OpenAPI (JSON), XSD, WSDL, or a CSV/Excel field spec. Contracts decide types and requiredness; samples add observed values.</p>
+  <p class="muted">Pick what you have for the system. Contracts (schemas, WSDL, field specs, data dictionaries, documents) decide types and requiredness; samples add observed values.</p>
   <div class="form">
+    <mat-button-toggle-group [value]="preset().id" (change)="choose($event.value)" aria-label="Preset" data-testid="preset">
+      @for (p of presets; track p.id) {
+        <mat-button-toggle [value]="p.id" [attr.data-preset]="p.id">{{ p.label }}</mat-button-toggle>
+      }
+    </mat-button-toggle-group>
+    <div class="actions" data-testid="preset-guide">
+      <strong>{{ preset().label }}</strong> <span class="muted">{{ preset().summary }}</span>
+      <ul>
+        @for (line of preset().upload; track line) {
+          <li>{{ line }}</li>
+        }
+      </ul>
+      <span class="muted">File types offered: <span class="mono" data-testid="accept">{{ extensions() }}</span></span>
+    </div>
     <div class="row">
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
         <mat-label>System name</mat-label>
@@ -34,24 +48,43 @@
       </mat-form-field>
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
         <mat-label>Root (optional)</mat-label>
-        <input matInput placeholder="operation, schema or element" [ngModel]="request().root" (ngModelChange)="patch({ root: $event })" />
+        <input matInput [placeholder]="preset().rootHint" [ngModel]="request().root" (ngModelChange)="patch({ root: $event })" data-testid="root" />
       </mat-form-field>
     </div>
     <mat-form-field appearance="outline" subscriptSizing="dynamic" class="wide">
       <mat-label>Description (optional)</mat-label>
-      <input matInput [ngModel]="request().description" (ngModelChange)="patch({ description: $event })" />
+      <input matInput [ngModel]="request().description" (ngModelChange)="patch({ description: $event })" data-testid="description" />
     </mat-form-field>
     <div class="row">
-      <input #picker type="file" multiple [accept]="extensions" hidden (change)="pick(picker)" data-testid="files" />
+      <input #picker type="file" multiple [accept]="extensions()" hidden (change)="pick(picker)" data-testid="files" />
       <button mat-stroked-button type="button" (click)="picker.click()">Add files</button>
       @for (f of files(); track f) {
         <span class="chip">{{ f.name }} <button type="button" class="link" (click)="remove(f)" [attr.aria-label]="'Remove ' + f.name">×</button></span>
       }
     </div>
+    @if (outside()) {
+      <span class="warn-text" data-testid="outside">
+        Not a usual input for {{ preset().label }}: {{ outside() }}. It is still uploaded; pick Mixed/custom if that is intended.
+      </span>
+    }
     <div class="row">
       <mat-checkbox [ngModel]="request().noValues" (ngModelChange)="patch({ noValues: $event })">Don't keep sample values</mat-checkbox>
       <mat-checkbox [ngModel]="request().replace" (ngModelChange)="patch({ replace: $event })">Replace an existing profile with this ID</mat-checkbox>
     </div>
+    @if (hasDocuments()) {
+      <div class="row">
+        <mat-checkbox [disabled]="!ai()?.available" [ngModel]="request().useAi" (ngModelChange)="patch({ useAi: $event })" data-testid="use-ai">Let AI read document text</mat-checkbox>
+        <span class="muted" data-testid="ai-note">
+          @if (!ai()?.available) {
+            Field tables in the documents are read by rules. AI is not configured, so text outside the tables is not read.
+          } @else if (request().useAi) {
+            Text outside the field tables is sent to {{ ai()?.provider }} with e-mail addresses and long numbers masked. Fields it finds are capped at {{ ai()?.maxConfidence }}% confidence and marked for review.
+          } @else {
+            Field tables in the documents are read by rules; nothing is sent to AI.
+          }
+        </span>
+      </div>
+    }
     <div class="row">
       <button mat-flat-button type="button" [disabled]="!user.name() || !request().system.trim() || !files().length || busy()" (click)="build()" data-testid="build">Build profile</button>
       @if (!user.name()) {

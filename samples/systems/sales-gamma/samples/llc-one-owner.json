@@ -1,0 +1,18 @@
+{
+  "merchant": {
+    "applicationNumber": "SG-2026-000184",
+    "legalName": "Harbor Lane Coffee LLC",
+    "tradingName": "Harbor Lane Coffee",
+    "taxId": "847261935",
+    "entityType": "L",
+    "monthlyCardVolume": 48250.00
+  },
+  "owners": [
+    {
+      "firstName": "Dana",
+      "lastName": "Whitfield",
+      "ownershipPct": 100,
+      "homeAddress": { "line1": "18 Harbor Lane", "postalCode": "04101" }
+    }
+  ]
+}

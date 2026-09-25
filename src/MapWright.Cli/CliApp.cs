@@ -43,8 +43,9 @@ public static class CliApp
           --format <list>   Comma-separated: {string.Join(",", MappingRenderers.All.Select(r => r.Format))} (default: all)
 
         Profile options:
-          <input|dir>       JSON or XML sample payloads, JSON Schema, OpenAPI (JSON), XSD, WSDL and field specs
-                            (.csv, .xlsx); directories contribute all of these
+          <input|dir>       JSON or XML sample payloads, JSON Schema, OpenAPI (JSON), XSD, WSDL, field specs or
+                            data dictionaries (.csv, .xlsx) and PDF/Word (.pdf, .docx) specs with field tables; directories
+                            contribute all of these
           --root <name>     XSD root element, WSDL operation, or OpenAPI operationId, "METHOD /path" or schema
                             (needed when the contract has more than one)
           --system <name>   System name recorded in the profile (required)
@@ -856,7 +857,7 @@ public static class CliApp
         {
             stderr.WriteLine(extensions == SampleExtensions
                 ? "No .json or .xml samples found."
-                : "No .json or .xml samples, schemas or field specs found.");
+                : "No .json or .xml samples, schemas, field specs or documents found.");
             return false;
         }
 
