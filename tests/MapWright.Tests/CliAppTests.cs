@@ -232,4 +232,79 @@ public sealed class CliAppTests : IDisposable
 
         Assert.Equal(MappingSpecSerializer.Serialize(sample), MappingSpecSerializer.Serialize(regenerated));
     }
+
+    private static string MappingSample(params string[] parts) =>
+        Path.Combine([AppContext.BaseDirectory, "samples", "mappings", "sales-alpha__uw-core", .. parts]);
+
+    [Fact]
+    public void Replay_writes_target_payloads_and_records_validation_runs()
+    {
+        var mapping = Path.Combine(_dir, "mapping.json");
+        File.Copy(MappingSample("generated-mapping.json"), mapping);
+        var outDir = Path.Combine(_dir, "replay");
+
+        Assert.Equal(CliApp.Success, Run(
+            "replay", mapping, SalesSamples, "--target", SystemProfile("uw-core"), "--playbooks", StarterPlaybooks.Directory,
+            "--out", outDir, "--record"));
+
+        Assert.Equal(["corp-three-owners.xml", "llc-two-owners.xml", "sole-prop.xml"], Directory.GetFiles(outDir).Select(Path.GetFileName).Order());
+        Assert.Contains($"V002 llc-two-owners.json -> {Path.Combine(outDir, "llc-two-owners.xml")}: 21 passed, 4 failed, 3 skipped.", _out.ToString());
+        Assert.Contains("  FAIL M002 /UnderwritingRequest/@requestId: Unmapped: no source field.", _out.ToString());
+        Assert.Contains("Recorded 3 validation run(s)", _out.ToString());
+
+        var recorded = MappingSpecSerializer.Load(mapping);
+        Assert.Equal(["V001", "V002", "V003"], recorded.ValidationRuns.Select(r => r.Id));
+        Assert.Equal("sole-prop.json", recorded.ValidationRuns[2].SamplePayload);
+        Assert.DoesNotContain(MappingSpecValidator.Validate(recorded), i => i.Severity == IssueSeverity.Error);
+        Assert.Equal(CliApp.Success, Run("render", mapping, "--out", _dir, "--format", "csv"));
+    }
+
+    [Fact]
+    public void Replay_strict_fails_when_a_check_fails_and_leaves_the_mapping_unchanged()
+    {
+        var mapping = Path.Combine(_dir, "mapping.json");
+        File.Copy(MappingSample("generated-mapping.json"), mapping);
+        var before = File.ReadAllText(mapping);
+
+        Assert.Equal(CliApp.InvalidInput, Run(
+            "replay", mapping, Path.Combine(SalesSamples, "sole-prop.json"), "--target", SystemProfile("uw-core"),
+            "--playbooks", StarterPlaybooks.Directory, "--out", _dir, "--strict"));
+
+        Assert.Equal(before, File.ReadAllText(mapping));
+        Assert.True(File.Exists(Path.Combine(_dir, "sole-prop.xml")));
+    }
+
+    [Fact]
+    public void Replay_reports_usage_and_input_errors()
+    {
+        var mapping = MappingSample("generated-mapping.json");
+
+        Assert.Equal(CliApp.UsageError, Run("replay", mapping, SalesSamples));
+        Assert.Contains("replay expects --target", _err.ToString());
+        Assert.Equal(CliApp.UsageError, Run("replay", mapping, "--target", SystemProfile("uw-core")));
+
+        Assert.Equal(CliApp.InvalidInput, Run("replay", mapping, SalesSamples, "--target", SystemProfile("sales-alpha"), "--out", _dir));
+        Assert.Contains("Target profile is Json but the mapping's target is Xml.", _err.ToString());
+
+        var uwSamples = Path.Combine(AppContext.BaseDirectory, "samples", "systems", "uw-core", "samples");
+        Assert.Equal(CliApp.InvalidInput, Run(
+            "replay", mapping, uwSamples, "--target", SystemProfile("uw-core"), "--playbooks", StarterPlaybooks.Directory, "--out", _dir));
+        Assert.Contains("sample is Xml but the mapping's source is Json.", _err.ToString());
+
+        Assert.Equal(CliApp.InvalidInput, Run("replay", mapping, Path.Combine(_dir, "nope.json"), "--target", SystemProfile("uw-core")));
+        Assert.Contains("Sample not found", _err.ToString());
+    }
+
+    [Fact]
+    public void Replay_sample_outputs_are_up_to_date()
+    {
+        Assert.Equal(CliApp.Success, Run(
+            "replay", MappingSample("generated-mapping.json"), SalesSamples, "--target", SystemProfile("uw-core"),
+            "--playbooks", StarterPlaybooks.Directory, "--xml-namespace", "urn:uwcore:intake:4.2", "--out", _dir));
+
+        foreach (var name in new[] { "corp-three-owners.xml", "llc-two-owners.xml", "sole-prop.xml" })
+        {
+            Assert.Equal(File.ReadAllText(MappingSample("replay", name)), File.ReadAllText(Path.Combine(_dir, name)));
+        }
+    }
 }

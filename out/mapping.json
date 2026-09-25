@@ -1676,7 +1676,588 @@
       ]
     }
   ],
-  "validationRuns": [],
+  "validationRuns": [
+    {
+      "id": "V001",
+      "ranAt": "2026-09-25T03:41:15+00:00",
+      "samplePayload": "corp-three-owners.json",
+      "results": [
+        {
+          "mappingId": "M001",
+          "outcome": "fail",
+          "expected": "a value",
+          "message": "Unmapped: no source field. The target field is likely required (present in every target sample)."
+        },
+        {
+          "mappingId": "M002",
+          "outcome": "fail",
+          "expected": "a value",
+          "message": "Unmapped: no source field. The target field is likely required (present in every target sample)."
+        },
+        {
+          "mappingId": "M003",
+          "outcome": "pass",
+          "expected": "string",
+          "actual": "Northwind Provisions Inc",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M004",
+          "outcome": "pass",
+          "expected": "string",
+          "actual": "Northwind Market",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M005",
+          "outcome": "pass",
+          "expected": "string",
+          "actual": "EIN",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M006",
+          "outcome": "pass",
+          "expected": "string, shape 999999999",
+          "actual": "*****8899",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M007",
+          "outcome": "pass",
+          "expected": "string",
+          "actual": "C",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M008",
+          "outcome": "pass",
+          "expected": "integer",
+          "actual": "5411",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M009",
+          "outcome": "fail",
+          "expected": "a value",
+          "message": "Unmapped: no source field. The target field is likely required (present in every target sample)."
+        },
+        {
+          "mappingId": "M010",
+          "outcome": "fail",
+          "expected": "a value",
+          "message": "Unmapped: no source field. The target field is likely required (present in every target sample)."
+        },
+        {
+          "mappingId": "M011",
+          "outcome": "skipped",
+          "message": "Unmapped: no source field."
+        },
+        {
+          "mappingId": "M012",
+          "outcome": "pass",
+          "expected": "string",
+          "actual": "**** *****ield",
+          "message": "3 value(s) produced. Matches the target profile (3 value(s))."
+        },
+        {
+          "mappingId": "M013",
+          "outcome": "pass",
+          "expected": "string",
+          "actual": "CEO",
+          "message": "3 value(s) produced. Matches the target profile (3 value(s))."
+        },
+        {
+          "mappingId": "M014",
+          "outcome": "pass",
+          "expected": "string, shape 999999999",
+          "actual": "*****2020",
+          "message": "3 value(s) produced. Matches the target profile (3 value(s))."
+        },
+        {
+          "mappingId": "M015",
+          "outcome": "pass",
+          "expected": "integer",
+          "actual": "50",
+          "message": "3 value(s) produced. Matches the target profile (3 value(s))."
+        },
+        {
+          "mappingId": "M016",
+          "outcome": "pass",
+          "expected": "date, yyyy-MM-dd",
+          "actual": "****-01-30",
+          "message": "3 value(s) produced. Matches the target profile (3 value(s))."
+        },
+        {
+          "mappingId": "M017",
+          "outcome": "pass",
+          "expected": "decimal",
+          "actual": "**0000",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M018",
+          "outcome": "pass",
+          "expected": "decimal",
+          "actual": "42.1",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M019",
+          "outcome": "skipped",
+          "message": "Unmapped: no source field."
+        },
+        {
+          "mappingId": "M020",
+          "outcome": "pass",
+          "expected": "integer",
+          "actual": "80",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M021",
+          "outcome": "pass",
+          "expected": "integer",
+          "actual": "20",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M022",
+          "outcome": "pass",
+          "expected": "string, shape 999999999",
+          "actual": "*****0024",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M023",
+          "outcome": "pass",
+          "expected": "string, shape 999999999999",
+          "actual": "********6655",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M020",
+          "outcome": "pass",
+          "expected": "abs(cp + cnp - 100) <= 0.5",
+          "actual": "cp=80, cnp=20",
+          "message": "MIX-VAL-02: Card-present and card-not-present add up to 100%."
+        },
+        {
+          "mappingId": "M015",
+          "outcome": "pass",
+          "expected": "sum(ownership) <= 100",
+          "actual": "ownership=50|30|20",
+          "message": "PRN-VAL-01: Total ownership cannot exceed 100%."
+        },
+        {
+          "mappingId": "M015",
+          "outcome": "pass",
+          "expected": "sum(ownership) >= 25",
+          "actual": "ownership=50|30|20",
+          "message": "PRN-VAL-02: Principals together should own at least 25% (beneficial-ownership rule). (warning)"
+        },
+        {
+          "mappingId": "M018",
+          "outcome": "skipped",
+          "expected": "avg <= high",
+          "message": "VOL-VAL-01: Average ticket cannot be above high ticket. Not checked: no target value for high."
+        },
+        {
+          "mappingId": "M017",
+          "outcome": "pass",
+          "expected": "volume >= 0",
+          "actual": "volume=250000",
+          "message": "VOL-VAL-02: Volume cannot be negative."
+        }
+      ]
+    },
+    {
+      "id": "V002",
+      "ranAt": "2026-09-25T03:41:15+00:00",
+      "samplePayload": "llc-two-owners.json",
+      "results": [
+        {
+          "mappingId": "M001",
+          "outcome": "fail",
+          "expected": "a value",
+          "message": "Unmapped: no source field. The target field is likely required (present in every target sample)."
+        },
+        {
+          "mappingId": "M002",
+          "outcome": "fail",
+          "expected": "a value",
+          "message": "Unmapped: no source field. The target field is likely required (present in every target sample)."
+        },
+        {
+          "mappingId": "M003",
+          "outcome": "pass",
+          "expected": "string",
+          "actual": "Blue Harbor Coffee LLC",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M004",
+          "outcome": "pass",
+          "expected": "string",
+          "actual": "Blue Harbor Coffee",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M005",
+          "outcome": "pass",
+          "expected": "string",
+          "actual": "EIN",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M006",
+          "outcome": "pass",
+          "expected": "string, shape 999999999",
+          "actual": "*****3456",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M007",
+          "outcome": "pass",
+          "expected": "string",
+          "actual": "LLC",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M008",
+          "outcome": "pass",
+          "expected": "integer",
+          "actual": "5814",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M009",
+          "outcome": "fail",
+          "expected": "a value",
+          "message": "Unmapped: no source field. The target field is likely required (present in every target sample)."
+        },
+        {
+          "mappingId": "M010",
+          "outcome": "fail",
+          "expected": "a value",
+          "message": "Unmapped: no source field. The target field is likely required (present in every target sample)."
+        },
+        {
+          "mappingId": "M011",
+          "outcome": "skipped",
+          "message": "Unmapped: no source field."
+        },
+        {
+          "mappingId": "M012",
+          "outcome": "pass",
+          "expected": "string",
+          "actual": "***** *opez",
+          "message": "2 value(s) produced. Matches the target profile (2 value(s))."
+        },
+        {
+          "mappingId": "M013",
+          "outcome": "pass",
+          "expected": "string",
+          "actual": "Managing Member",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M014",
+          "outcome": "pass",
+          "expected": "string, shape 999999999",
+          "actual": "*****3456",
+          "message": "2 value(s) produced. Matches the target profile (2 value(s))."
+        },
+        {
+          "mappingId": "M015",
+          "outcome": "pass",
+          "expected": "integer",
+          "actual": "60",
+          "message": "2 value(s) produced. Matches the target profile (2 value(s))."
+        },
+        {
+          "mappingId": "M016",
+          "outcome": "pass",
+          "expected": "date, yyyy-MM-dd",
+          "actual": "****-07-14",
+          "message": "2 value(s) produced. Matches the target profile (2 value(s))."
+        },
+        {
+          "mappingId": "M017",
+          "outcome": "pass",
+          "expected": "decimal",
+          "actual": "***66.67",
+          "message": "1 value(s) produced. Rounded to 2 decimal place(s). Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M018",
+          "outcome": "pass",
+          "expected": "decimal",
+          "actual": "12.5",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M019",
+          "outcome": "skipped",
+          "message": "Unmapped: no source field."
+        },
+        {
+          "mappingId": "M020",
+          "outcome": "pass",
+          "expected": "integer",
+          "actual": "70",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M021",
+          "outcome": "pass",
+          "expected": "integer",
+          "actual": "30",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M022",
+          "outcome": "pass",
+          "expected": "string, shape 999999999",
+          "actual": "*****0358",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M023",
+          "outcome": "pass",
+          "expected": "string, shape 999999999999",
+          "actual": "********6789",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M020",
+          "outcome": "pass",
+          "expected": "abs(cp + cnp - 100) <= 0.5",
+          "actual": "cp=70, cnp=30",
+          "message": "MIX-VAL-02: Card-present and card-not-present add up to 100%."
+        },
+        {
+          "mappingId": "M015",
+          "outcome": "pass",
+          "expected": "sum(ownership) <= 100",
+          "actual": "ownership=60|40",
+          "message": "PRN-VAL-01: Total ownership cannot exceed 100%."
+        },
+        {
+          "mappingId": "M015",
+          "outcome": "pass",
+          "expected": "sum(ownership) >= 25",
+          "actual": "ownership=60|40",
+          "message": "PRN-VAL-02: Principals together should own at least 25% (beneficial-ownership rule). (warning)"
+        },
+        {
+          "mappingId": "M018",
+          "outcome": "skipped",
+          "expected": "avg <= high",
+          "message": "VOL-VAL-01: Average ticket cannot be above high ticket. Not checked: no target value for high."
+        },
+        {
+          "mappingId": "M017",
+          "outcome": "pass",
+          "expected": "volume >= 0",
+          "actual": "volume=41666.67",
+          "message": "VOL-VAL-02: Volume cannot be negative."
+        }
+      ]
+    },
+    {
+      "id": "V003",
+      "ranAt": "2026-09-25T03:41:15+00:00",
+      "samplePayload": "sole-prop.json",
+      "results": [
+        {
+          "mappingId": "M001",
+          "outcome": "fail",
+          "expected": "a value",
+          "message": "Unmapped: no source field. The target field is likely required (present in every target sample)."
+        },
+        {
+          "mappingId": "M002",
+          "outcome": "fail",
+          "expected": "a value",
+          "message": "Unmapped: no source field. The target field is likely required (present in every target sample)."
+        },
+        {
+          "mappingId": "M003",
+          "outcome": "pass",
+          "expected": "string",
+          "actual": "Priya Nair",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M004",
+          "outcome": "pass",
+          "expected": "string",
+          "actual": "Nair Mobile Detailing",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M005",
+          "outcome": "pass",
+          "expected": "string",
+          "actual": "SSN",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M006",
+          "outcome": "pass",
+          "expected": "string, shape 999999999",
+          "actual": "*****5566",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M007",
+          "outcome": "pass",
+          "expected": "string",
+          "actual": "SP",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M008",
+          "outcome": "pass",
+          "expected": "integer",
+          "actual": "7542",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M009",
+          "outcome": "fail",
+          "expected": "a value",
+          "message": "Unmapped: no source field. The target field is likely required (present in every target sample)."
+        },
+        {
+          "mappingId": "M010",
+          "outcome": "fail",
+          "expected": "a value",
+          "message": "Unmapped: no source field. The target field is likely required (present in every target sample)."
+        },
+        {
+          "mappingId": "M011",
+          "outcome": "skipped",
+          "message": "Unmapped: no source field."
+        },
+        {
+          "mappingId": "M012",
+          "outcome": "pass",
+          "expected": "string",
+          "actual": "***** Nair",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M013",
+          "outcome": "skipped",
+          "message": "No source value in this sample."
+        },
+        {
+          "mappingId": "M014",
+          "outcome": "pass",
+          "expected": "string, shape 999999999",
+          "actual": "*****5566",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M015",
+          "outcome": "pass",
+          "expected": "integer",
+          "actual": "100",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M016",
+          "outcome": "pass",
+          "expected": "date, yyyy-MM-dd",
+          "actual": "****-03-22",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M017",
+          "outcome": "pass",
+          "expected": "decimal",
+          "actual": "7000",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M018",
+          "outcome": "pass",
+          "expected": "decimal",
+          "actual": "140",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M019",
+          "outcome": "skipped",
+          "message": "Unmapped: no source field."
+        },
+        {
+          "mappingId": "M020",
+          "outcome": "pass",
+          "expected": "integer",
+          "actual": "90",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M021",
+          "outcome": "pass",
+          "expected": "integer",
+          "actual": "10",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M022",
+          "outcome": "pass",
+          "expected": "string, shape 999999999",
+          "actual": "*****0025",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M023",
+          "outcome": "pass",
+          "expected": "string, shape 999999999999",
+          "actual": "********7788",
+          "message": "1 value(s) produced. Matches the target profile (1 value(s))."
+        },
+        {
+          "mappingId": "M020",
+          "outcome": "pass",
+          "expected": "abs(cp + cnp - 100) <= 0.5",
+          "actual": "cp=90, cnp=10",
+          "message": "MIX-VAL-02: Card-present and card-not-present add up to 100%."
+        },
+        {
+          "mappingId": "M015",
+          "outcome": "pass",
+          "expected": "sum(ownership) <= 100",
+          "actual": "ownership=100",
+          "message": "PRN-VAL-01: Total ownership cannot exceed 100%."
+        },
+        {
+          "mappingId": "M015",
+          "outcome": "pass",
+          "expected": "sum(ownership) >= 25",
+          "actual": "ownership=100",
+          "message": "PRN-VAL-02: Principals together should own at least 25% (beneficial-ownership rule). (warning)"
+        },
+        {
+          "mappingId": "M018",
+          "outcome": "skipped",
+          "expected": "avg <= high",
+          "message": "VOL-VAL-01: Average ticket cannot be above high ticket. Not checked: no target value for high."
+        },
+        {
+          "mappingId": "M017",
+          "outcome": "pass",
+          "expected": "volume >= 0",
+          "actual": "volume=7000",
+          "message": "VOL-VAL-02: Volume cannot be negative."
+        }
+      ]
+    }
+  ],
   "changeLog": [
     {
       "version": "0.1.0",

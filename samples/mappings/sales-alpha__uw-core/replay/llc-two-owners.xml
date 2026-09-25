@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UnderwritingRequest xmlns="urn:uwcore:intake:4.2">
+  <Merchant>
+    <LegalName>Blue Harbor Coffee LLC</LegalName>
+    <DoingBusinessAs>Blue Harbor Coffee</DoingBusinessAs>
+    <TaxId type="EIN">
+      <Number>900123456</Number>
+    </TaxId>
+    <OwnershipType>LLC</OwnershipType>
+    <MCC>5814</MCC>
+  </Merchant>
+  <Officers>
+    <Officer>
+      <FullName>Maria Lopez</FullName>
+      <Title>Managing Member</Title>
+      <SSN>900123456</SSN>
+      <OwnershipPct>60</OwnershipPct>
+      <DateOfBirth>1981-07-14</DateOfBirth>
+    </Officer>
+    <Officer>
+      <FullName>Sam Okafor</FullName>
+      <SSN>900654321</SSN>
+      <OwnershipPct>40</OwnershipPct>
+      <DateOfBirth>1979-11-02</DateOfBirth>
+    </Officer>
+  </Officers>
+  <Processing>
+    <MonthlyVolume>41666.67</MonthlyVolume>
+    <AverageTicket>12.5</AverageTicket>
+    <CardPresentPct>70</CardPresentPct>
+    <CardNotPresentPct>30</CardNotPresentPct>
+  </Processing>
+  <Settlement>
+    <RoutingNumber>121000358</RoutingNumber>
+    <AccountNumber>000123456789</AccountNumber>
+  </Settlement>
+</UnderwritingRequest>

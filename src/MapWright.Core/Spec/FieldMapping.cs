@@ -49,6 +49,10 @@ public sealed record Transformation
     public string? Rule { get; init; }
     /// <summary>Machine-executable expression.</summary>
     public string? Expression { get; init; }
+    /// <summary>Which source path feeds each name in <see cref="Expression"/>, e.g. annual = $.processing.annualCardVolume.</summary>
+    public IReadOnlyDictionary<string, string>? Inputs { get; init; }
+    /// <summary>Target value shape for digit codes (9 = digit), e.g. "999999999" or "999-99-9999".</summary>
+    public string? Pattern { get; init; }
     public string? Condition { get; init; }
     public string? DefaultValue { get; init; }
     public IReadOnlyList<ValueMapEntry> ValueMap { get; init; } = [];
