@@ -14,6 +14,7 @@ from it, so documents never drift from what the tool executes.
 |---|---|
 | `<id>.xlsx` | Sign-off workbook for BAs: Summary, Mapping, Gaps, Value Maps, Conflicts & Assumptions, Validation, Change Log |
 | `<id>.html` | Self-contained, printable report for leadership review and audit |
+| `<id>.pdf`  | The same report as a landscape A4 PDF: summary, the main mapping columns (ID, type, source and target path, required, transformation, confidence, sensitivity, review status) and every supporting table; long tables continue with their header on the next page. It uses the built-in PDF fonts, so accents are dropped (é → e) and other non-ASCII characters become `?`; the Excel and HTML outputs keep them |
 | `<id>.csv`  | Flat export of the Mapping sheet (multi-value cells joined with ` \| `) |
 | `mapping.json` | Machine-readable, versioned mapping spec |
 
@@ -430,7 +431,7 @@ curl -X POST localhost:5080/api/playbooks -H 'X-MapWright-User: ana' -H 'Content
 | `POST /api/mappings` | Generate a mapping: `{ "source": "<profile id>", "target": "<profile id>", "id": "…", "title": "…", "replace": false, "useAi": false }`. With `useAi`, the mapping's `aiPass` gives the provider, the cap, the rows AI filled in (`suggestedRows`), the target fields still unmatched (`unmatched`) and the AI's `warnings`; it is stored with the mapping |
 | `GET` / `PUT` / `DELETE /api/mappings/{id}` | Get, store (mapping JSON) or delete a mapping |
 | `GET /api/mappings/{id}/summary` | Coverage, confidence bands, review status and validation counts |
-| `GET /api/mappings/{id}/export/{xlsx\|csv\|html}` | Download the mapping document |
+| `GET /api/mappings/{id}/export/{xlsx\|csv\|html\|pdf}` | Download the mapping document |
 | `POST /api/mappings/{id}/replay` | Replay samples (multipart `files`, plus `target` profile id, optional `xmlNamespace`, `record`, `mask`) |
 | `POST /api/mappings/{id}/rows/{rowId}/review` | `{ "decision": "approve" \| "reject" \| "override", "comment": "…", "row": { … } }` |
 | `GET /api/mappings/{id}/reviews` | Review decisions, oldest first |
@@ -546,7 +547,7 @@ Pages:
   upload, limits the file picker to its file types, hints at Root and fills in a description you can change. A file
   outside the preset's types is flagged but still uploaded. The AI option appears only for PDF/Word files.
 - **Mappings:** generate a mapping from two profiles, see coverage and confidence, filter and search the rows, open a row
-  to see why it was mapped, approve, reject or override it, see the review history, and download Excel, CSV or HTML.
+  to see why it was mapped, approve, reject or override it, see the review history, and download Excel, CSV, HTML or PDF.
 - **Replay** (a tab on each mapping): upload source samples, pick the target profile, and see each sample's passed,
   failed and skipped checks and the target payload it produced; optionally save the runs on the mapping.
 - **AI suggestions:** the inbox of AI answers from detection. Approve one (optionally changing the concept) to add the

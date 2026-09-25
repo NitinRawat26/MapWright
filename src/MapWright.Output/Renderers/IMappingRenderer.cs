@@ -13,7 +13,7 @@ public interface IMappingRenderer
 public static class MappingRenderers
 {
     public static IReadOnlyList<IMappingRenderer> All { get; } =
-        [new ExcelMappingRenderer(), new CsvMappingRenderer(), new HtmlMappingRenderer()];
+        [new ExcelMappingRenderer(), new CsvMappingRenderer(), new HtmlMappingRenderer(), new PdfMappingRenderer()];
 
     public static IMappingRenderer? Find(string format) =>
         All.FirstOrDefault(r => string.Equals(r.Format, format, StringComparison.OrdinalIgnoreCase));

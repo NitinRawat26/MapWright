@@ -28,7 +28,7 @@ public sealed class CliAppTests : IDisposable
     {
         Assert.Equal(CliApp.Success, Run("render", TestSpecs.SamplePath, "--out", _dir));
 
-        foreach (var ext in new[] { "xlsx", "csv", "html" })
+        foreach (var ext in new[] { "xlsx", "csv", "html", "pdf" })
         {
             Assert.True(new FileInfo(Path.Combine(_dir, $"sales-alpha__uw-core.{ext}")).Length > 0);
         }
@@ -67,7 +67,7 @@ public sealed class CliAppTests : IDisposable
     [Theory]
     [InlineData("frobnicate")]
     [InlineData("render")]
-    [InlineData("render", "x.json", "--format", "pdf")]
+    [InlineData("render", "x.json", "--format", "docx")]
     [InlineData("render", "x.json", "--bogus")]
     [InlineData("profile", "x.json")]
     [InlineData("profile", "--system", "S")]

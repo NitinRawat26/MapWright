@@ -101,7 +101,10 @@ public sealed class MappingApiTests : IDisposable
         Assert.True((await xlsx.Content.ReadAsByteArrayAsync()).Length > 1000);
         var csv = await client.GetAsync("/api/mappings/sales-alpha__uw-core/export/csv");
         Assert.Equal("text/csv", csv.Content.Headers.ContentType?.MediaType);
-        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/api/mappings/sales-alpha__uw-core/export/pdf")).StatusCode);
+        var pdf = await client.GetAsync("/api/mappings/sales-alpha__uw-core/export/pdf");
+        Assert.Equal("application/pdf", pdf.Content.Headers.ContentType?.MediaType);
+        Assert.StartsWith("%PDF", System.Text.Encoding.ASCII.GetString(await pdf.Content.ReadAsByteArrayAsync()));
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/api/mappings/sales-alpha__uw-core/export/docx")).StatusCode);
     }
 
     [Fact]

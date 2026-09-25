@@ -9,6 +9,7 @@
       <a mat-stroked-button [href]="exportUrl('xlsx')" download data-testid="export-xlsx">Excel</a>
       <a mat-stroked-button [href]="exportUrl('csv')" download>CSV</a>
       <a mat-stroked-button [href]="exportUrl('html')" target="_blank">HTML report</a>
+      <a mat-stroked-button [href]="exportUrl('pdf')" download data-testid="export-pdf">PDF</a>
     </div>
 
     @if (summary(); as s) {

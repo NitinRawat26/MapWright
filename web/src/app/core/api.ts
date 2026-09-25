@@ -160,7 +160,7 @@ export class Api {
     return this.http.get<MappingSummary>(`/api/mappings/${encodeURIComponent(id)}/summary`);
   }
 
-  exportUrl(id: string, format: 'xlsx' | 'csv' | 'html'): string {
+  exportUrl(id: string, format: 'xlsx' | 'csv' | 'html' | 'pdf'): string {
     return `/api/mappings/${encodeURIComponent(id)}/export/${format}`;
   }
 

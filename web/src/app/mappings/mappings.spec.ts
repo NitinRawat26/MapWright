@@ -75,6 +75,7 @@ describe('Mappings', () => {
     const { fixture, root } = await open();
     expect(text(root, 'needs-review')).toBe('2');
     expect(root.querySelector('[data-testid="export-xlsx"]')?.getAttribute('href')).toBe('/api/mappings/a__b/export/xlsx');
+    expect(root.querySelector('[data-testid="export-pdf"]')?.getAttribute('href')).toBe('/api/mappings/a__b/export/pdf');
     expect(root.querySelectorAll('tr[data-row]').length).toBe(3);
 
     (root.querySelectorAll('[data-testid="filter"] button')[2] as HTMLButtonElement).click();
