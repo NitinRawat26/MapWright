@@ -274,7 +274,7 @@ public static class TransformEngine
         return rounded.ToString(digits == 0 ? "0" : "0.############################", CultureInfo.InvariantCulture);
     }
 
-    private static string Shown(FieldMapping row, string value) =>
+    internal static string Shown(FieldMapping row, string value) =>
         row.Risk.Sensitivity != Sensitivity.None || row.Sources.Concat([row.Target]).Any(f => SensitiveDataPolicy.Default.MatchField(f.Name, null) is not null)
             ? SensitiveDataPolicy.Mask(value)
             : value;
