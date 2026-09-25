@@ -30,7 +30,7 @@ public static class CliApp
           mapwright playbook detect <profile.json> [--playbooks <playbook|dir>]... [--ai ask|yes|no]
                             [--out <report.json>]
           mapwright map <source-profile.json> <target-profile.json> [--playbooks <playbook|dir>]...
-                            [--id <id>] [--title <text>] [--out <mapping.json>]
+                            [--ai ask|yes|no] [--id <id>] [--title <text>] [--out <mapping.json>]
 
         Render options:
           --out <dir>       Output directory (default: directory of the spec)
@@ -53,6 +53,7 @@ public static class CliApp
         Map options:
           <source> <target> System profiles of the sending and the receiving system
           --playbooks       Playbook files or directories (default: ./playbooks)
+          --ai <mode>       After the playbooks, offer AI for the unmapped target fields: ask (default), yes or no
           --id, --title     Mapping id and title (default: from the two system names)
           --out <file>      Write the mapping spec here (default: print to stdout)
 
@@ -83,7 +84,7 @@ public static class CliApp
             "render" => Render(args[1..], stdout, stderr),
             "profile" => Profile(args[1..], stdout, stderr),
             "playbook" => Playbook(args[1..], stdin, stdout, stderr, ai),
-            "map" => Map(args[1..], stdout, stderr),
+            "map" => Map(args[1..], stdin, stdout, stderr, ai),
             _ => Fail(stderr, $"Unknown command '{args[0]}'."),
         };
     }
@@ -418,37 +419,16 @@ public static class CliApp
         SystemProfile profile, IReadOnlyList<string> remaining, PlaybookLibrary library, string mode,
         IAiProvider? ai, TextReader stdin, TextWriter stdout, TextWriter stderr)
     {
-        if (ai is null)
+        if (!AiConsented(mode, ai, remaining.Count, stdin, stdout, stderr))
         {
-            if (mode == "yes")
-            {
-                stderr.WriteLine($"No AI provider is configured (set {AiProviders.VertexProjectVariable} or {AiProviders.OllamaUrlVariable}); continuing with playbooks only.");
-            }
-
             return null;
         }
 
-        if (mode == "ask")
-        {
-            stdout.Write($"Do you want to use AI to decode the remaining {remaining.Count} field(s)? Masked field details are sent to {ai.Name}. [y/N] ");
-            stdout.Flush();
-            var answer = stdin.ReadLine()?.Trim();
-            stdout.WriteLine();
-            if (answer is null || !(answer.Equals("y", StringComparison.OrdinalIgnoreCase) || answer.Equals("yes", StringComparison.OrdinalIgnoreCase)))
-            {
-                stdout.WriteLine("Skipped AI; continuing with playbooks only.");
-                return null;
-            }
-        }
-
-        var cap = library.Active
-            .SelectMany(p => p.Process?.Steps ?? [])
-            .FirstOrDefault(s => s.Kind == StepKind.AiAssist)?.MaxConfidence ?? AiFieldAssistant.DefaultMaxConfidence;
-
+        var cap = AiCap(library);
         AiDecodeResult result;
         try
         {
-            result = new AiFieldAssistant(ai, cap).DecodeAsync(profile, remaining, library.Domains).GetAwaiter().GetResult();
+            result = new AiFieldAssistant(ai!, cap).DecodeAsync(profile, remaining, library.Domains).GetAwaiter().GetResult();
         }
         catch (AiProviderException ex)
         {
@@ -478,8 +458,42 @@ public static class CliApp
         return result;
     }
 
-    private static int Map(string[] args, TextWriter stdout, TextWriter stderr)
+    /// <summary>AI runs only with a configured provider and the user's yes (or <c>--ai yes</c>).</summary>
+    private static bool AiConsented(string mode, IAiProvider? ai, int remaining, TextReader stdin, TextWriter stdout, TextWriter stderr)
     {
+        if (ai is null)
+        {
+            if (mode == "yes")
+            {
+                stderr.WriteLine($"No AI provider is configured (set {AiProviders.VertexProjectVariable} or {AiProviders.OllamaUrlVariable}); continuing with playbooks only.");
+            }
+
+            return false;
+        }
+
+        if (mode == "ask")
+        {
+            stdout.Write($"Do you want to use AI to decode the remaining {remaining} field(s)? Masked field details are sent to {ai.Name}. [y/N] ");
+            stdout.Flush();
+            var answer = stdin.ReadLine()?.Trim();
+            stdout.WriteLine();
+            if (answer is null || !(answer.Equals("y", StringComparison.OrdinalIgnoreCase) || answer.Equals("yes", StringComparison.OrdinalIgnoreCase)))
+            {
+                stdout.WriteLine("Skipped AI; continuing with playbooks only.");
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static int AiCap(PlaybookLibrary library) => library.Active
+        .SelectMany(p => p.Process?.Steps ?? [])
+        .FirstOrDefault(s => s.Kind == StepKind.AiAssist)?.MaxConfidence ?? AiFieldAssistant.DefaultMaxConfidence;
+
+    private static int Map(string[] args, TextReader stdin, TextWriter stdout, TextWriter stderr, IAiProvider? ai)
+    {
+        var aiMode = "ask";
         var profilePaths = new List<string>();
         var playbookPaths = new List<string>();
         string? outPath = null;
@@ -501,6 +515,9 @@ public static class CliApp
                     break;
                 case "--title" when i + 1 < args.Length:
                     title = args[++i];
+                    break;
+                case "--ai" when i + 1 < args.Length && args[i + 1] is "ask" or "yes" or "no":
+                    aiMode = args[++i];
                     break;
                 case var arg when !arg.StartsWith("--", StringComparison.Ordinal) && profilePaths.Count < 2:
                     profilePaths.Add(arg);
@@ -536,6 +553,18 @@ public static class CliApp
         }
 
         var document = MappingGenerator.Generate(profiles[0], profiles[1], library, new() { Id = id, Title = title });
+        var unmapped = document.Mappings.Count(m => m.Type == MappingType.Unmapped);
+        if (unmapped > 0 && aiMode != "no")
+        {
+            // With no --out the spec goes to stdout, so the question and AI notes go to stderr.
+            var console = outPath is null ? stderr : stdout;
+            log.WriteLine($"{document.Mappings.Count - unmapped} of {document.Mappings.Count} target field(s) mapped by the playbooks; {unmapped} remaining.");
+            if (AiConsented(aiMode, ai, unmapped, stdin, console, stderr))
+            {
+                document = PairWithAi(document, profiles[0], profiles[1], library, ai!, console, stderr);
+            }
+        }
+
         var issues = MappingSpecValidator.Validate(document);
         foreach (var issue in issues)
         {
@@ -567,6 +596,31 @@ public static class CliApp
         }
 
         return issues.Any(i => i.Severity == IssueSeverity.Error) ? InvalidSpec : Success;
+    }
+
+    private static MappingDocument PairWithAi(
+        MappingDocument document, SystemProfile source, SystemProfile target, PlaybookLibrary library, IAiProvider ai, TextWriter stdout, TextWriter stderr)
+    {
+        var cap = AiCap(library);
+        AiPairingResult result;
+        try
+        {
+            result = new AiMappingAssistant(ai, cap).PairAsync(document, source, target, library.Domains).GetAwaiter().GetResult();
+        }
+        catch (AiProviderException ex)
+        {
+            stderr.WriteLine($"AI assist failed: {ex.Message}");
+            stderr.WriteLine("Continuing with playbooks only.");
+            return document;
+        }
+
+        foreach (var warning in result.Warnings)
+        {
+            stderr.WriteLine($"  warning: {warning}");
+        }
+
+        stdout.WriteLine($"AI suggested a source for {result.Suggested.Count} target field(s) (capped at {cap}%, all need review); {result.Unresolved.Count} still unmapped.");
+        return result.Document;
     }
 
     private static bool TryLoadPlaybooks(IReadOnlyList<string> paths, TextWriter stdout, TextWriter stderr, out PlaybookLibrary library)

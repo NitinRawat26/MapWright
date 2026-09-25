@@ -264,7 +264,7 @@ public sealed partial class AiFieldAssistant(IAiProvider provider, int maxConfid
         return catalog;
     }
 
-    private static JsonObject Describe(Playbook playbook)
+    internal static JsonObject Describe(Playbook playbook)
     {
         var domain = playbook.Domain!;
         var obj = new JsonObject

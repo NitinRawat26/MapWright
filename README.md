@@ -150,6 +150,13 @@ and writes a mapping spec with one row per target field. Either side can be JSON
 A row is auto-accepted only at or above the auto-accept threshold (90%) with no review reason and no data
 loss; everything else is `needsReview`. Sensitive sample values stay masked.
 
+If target fields are still unmapped after the playbooks, `map` asks *"Do you want to use AI to decode the
+remaining N field(s)?"* (same `--ai ask|yes|no` and providers as `playbook detect`). On yes, the AI sees the
+unmapped target fields and all source fields as masked metadata (each marked used or unused) and proposes the
+source field(s) and transformation for each target. Its rows are capped at 70%, always `needsReview`, carry
+`aiSuggestion` evidence naming the provider and model, and never replace a playbook row. Without `--out` the
+question goes to stderr so stdout stays pure JSON.
+
 ## Usage
 
 ```bash
