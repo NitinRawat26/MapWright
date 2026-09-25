@@ -4,6 +4,7 @@
     <Project Path="src/MapWright.Cli/MapWright.Cli.csproj" />
     <Project Path="src/MapWright.Core/MapWright.Core.csproj" />
     <Project Path="src/MapWright.Output/MapWright.Output.csproj" />
+    <Project Path="src/MapWright.Store/MapWright.Store.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/MapWright.Tests/MapWright.Tests.csproj" />

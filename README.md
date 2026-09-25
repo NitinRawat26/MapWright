@@ -130,6 +130,25 @@ attributes, qualifiers, value maps and other playbooks, regexes and expressions,
 one published version per ID). `playbook test` also runs every detection test and rule example; a published
 domain playbook must have tests.
 
+### Stored playbooks (lifecycle)
+
+`MapWright.Store` keeps playbooks in SQLite with the same JSON shape as the files, one row per version, plus an
+audit trail of every change. The files in `playbooks/` can be imported as the starting set.
+
+| From | To | Rule |
+|---|---|---|
+| (new) | Draft | New playbooks and new versions start as drafts; only one open (draft or in-review) version per ID |
+| Draft | Draft | Only drafts are editable |
+| Draft | In Review | The playbook is valid and all its tests and rule examples pass |
+| In Review | Draft | Changes requested |
+| In Review | Published | Valid, tests pass, and published by someone other than the submitter; the previous published version is retired |
+| Published / Draft | Retired | No longer applied (a retired draft is abandoned) |
+
+A new version copies an existing one (next minor version by default) and adds a change note. The same store
+holds system profiles, mapping specs and reviewers' decisions on mapping rows (approve, reject or override,
+also written to the row's review block and the mapping's change log). It is a store for mapping work, not for
+merchant data.
+
 ## AI assist (optional)
 
 Playbooks always run first. When fields are left unrecognised, `playbook detect` asks
@@ -278,6 +297,7 @@ src/MapWright.Core     Mapping spec model, system profiles, sample and contract 
 src/MapWright.Output   Report model, Excel / CSV / HTML renderers and the Excel field-spec reader
 src/MapWright.Ai       Optional AI assist: Vertex AI and Ollama providers, fallback, masked field prompts
 src/MapWright.Cli      `mapwright` command-line tool
+src/MapWright.Store    SQLite store: playbook versions and lifecycle, profiles, mappings, review decisions
 tests/MapWright.Tests  Unit tests
 samples/mappings       Example mapping specs
 samples/systems        Example sample payloads, contracts and generated system profiles

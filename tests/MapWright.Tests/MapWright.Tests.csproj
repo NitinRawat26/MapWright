@@ -28,6 +28,7 @@
     <ProjectReference Include="..\..\src\MapWright.Core\MapWright.Core.csproj" />
     <ProjectReference Include="..\..\src\MapWright.Output\MapWright.Output.csproj" />
     <ProjectReference Include="..\..\src\MapWright.Cli\MapWright.Cli.csproj" />
+    <ProjectReference Include="..\..\src\MapWright.Store\MapWright.Store.csproj" />
   </ItemGroup>
 
 </Project>
