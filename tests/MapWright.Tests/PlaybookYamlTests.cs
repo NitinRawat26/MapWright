@@ -112,11 +112,54 @@ public sealed class PlaybookYamlTests
     }
 
     [Fact]
+    public void Added_keys_and_rewritten_block_text_keep_the_other_comments()
+    {
+        var before = PlaybookSerializer.Deserialize(Minimal);
+        var after = before with
+        {
+            Owner = "Underwriting",
+            ChangeNotes = [before.ChangeNotes[0] with { Description = "Only line." }],
+        };
+
+        var updated = PlaybookYaml.Update(Minimal, before, after);
+
+        Assert.NotNull(updated);
+        Assert.Equal(PlaybookSerializer.Serialize(after), PlaybookSerializer.Serialize(PlaybookSerializer.Deserialize(updated)));
+        Assert.Contains("# A comment the store keeps.", updated, StringComparison.Ordinal);
+        Assert.Contains("name: Review only   # trailing comments are fine\n", updated, StringComparison.Ordinal);
+        Assert.Contains("    description: Only line.\nprocess:\n", updated, StringComparison.Ordinal);
+        Assert.EndsWith("      kind: review\nowner: Underwriting", updated, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Removed_and_inserted_list_items_and_keys_keep_the_other_comments()
+    {
+        var yaml = File.ReadAllText(Path.Combine(StarterPlaybooks.Directory, "domain", "tax-id.yaml"));
+        var before = PlaybookSerializer.Deserialize(yaml);
+        var terms = before.Domain!.Vocabulary;
+        var after = before with
+        {
+            Owner = null,
+            Domain = before.Domain with { Vocabulary = [terms[1], new VocabularyTerm { Term = "vat number", AppliesTo = "TaxId" }, .. terms.Skip(2)] },
+        };
+
+        var updated = PlaybookYaml.Update(yaml, before, after);
+
+        Assert.NotNull(updated);
+        Assert.Equal(PlaybookSerializer.Serialize(after), PlaybookSerializer.Serialize(PlaybookSerializer.Deserialize(updated)));
+        Assert.StartsWith("# Domain playbook: Tax ID.\n", updated, StringComparison.Ordinal);
+        Assert.Contains("  # Names systems use for the concept or one of its attributes", updated, StringComparison.Ordinal);
+        Assert.DoesNotContain("owner:", updated, StringComparison.Ordinal);
+        Assert.Contains("    - term: vat number\n      appliesTo: TaxId\n", updated, StringComparison.Ordinal);
+        Assert.DoesNotContain($"term: {terms[0].Term}\n", updated, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Changes_that_cannot_be_applied_in_place_return_null()
     {
         var before = PlaybookSerializer.Deserialize(Minimal);
 
-        Assert.Null(PlaybookYaml.Update(Minimal, before, before with { Owner = "Underwriting" }));
+        Assert.Null(PlaybookYaml.Update(PlaybookSerializer.Serialize(before), before, before with { Owner = "Underwriting" }));
         Assert.Null(PlaybookYaml.Update(null, before, before with { Status = PlaybookStatus.Published }));
         Assert.Same(Minimal, PlaybookYaml.Update(Minimal, before, before));
     }

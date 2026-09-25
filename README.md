@@ -206,6 +206,11 @@ domain playbook must have tests.
 `MapWright.Store` keeps playbooks in SQLite, one row per version, plus an audit trail of every change. Each version
 is stored as normalized JSON (what validation, tests and mapping read) together with its YAML text, so comments
 survive new versions, status changes and edits. Playbooks that arrived as JSON get generated YAML. The files in `playbooks/` can be imported as the starting set.
+A change made outside the YAML (a status change, a new version, an approved AI suggestion) is written into the YAML
+text: changed values are replaced in place, new keys and list items are added, and removed ones lose their lines, so
+only comments inside a rewritten value are lost. When the API starts with seed playbooks and the database already has
+playbooks, versions stored without YAML (for example the starter set in a database created before YAML was kept, and
+drafts made from them) get the YAML of their seed file, with the changes made since applied to it.
 
 | From | To | Rule |
 |---|---|---|

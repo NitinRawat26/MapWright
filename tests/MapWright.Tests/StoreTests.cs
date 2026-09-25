@@ -33,6 +33,30 @@ public sealed class StoreTests : IDisposable
         return store;
     }
 
+    [Fact]
+    public void Playbooks_stored_without_yaml_get_their_files_yaml_and_comments_back()
+    {
+        var store = Imported();
+        store.Transition("domain/tax-id", "1.0.0", PlaybookStatus.Retired, "ana", "Replaced.");
+        var draft = store.DraftNewVersion("domain/channel-mix", "1.0.0", null, "ana", "Next.");
+        Assert.DoesNotContain("#", store.GetYaml("domain/tax-id", "1.0.0"), StringComparison.Ordinal);
+        var files = PlaybookLibrary.Read([StarterPlaybooks.Directory]);
+
+        var restored = store.RestoreYaml(files);
+
+        Assert.Contains("domain/tax-id@1.0.0", restored);
+        Assert.Contains(draft.Reference, restored);
+        foreach (var (id, version) in new[] { ("domain/tax-id", "1.0.0"), (draft.Id, draft.Version) })
+        {
+            var yaml = store.GetYaml(id, version);
+            Assert.StartsWith("# Domain playbook:", yaml, StringComparison.Ordinal);
+            Assert.Equal(PlaybookSerializer.Serialize(store.Get(id, version)), PlaybookSerializer.Serialize(PlaybookSerializer.Deserialize(yaml)));
+        }
+
+        Assert.Contains("status: retired", store.GetYaml("domain/tax-id", "1.0.0"), StringComparison.Ordinal);
+        Assert.Empty(store.RestoreYaml(files));
+    }
+
     private static SuggestionContent Suggested(string path, string? concept = null, string? proposed = null, string? playbook = null) => new()
     {
         Path = path,

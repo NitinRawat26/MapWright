@@ -151,6 +151,50 @@ public sealed class PlaybookStore(MapWrightDatabase database)
         return [.. added.Select(f => f.Playbook.Reference)];
     }
 
+    /// <summary>
+    /// Gives versions stored without YAML (imported before YAML was kept, or drafted from one) the YAML of the file
+    /// with the same id, with the changes made since applied to it, so its comments are served back. Versions whose
+    /// changes cannot be applied that way keep generated YAML.
+    /// </summary>
+    /// <returns>References of the versions that now have YAML.</returns>
+    public IReadOnlyList<string> RestoreYaml(IReadOnlyList<PlaybookFile> files)
+    {
+        using var connection = database.Open();
+        using var transaction = connection.BeginTransaction();
+        var restored = new List<string>();
+        foreach (var group in files.Where(f => f.Yaml is not null).GroupBy(f => f.Playbook.Id, StringComparer.Ordinal))
+        {
+            foreach (var summary in Versions(connection, transaction, group.Key))
+            {
+                if (FindWithYaml(connection, transaction, summary.Id, summary.Version) is not ({ } stored, null))
+                {
+                    continue;
+                }
+
+                var yaml = group
+                    .OrderBy(f => f.Playbook.Version == stored.Version ? 0 : 1)
+                    .Select(f => PlaybookYaml.Update(f.Yaml, f.Playbook, stored))
+                    .FirstOrDefault(y => y is not null);
+                if (yaml is null)
+                {
+                    continue;
+                }
+
+                using var command = connection.CreateCommand();
+                command.Transaction = transaction;
+                command.CommandText = "UPDATE playbook_versions SET yaml = $yaml WHERE id = $id AND version = $version AND yaml IS NULL";
+                command.Parameters.AddWithValue("$yaml", yaml);
+                command.Parameters.AddWithValue("$id", summary.Id);
+                command.Parameters.AddWithValue("$version", summary.Version);
+                command.ExecuteNonQuery();
+                restored.Add(summary.Reference);
+            }
+        }
+
+        transaction.Commit();
+        return restored;
+    }
+
     /// <param name="yaml">The YAML the playbook was read from, if any; kept so its comments are served back.</param>
     public Playbook Create(Playbook playbook, string actor, string? yaml = null)
     {

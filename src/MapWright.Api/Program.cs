@@ -68,15 +68,31 @@ static void SeedPlaybooks(WebApplication app)
 {
     var options = app.Services.GetRequiredService<IOptions<ApiOptions>>().Value;
     var store = app.Services.GetRequiredService<PlaybookStore>();
-    if (string.IsNullOrWhiteSpace(options.SeedPlaybooks) || store.List().Count > 0)
+    if (string.IsNullOrWhiteSpace(options.SeedPlaybooks))
     {
         return;
     }
 
     var directory = Path.IsPathRooted(options.SeedPlaybooks) ? options.SeedPlaybooks : Path.Combine(AppContext.BaseDirectory, options.SeedPlaybooks);
+    var empty = store.List().Count == 0;
     if (!Directory.Exists(directory))
     {
-        app.Logger.LogWarning("Seed playbook directory {Directory} not found; starting with no playbooks.", directory);
+        if (empty)
+        {
+            app.Logger.LogWarning("Seed playbook directory {Directory} not found; starting with no playbooks.", directory);
+        }
+
+        return;
+    }
+
+    if (!empty)
+    {
+        var restored = store.RestoreYaml(PlaybookLibrary.Read([directory]));
+        if (restored.Count > 0)
+        {
+            app.Logger.LogInformation("Restored the YAML and comments of {Count} playbook version(s) from {Directory}.", restored.Count, directory);
+        }
+
         return;
     }
 
