@@ -42,7 +42,10 @@
             <button mat-stroked-button type="button" [disabled]="!canWrite() || dirty()" (click)="transition(a.to)" [attr.data-testid]="'to-' + a.to">{{ a.label }}</button>
           }
         }
-        @if (p.status === 'published' || p.status === 'retired') {
+        @if (canDelete()) {
+          <button mat-stroked-button type="button" [disabled]="!canWrite()" (click)="deleteDraft()" data-testid="delete-draft">Delete draft</button>
+        }
+        @if (p.status === 'published' || p.status === 'retired' || p.status === 'abandoned') {
           <mat-form-field appearance="outline" subscriptSizing="dynamic" class="version">
             <mat-label>New version</mat-label>
             <input matInput placeholder="next minor" [ngModel]="newVersion()" (ngModelChange)="newVersion.set($event)" />
@@ -54,6 +57,8 @@
         <div class="muted">Enter your name in the toolbar to save or change status.</div>
       } @else if (dirty()) {
         <div class="muted">Save or discard your changes before changing the status.</div>
+      } @else if (canDelete()) {
+        <div class="muted">This draft was never submitted, so it can be deleted. Once submitted, it can only be abandoned.</div>
       } @else if (p.status === 'inReview') {
         <div class="muted">Publishing needs passing tests and a reviewer other than the one who submitted it.</div>
       }
@@ -173,7 +178,7 @@
             @for (e of history(); track e.sequence) {
               <tr>
                 <td>{{ e.occurredAt | date: 'medium' }}</td><td>{{ e.actor }}</td><td class="mono">{{ e.version }}</td><td>{{ e.action }}</td>
-                <td>{{ e.from ? labels[e.from] + ' → ' : '' }}{{ labels[e.to] }}</td><td>{{ e.note }}</td>
+                <td>{{ e.from ? labels[e.from] + ' → ' : '' }}{{ e.to ? labels[e.to] : 'Deleted' }}</td><td>{{ e.note }}</td>
               </tr>
             }
           </table>

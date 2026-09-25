@@ -64,6 +64,28 @@ public sealed class PlaybookApiTests : IDisposable
     }
 
     [Fact]
+    public async Task Drafts_never_submitted_can_be_deleted()
+    {
+        var ana = _api.As("ana");
+        Assert.Equal(HttpStatusCode.Created, (await ana.Post("/api/playbooks/domain/entity-type/1.0.0/versions", new { })).StatusCode);
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await _api.CreateClient().DeleteAsync("/api/playbooks/domain/entity-type/1.1.0")).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await ana.DeleteAsync("/api/playbooks/domain/entity-type/1.0.0")).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await ana.DeleteAsync("/api/playbooks/domain/entity-type/1.1.0?note=Not%20needed")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await ana.GetAsync("/api/playbooks/domain/entity-type/1.1.0")).StatusCode);
+        var deleted = (await (await ana.GetAsync("/api/playbooks/domain/entity-type/history")).Node()).AsArray()[^1]!;
+        Assert.Equal(("deleted", "draft", "Not needed"), (deleted["action"].Text(), deleted["from"].Text(), deleted["note"].Text()));
+        Assert.Null(deleted["to"]);
+
+        Assert.Equal(HttpStatusCode.Created, (await ana.Post("/api/playbooks/domain/entity-type/1.0.0/versions", new { })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await ana.Post("/api/playbooks/domain/entity-type/1.1.0/status", new { status = "inReview" })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await ana.Post("/api/playbooks/domain/entity-type/1.1.0/status", new { status = "draft" })).StatusCode);
+        var refused = await ana.DeleteAsync("/api/playbooks/domain/entity-type/1.1.0");
+        Assert.Equal(HttpStatusCode.Conflict, refused.StatusCode);
+        Assert.Contains("abandon it instead", (await refused.Node())["detail"].Text());
+    }
+
+    [Fact]
     public async Task Writes_need_a_user_and_invalid_requests_return_problems()
     {
         var anonymous = _api.CreateClient();
@@ -144,11 +166,12 @@ public sealed class PlaybookApiTests : IDisposable
         Assert.Equal(HttpStatusCode.OK, put.StatusCode);
         Assert.StartsWith("{", await put.Content.ReadAsStringAsync(), StringComparison.Ordinal);
 
-        var abandoned = await ana.Post("/api/playbooks/domain/tax-id-v2/1.0.0/status?format=yaml", new { status = "retired" });
+        var abandoned = await ana.Post("/api/playbooks/domain/tax-id-v2/1.0.0/status?format=yaml", new { status = "abandoned" });
         Assert.Equal(HttpStatusCode.OK, abandoned.StatusCode);
         var text = await abandoned.Content.ReadAsStringAsync();
         Assert.Contains("# changed below", text, StringComparison.Ordinal);
-        Assert.Contains("\nstatus: retired\n", text, StringComparison.Ordinal);
+        Assert.Contains("\nstatus: abandoned\n", text, StringComparison.Ordinal);
+        Assert.Equal(["domain/tax-id-v2@1.0.0"], (await (await ana.GetAsync("/api/playbooks?status=abandoned")).Node()).AsArray().Select(p => p!["reference"].Text()));
 
         var malformed = await ana.PostAsync("/api/playbooks", new StringContent("id: [x", System.Text.Encoding.UTF8, "application/yaml"));
         Assert.Equal(HttpStatusCode.BadRequest, malformed.StatusCode);

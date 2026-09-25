@@ -42,9 +42,12 @@ export class PlaybookList {
   protected readonly all = signal<PlaybookSummary[]>([]);
   protected readonly importText = signal('');
 
+  /** "All" leaves out abandoned drafts; the Abandoned filter shows them. */
   protected readonly rows = computed(() => {
     const term = this.search().trim().toLowerCase();
-    return this.all().filter((p) => !term || `${p.id} ${p.name} ${p.owner ?? ''}`.toLowerCase().includes(term));
+    return this.all()
+      .filter((p) => this.status() !== '' || p.status !== 'abandoned')
+      .filter((p) => !term || `${p.id} ${p.name} ${p.owner ?? ''}`.toLowerCase().includes(term));
   });
 
   constructor() {

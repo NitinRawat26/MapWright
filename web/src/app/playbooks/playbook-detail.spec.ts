@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
 import { UserService } from '../core/user';
 import { apiProviders, http, respond, settle, text } from '../testing';
 import { PlaybookDetail } from './playbook-detail';
@@ -26,7 +27,9 @@ const versions = [
   { id: 'domain/tax-id', version: '1.1.0', status: 'draft' },
 ];
 
-async function open(version: string, status: string) {
+const imported = { sequence: 1, id: 'domain/tax-id', version: '1.0.0', actor: 'seed', action: 'imported', to: 'published', occurredAt: '2026-09-25T00:00:00Z' };
+
+async function open(version: string, status: string, history: object[] = [imported]) {
   const fixture = TestBed.createComponent(PlaybookDetail);
   fixture.componentRef.setInput('kind', 'domain');
   fixture.componentRef.setInput('slug', 'tax-id');
@@ -34,9 +37,7 @@ async function open(version: string, status: string) {
   fixture.detectChanges();
   respond(`/api/playbooks/domain/tax-id/${version}?format=yaml`, playbook(version, status, 'Tax IDs.'));
   respond('/api/playbooks/domain/tax-id', versions);
-  respond('/api/playbooks/domain/tax-id/history', [
-    { sequence: 1, id: 'domain/tax-id', version: '1.0.0', actor: 'seed', action: 'imported', to: 'published', occurredAt: '2026-09-25T00:00:00Z' },
-  ]);
+  respond('/api/playbooks/domain/tax-id/history', history);
   respond('/api/playbooks/domain/tax-id/1.0.0?format=yaml', playbook('1.0.0', 'published', 'Tax IDs.'));
   respond('/api/playbooks/domain/tax-id/1.1.0?format=yaml', playbook('1.1.0', 'draft', 'Tax IDs.'));
   await settle(fixture);
@@ -120,6 +121,39 @@ describe('PlaybookDetail', () => {
     expect(text(root, 'status')).toBe('In review');
     expect(root.querySelector('[data-testid="to-published"]')).not.toBeNull();
     expect((root.querySelector('[data-testid="editor"]') as HTMLTextAreaElement).value).toContain('# Tax ID playbook.');
+  });
+
+  it('deletes a draft that was never submitted', async () => {
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const { fixture, root } = await open('1.1.0', 'draft');
+
+    expect(root.querySelector('[data-testid="to-abandoned"]')?.textContent).toContain('Abandon draft');
+    click(root, 'delete-draft');
+    const request = http().expectOne({ url: '/api/playbooks/domain/tax-id/1.1.0', method: 'DELETE' });
+    expect(request.request.headers.get('X-MapWright-User')).toBe('ana');
+    request.flush(null);
+    await settle(fixture);
+    expect(navigate).toHaveBeenCalledWith(['/playbooks']);
+  });
+
+  it('only abandons a draft that has been submitted, and shows abandoned versions read-only', async () => {
+    const submitted = { ...imported, sequence: 2, version: '1.1.0', actor: 'ana', action: 'submitted', from: 'draft', to: 'inReview' };
+    const draft = await open('1.1.0', 'draft', [imported, submitted]);
+    expect(draft.root.querySelector('[data-testid="delete-draft"]')).toBeNull();
+    expect(draft.root.querySelector('[data-testid="to-abandoned"]')).not.toBeNull();
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({ imports: [PlaybookDetail], providers: apiProviders() });
+    TestBed.inject(UserService).set('ana');
+    const deleted = { ...imported, sequence: 3, version: '1.2.0', actor: 'ana', action: 'deleted', from: 'draft', to: undefined };
+    const { fixture, root } = await open('1.1.0', 'abandoned', [imported, deleted]);
+    expect(text(root, 'status')).toBe('Abandoned');
+    expect(root.querySelector('[data-testid="delete-draft"]')).toBeNull();
+    expect(root.querySelector('[data-testid="new-version"]')).not.toBeNull();
+    (root.querySelectorAll('[role="tab"]')[3] as HTMLElement).click();
+    await settle(fixture);
+    expect(root.querySelector('[data-testid="history"]')?.textContent).toContain('Draft → Deleted');
   });
 
   it('compares the draft side by side with the previous version', async () => {

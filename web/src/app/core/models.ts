@@ -20,7 +20,7 @@ export interface AiStatus {
   maxConfidence: number;
 }
 
-export type PlaybookStatus = 'draft' | 'inReview' | 'published' | 'retired';
+export type PlaybookStatus = 'draft' | 'inReview' | 'published' | 'retired' | 'abandoned';
 export type PlaybookKind = 'domain' | 'process';
 
 export interface PlaybookSummary {
@@ -68,7 +68,8 @@ export interface PlaybookEvent {
   actor: string;
   action: string;
   from?: PlaybookStatus;
-  to: PlaybookStatus;
+  /** Absent when the version was deleted. */
+  to?: PlaybookStatus;
   note?: string;
   occurredAt: string;
 }

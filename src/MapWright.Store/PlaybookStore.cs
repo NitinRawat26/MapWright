@@ -26,12 +26,13 @@ public sealed record PlaybookEvent(
     string Actor,
     string Action,
     PlaybookStatus? From,
-    PlaybookStatus To,
+    PlaybookStatus? To,
     string? Note,
     DateTimeOffset OccurredAt);
 
 /// <summary>
-/// Versioned playbooks with a Draft → In Review → Published → Retired lifecycle. Only drafts are editable; a
+/// Versioned playbooks with a Draft → In Review → Published → Retired lifecycle; a draft can be abandoned, or deleted
+/// while it has never been submitted. Only drafts are editable; a
 /// published version is changed by drafting a new version from it. Publishing retires the previous published version.
 /// Each version is stored as JSON, plus the YAML it was written in (when it came as YAML), so the comments survive
 /// status changes, new versions and approved suggestions.
@@ -113,7 +114,7 @@ public sealed class PlaybookStore(MapWrightDatabase database)
                 reader.GetString(3),
                 reader.GetString(4),
                 reader.IsDBNull(5) ? null : Enum.Parse<PlaybookStatus>(reader.GetString(5)),
-                Enum.Parse<PlaybookStatus>(reader.GetString(6)),
+                reader.IsDBNull(6) ? null : Enum.Parse<PlaybookStatus>(reader.GetString(6)),
                 reader.IsDBNull(7) ? null : reader.GetString(7),
                 MapWrightDatabase.ParseTime(reader.GetString(8))));
         }
@@ -239,7 +240,8 @@ public sealed class PlaybookStore(MapWrightDatabase database)
 
     /// <summary>
     /// Draft → InReview (valid and tests pass), InReview → Draft (changes requested), InReview → Published (valid,
-    /// tests pass, reviewed by someone other than the submitter), Published → Retired, Draft → Retired (abandoned).
+    /// tests pass, reviewed by someone other than the submitter), Published → Retired, Draft → Abandoned (sending
+    /// Retired for a draft abandons it too).
     /// </summary>
     public Playbook Transition(string id, string version, PlaybookStatus to, string actor, string? note)
     {
@@ -247,13 +249,18 @@ public sealed class PlaybookStore(MapWrightDatabase database)
         using var transaction = connection.BeginTransaction();
         var (current, currentYaml) = FindWithYaml(connection, transaction, id, version) ?? throw StoreException.NotFound($"Playbook '{id}@{version}'");
         var fromStatus = current.Status;
+        if (fromStatus == PlaybookStatus.Draft && to == PlaybookStatus.Retired)
+        {
+            to = PlaybookStatus.Abandoned;
+        }
+
         var action = (fromStatus, to) switch
         {
             (PlaybookStatus.Draft, PlaybookStatus.InReview) => "submitted",
             (PlaybookStatus.InReview, PlaybookStatus.Draft) => "changesRequested",
             (PlaybookStatus.InReview, PlaybookStatus.Published) => "published",
             (PlaybookStatus.Published, PlaybookStatus.Retired) => "retired",
-            (PlaybookStatus.Draft, PlaybookStatus.Retired) => "abandoned",
+            (PlaybookStatus.Draft, PlaybookStatus.Abandoned) => "abandoned",
             _ => throw new StoreException(StoreError.Conflict, $"'{current.Reference}' is {fromStatus} and cannot move to {to}."),
         };
 
@@ -288,6 +295,45 @@ public sealed class PlaybookStore(MapWrightDatabase database)
         Log(connection, transaction, id, version, actor, action, fromStatus, to, note);
         transaction.Commit();
         return next;
+    }
+
+    /// <summary>
+    /// Removes a draft that was never submitted for review, freeing its version number. The history keeps a
+    /// "deleted" entry. Drafts that were reviewed, or changed by an approved AI suggestion, are abandoned instead.
+    /// </summary>
+    public void Delete(string id, string version, string actor, string? note)
+    {
+        using var connection = database.Open();
+        using var transaction = connection.BeginTransaction();
+        var current = Find(connection, transaction, id, version) ?? throw StoreException.NotFound($"Playbook '{id}@{version}'");
+        if (current.Status != PlaybookStatus.Draft)
+        {
+            throw new StoreException(StoreError.Conflict, $"'{current.Reference}' is {current.Status}; only drafts can be deleted.");
+        }
+
+        if (Submitter(connection, transaction, id, version) is not null)
+        {
+            throw new StoreException(StoreError.Conflict, $"'{current.Reference}' has been submitted for review; abandon it instead so its review history is kept.");
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.Transaction = transaction;
+            command.CommandText = "SELECT COUNT(*) FROM ai_suggestions WHERE playbook_ref = $ref";
+            command.Parameters.AddWithValue("$ref", current.Reference);
+            if ((long)command.ExecuteScalar()! > 0)
+            {
+                throw new StoreException(StoreError.Conflict, $"'{current.Reference}' holds approved AI suggestions; abandon it instead so they stay traceable.");
+            }
+
+            command.CommandText = "DELETE FROM playbook_versions WHERE id = $id AND version = $version";
+            command.Parameters.AddWithValue("$id", id);
+            command.Parameters.AddWithValue("$version", version);
+            command.ExecuteNonQuery();
+        }
+
+        Log(connection, transaction, id, version, actor, "deleted", PlaybookStatus.Draft, null, note);
+        transaction.Commit();
     }
 
     /// <summary>Validates the playbook on its own and against the published versions of the other playbooks.</summary>
@@ -409,7 +455,7 @@ public sealed class PlaybookStore(MapWrightDatabase database)
 
     private void Log(
         SqliteConnection connection, SqliteTransaction transaction, string id, string version, string actor, string action,
-        PlaybookStatus? from, PlaybookStatus to, string? note)
+        PlaybookStatus? from, PlaybookStatus? to, string? note)
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
@@ -422,7 +468,7 @@ public sealed class PlaybookStore(MapWrightDatabase database)
         command.Parameters.AddWithValue("$actor", actor);
         command.Parameters.AddWithValue("$action", action);
         command.Parameters.AddWithValue("$from", (object?)from?.ToString() ?? DBNull.Value);
-        command.Parameters.AddWithValue("$to", to.ToString());
+        command.Parameters.AddWithValue("$to", (object?)to?.ToString() ?? DBNull.Value);
         command.Parameters.AddWithValue("$note", string.IsNullOrWhiteSpace(note) ? DBNull.Value : note);
         command.Parameters.AddWithValue("$now", database.Now());
         command.ExecuteNonQuery();

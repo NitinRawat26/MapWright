@@ -178,6 +178,99 @@ public sealed class StoreTests : IDisposable
     }
 
     [Fact]
+    public void Drafts_never_submitted_are_deleted_and_reviewed_drafts_are_abandoned()
+    {
+        var store = Imported();
+        store.DraftNewVersion("domain/tax-id", "1.0.0", null, "ana", null);
+
+        Assert.Equal(StoreError.Conflict, Assert.Throws<StoreException>(() => store.Delete("domain/tax-id", "1.0.0", "ana", null)).Error);
+        Assert.Equal(StoreError.NotFound, Assert.Throws<StoreException>(() => store.Delete("domain/tax-id", "9.0.0", "ana", null)).Error);
+        store.Delete("domain/tax-id", "1.1.0", "ana", "Started by mistake.");
+
+        Assert.Equal(StoreError.NotFound, Assert.Throws<StoreException>(() => store.Get("domain/tax-id", "1.1.0")).Error);
+        Assert.Equal(["1.0.0"], store.Versions("domain/tax-id").Select(v => v.Version));
+        var deleted = store.History("domain/tax-id")[^1];
+        Assert.Equal(("1.1.0", "deleted", PlaybookStatus.Draft, (PlaybookStatus?)null, "Started by mistake."), (deleted.Version, deleted.Action, deleted.From, deleted.To, deleted.Note));
+
+        Assert.Equal("1.1.0", store.DraftNewVersion("domain/tax-id", "1.0.0", null, "ana", null).Version);
+        store.Transition("domain/tax-id", "1.1.0", PlaybookStatus.InReview, "ana", null);
+        store.Transition("domain/tax-id", "1.1.0", PlaybookStatus.Draft, "ben", "Needs work.");
+        var refused = Assert.Throws<StoreException>(() => store.Delete("domain/tax-id", "1.1.0", "ana", null));
+        Assert.Equal(StoreError.Conflict, refused.Error);
+        Assert.Contains("abandon it instead", refused.Message);
+
+        var abandoned = store.Transition("domain/tax-id", "1.1.0", PlaybookStatus.Retired, "ana", null);
+        Assert.Equal(PlaybookStatus.Abandoned, abandoned.Status);
+        Assert.Contains("\nstatus: abandoned\n", store.GetYaml("domain/tax-id", "1.1.0"), StringComparison.Ordinal);
+        Assert.Equal(["1.1.0"], store.List(PlaybookStatus.Abandoned).Select(p => p.Version));
+        Assert.Empty(store.List(PlaybookStatus.Retired));
+        Assert.Equal(PlaybookStatus.Abandoned, store.History("domain/tax-id")[^1].To);
+        Assert.Equal("1.0.0", store.Library().Active.Single(p => p.Id == "domain/tax-id").Version);
+        Assert.Equal(StoreError.Conflict, Assert.Throws<StoreException>(() => store.Delete("domain/tax-id", "1.1.0", "ana", null)).Error);
+        Assert.Equal(StoreError.Conflict, Assert.Throws<StoreException>(() => store.Transition("domain/tax-id", "1.1.0", PlaybookStatus.Draft, "ana", null)).Error);
+        Assert.Equal("1.2.0", store.DraftNewVersion("domain/tax-id", "1.0.0", null, "ana", null).Version);
+    }
+
+    [Fact]
+    public void Databases_from_before_abandoned_relabel_abandoned_drafts_and_allow_deletes()
+    {
+        var path = Path.Combine(Directory.CreateTempSubdirectory("mapwright-db-").FullName, "old.db");
+        try
+        {
+            var yaml = File.ReadAllText(Path.Combine(StarterPlaybooks.Directory, "domain", "tax-id.yaml"));
+            var abandoned = yaml.Replace("\nversion: \"1.0.0\"\n", "\nversion: \"1.1.0\"\n", StringComparison.Ordinal)
+                .Replace("\nstatus: published\n", "\nstatus: retired\n", StringComparison.Ordinal);
+            var draft = yaml.Replace("\nversion: \"1.0.0\"\n", "\nversion: \"1.2.0\"\n", StringComparison.Ordinal)
+                .Replace("\nstatus: published\n", "\nstatus: draft\n", StringComparison.Ordinal);
+            using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={path}"))
+            {
+                connection.Open();
+                using var command = connection.CreateCommand();
+                command.CommandText = """
+                    CREATE TABLE playbook_versions (
+                        id TEXT NOT NULL, version TEXT NOT NULL, kind TEXT NOT NULL, name TEXT NOT NULL, status TEXT NOT NULL,
+                        owner TEXT, json TEXT NOT NULL, created_at TEXT NOT NULL, created_by TEXT NOT NULL,
+                        updated_at TEXT NOT NULL, updated_by TEXT NOT NULL, yaml TEXT, PRIMARY KEY (id, version));
+                    CREATE TABLE playbook_events (
+                        seq INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT NOT NULL, version TEXT NOT NULL, actor TEXT NOT NULL,
+                        action TEXT NOT NULL, from_status TEXT, to_status TEXT NOT NULL, note TEXT, occurred_at TEXT NOT NULL,
+                        FOREIGN KEY (id, version) REFERENCES playbook_versions(id, version));
+                    CREATE INDEX ix_playbook_events_id ON playbook_events(id, version);
+                    INSERT INTO playbook_versions VALUES
+                        ('domain/tax-id', '1.1.0', 'Domain', 'Tax ID', 'Retired', NULL, $abandonedJson, '2026-09-01T00:00:00+00:00', 'ana', '2026-09-01T00:00:00+00:00', 'ana', $abandonedYaml),
+                        ('domain/tax-id', '1.2.0', 'Domain', 'Tax ID', 'Draft', NULL, $draftJson, '2026-09-01T00:00:00+00:00', 'ana', '2026-09-01T00:00:00+00:00', 'ana', $draftYaml);
+                    INSERT INTO playbook_events (id, version, actor, action, from_status, to_status, occurred_at) VALUES
+                        ('domain/tax-id', '1.1.0', 'ana', 'drafted', NULL, 'Draft', '2026-09-01T00:00:00+00:00'),
+                        ('domain/tax-id', '1.1.0', 'ana', 'abandoned', 'Draft', 'Retired', '2026-09-01T00:00:00+00:00'),
+                        ('domain/tax-id', '1.2.0', 'ana', 'drafted', NULL, 'Draft', '2026-09-01T00:00:00+00:00');
+                    """;
+                command.Parameters.AddWithValue("$abandonedJson", PlaybookSerializer.Serialize(PlaybookSerializer.Deserialize(abandoned)));
+                command.Parameters.AddWithValue("$abandonedYaml", abandoned);
+                command.Parameters.AddWithValue("$draftJson", PlaybookSerializer.Serialize(PlaybookSerializer.Deserialize(draft)));
+                command.Parameters.AddWithValue("$draftYaml", draft);
+                command.ExecuteNonQuery();
+            }
+
+            using var database = new MapWrightDatabase(new() { DatabasePath = path }, _time);
+            var store = new PlaybookStore(database);
+            Assert.Equal(PlaybookStatus.Abandoned, store.Get("domain/tax-id", "1.1.0").Status);
+            var migratedYaml = store.GetYaml("domain/tax-id", "1.1.0");
+            Assert.StartsWith("# Domain playbook: Tax ID.", migratedYaml, StringComparison.Ordinal);
+            Assert.Contains("\nstatus: abandoned\n", migratedYaml, StringComparison.Ordinal);
+            Assert.Equal(PlaybookStatus.Abandoned, store.History("domain/tax-id")[1].To);
+
+            store.Delete("domain/tax-id", "1.2.0", "ana", null);
+            Assert.Equal(["drafted", "abandoned", "drafted", "deleted"], store.History("domain/tax-id").Select(e => e.Action));
+            Assert.Equal(["1.1.0"], store.Versions("domain/tax-id").Select(v => v.Version));
+        }
+        finally
+        {
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            Directory.Delete(Path.GetDirectoryName(path)!, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Playbooks_without_yaml_are_served_as_generated_yaml()
     {
         var store = Imported();

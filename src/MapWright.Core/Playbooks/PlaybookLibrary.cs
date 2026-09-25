@@ -5,9 +5,9 @@ public sealed class PlaybookLibrary(IReadOnlyList<Playbook> playbooks)
 {
     public IReadOnlyList<Playbook> All { get; } = playbooks;
 
-    /// <summary>Per id: the published version, else the newest draft or in-review version. Retired versions are skipped.</summary>
+    /// <summary>Per id: the published version, else the newest draft or in-review version. Retired and abandoned versions are skipped.</summary>
     public IReadOnlyList<Playbook> Active { get; } = [.. playbooks
-        .Where(p => p.Status != PlaybookStatus.Retired)
+        .Where(p => p.Status is not (PlaybookStatus.Retired or PlaybookStatus.Abandoned))
         .GroupBy(p => p.Id)
         .Select(g => g.FirstOrDefault(p => p.Status == PlaybookStatus.Published)
             ?? g.OrderByDescending(p => System.Version.TryParse(p.Version, out var v) ? v : new System.Version()).First())
