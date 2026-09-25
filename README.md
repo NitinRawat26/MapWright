@@ -132,8 +132,9 @@ domain playbook must have tests.
 
 ### Stored playbooks (lifecycle)
 
-`MapWright.Store` keeps playbooks in SQLite with the same JSON shape as the files, one row per version, plus an
-audit trail of every change. The files in `playbooks/` can be imported as the starting set.
+`MapWright.Store` keeps playbooks in SQLite, one row per version, plus an audit trail of every change. Each version
+is stored as normalized JSON (what validation, tests and mapping read) together with its YAML text, so comments
+survive new versions, status changes and edits. Playbooks that arrived as JSON get generated YAML. The files in `playbooks/` can be imported as the starting set.
 
 | From | To | Rule |
 |---|---|---|
@@ -303,7 +304,9 @@ published version).
 ### Playbooks
 
 Playbooks are addressed as `/api/playbooks/{kind}/{slug}/{version}`, e.g. `/api/playbooks/domain/tax-id/1.0.0`.
-Bodies and responses use the playbook file format.
+Bodies are playbook files, YAML or JSON (JSON when the text starts with `{`; send `Content-Type: application/yaml`
+or `application/json`). Responses are JSON by default; add `?format=yaml` or `Accept: application/yaml` to get the
+version's YAML with its comments. A YAML body's comments are kept.
 
 | Method and path | Does |
 |---|---|
@@ -324,6 +327,9 @@ curl -X POST localhost:5080/api/playbooks/domain/tax-id/1.1.0/status -H 'X-MapWr
   -H 'Content-Type: application/json' -d '{"status":"inReview"}'
 curl -X POST localhost:5080/api/playbooks/domain/tax-id/1.1.0/status -H 'X-MapWright-User: ben' \
   -H 'Content-Type: application/json' -d '{"status":"published"}'
+curl 'localhost:5080/api/playbooks/domain/tax-id/1.1.0?format=yaml'
+curl -X POST localhost:5080/api/playbooks -H 'X-MapWright-User: ana' -H 'Content-Type: application/yaml' \
+  --data-binary @playbooks/domain/fees.yaml
 ```
 
 ### Profiles, mappings and replay
@@ -445,7 +451,7 @@ API errors are shown with their `detail` and `issues`.
 
 Pages:
 - **Playbooks:** filter by status, search, add a playbook as a draft. Each version shows its concept,
-  vocabulary and rules; drafts are edited as JSON and validated and tested before saving. Submit, request
+  vocabulary and rules; drafts are edited as YAML (comments are kept) and validated and tested before saving. Submit, request
   changes, publish, retire or draft a new version, see the audit history, and compare any two versions side by side.
 - **Profiles:** upload sample payloads and contracts to build a profile, browse its fields, findings and inputs, and
   run detection to see which business concepts the published playbooks recognise (optionally asking AI about the rest).

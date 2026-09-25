@@ -38,7 +38,7 @@ describe('PlaybookList', () => {
     respond('/api/playbooks', []);
     await settle(fixture);
     const root = fixture.nativeElement as HTMLElement;
-    const textarea = root.querySelector('[data-testid="import-json"]') as HTMLTextAreaElement;
+    const textarea = root.querySelector('[data-testid="import-text"]') as HTMLTextAreaElement;
     textarea.value = '{"id":"domain/fees"}';
     textarea.dispatchEvent(new Event('input'));
     await settle(fixture);
@@ -51,7 +51,28 @@ describe('PlaybookList', () => {
     const request = http().expectOne({ url: '/api/playbooks', method: 'POST' });
     expect(request.request.body).toBe('{"id":"domain/fees"}');
     expect(request.request.headers.get('X-MapWright-User')).toBe('ana');
+    expect(request.request.headers.get('Content-Type')).toBe('application/json');
     request.flush(JSON.stringify({ id: 'domain/fees', version: '1.0.0' }));
     expect(navigate).toHaveBeenCalledWith(['/playbooks', 'domain', 'fees', '1.0.0']);
+  });
+
+  it('creates a draft from pasted YAML, sent as YAML', async () => {
+    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    TestBed.inject(UserService).set('ana');
+    const fixture = TestBed.createComponent(PlaybookList);
+    fixture.detectChanges();
+    respond('/api/playbooks', []);
+    await settle(fixture);
+    const root = fixture.nativeElement as HTMLElement;
+    const yaml = '# Fees.\nid: domain/fees\n';
+    const textarea = root.querySelector('[data-testid="import-text"]') as HTMLTextAreaElement;
+    textarea.value = yaml;
+    textarea.dispatchEvent(new Event('input'));
+    await settle(fixture);
+
+    (root.querySelector('[data-testid="import"]') as HTMLButtonElement).click();
+    const request = http().expectOne({ url: '/api/playbooks', method: 'POST' });
+    expect(request.request.body).toBe(yaml);
+    expect(request.request.headers.get('Content-Type')).toBe('application/yaml');
   });
 });

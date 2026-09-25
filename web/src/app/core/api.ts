@@ -25,6 +25,12 @@ import {
 } from './models';
 
 const json = new HttpHeaders({ 'Content-Type': 'application/json' });
+const yaml = { format: 'yaml' };
+
+/** Playbook text is JSON when it starts with '{', otherwise YAML (the API tells them apart the same way). */
+function playbookHeaders(playbook: string): HttpHeaders {
+  return new HttpHeaders({ 'Content-Type': playbook.trimStart().startsWith('{') ? 'application/json' : 'application/yaml' });
+}
 
 /** Typed client for the MapWright API. Reads and writes go through the user and error interceptors. */
 @Injectable({ providedIn: 'root' })
@@ -52,35 +58,38 @@ export class Api {
     return this.http.get<PlaybookEvent[]>(`/api/playbooks/${id}/history`);
   }
 
-  /** The playbook exactly as stored, in the file format. */
-  playbookJson(id: string, version: string): Observable<string> {
-    return this.http.get(`/api/playbooks/${id}/${version}`, { responseType: 'text' });
+  /** The playbook as YAML, with the comments it was written with. */
+  playbookYaml(id: string, version: string): Observable<string> {
+    return this.http.get(`/api/playbooks/${id}/${version}`, { params: yaml, responseType: 'text' });
   }
 
+  /** Creates a draft from YAML or JSON; answers with the stored playbook as JSON. */
   createPlaybook(playbook: string): Observable<string> {
-    return this.http.post('/api/playbooks', playbook, { headers: json, responseType: 'text' });
+    return this.http.post('/api/playbooks', playbook, { headers: playbookHeaders(playbook), responseType: 'text' });
   }
 
+  /** Saves a draft from YAML or JSON; answers with the stored YAML. */
   updateDraft(id: string, version: string, playbook: string): Observable<string> {
-    return this.http.put(`/api/playbooks/${id}/${version}`, playbook, { headers: json, responseType: 'text' });
+    return this.http.put(`/api/playbooks/${id}/${version}`, playbook, { headers: playbookHeaders(playbook), params: yaml, responseType: 'text' });
   }
 
   newVersion(id: string, from: string, request: { version?: string; note?: string }): Observable<string> {
     return this.http.post(`/api/playbooks/${id}/${from}/versions`, request, { responseType: 'text' });
   }
 
+  /** Moves a version to another status; answers with its YAML. */
   changeStatus(id: string, version: string, status: PlaybookStatus, note?: string): Observable<string> {
-    return this.http.post(`/api/playbooks/${id}/${version}/status`, { status, note }, { responseType: 'text' });
+    return this.http.post(`/api/playbooks/${id}/${version}/status`, { status, note }, { params: yaml, responseType: 'text' });
   }
 
-  /** Validates unsaved playbook JSON against the published library. */
+  /** Validates an unsaved playbook (YAML or JSON) against the published library. */
   validatePlaybook(playbook: string): Observable<ValidationResponse> {
-    return this.http.post<ValidationResponse>('/api/playbooks/validate', playbook, { headers: json });
+    return this.http.post<ValidationResponse>('/api/playbooks/validate', playbook, { headers: playbookHeaders(playbook) });
   }
 
-  /** Runs the detection tests and rule examples of unsaved playbook JSON. */
+  /** Runs the detection tests and rule examples of an unsaved playbook (YAML or JSON). */
   testPlaybook(playbook: string): Observable<TestResponse> {
-    return this.http.post<TestResponse>('/api/playbooks/test', playbook, { headers: json });
+    return this.http.post<TestResponse>('/api/playbooks/test', playbook, { headers: playbookHeaders(playbook) });
   }
 
   validateStored(id: string, version: string): Observable<ValidationResponse> {

@@ -3,15 +3,23 @@ import { UserService } from '../core/user';
 import { apiProviders, http, respond, settle, text } from '../testing';
 import { PlaybookDetail } from './playbook-detail';
 
-const playbook = (version: string, status: string, description: string) =>
-  JSON.stringify(
-    {
-      specVersion: '1.0', id: 'domain/tax-id', name: 'Tax ID', kind: 'domain', version, status, description,
-      domain: { concept: { name: 'LegalEntity', attributes: [{ name: 'TaxId' }] }, vocabulary: [{ term: 'tin' }] },
-    },
-    null,
-    2,
-  );
+const playbook = (version: string, status: string, description: string) => `# Tax ID playbook.
+specVersion: '1.0'
+id: domain/tax-id
+name: Tax ID
+kind: domain
+version: '${version}'
+status: ${status}
+description: ${description}
+domain:
+  concept:
+    name: LegalEntity
+    attributes:
+      - name: TaxId
+  # Terms seen in other systems.
+  vocabulary:
+    - term: tin
+`;
 
 const versions = [
   { id: 'domain/tax-id', version: '1.0.0', status: 'published' },
@@ -24,13 +32,13 @@ async function open(version: string, status: string) {
   fixture.componentRef.setInput('slug', 'tax-id');
   fixture.componentRef.setInput('version', version);
   fixture.detectChanges();
-  respond(`/api/playbooks/domain/tax-id/${version}`, playbook(version, status, 'Tax IDs.'));
+  respond(`/api/playbooks/domain/tax-id/${version}?format=yaml`, playbook(version, status, 'Tax IDs.'));
   respond('/api/playbooks/domain/tax-id', versions);
   respond('/api/playbooks/domain/tax-id/history', [
     { sequence: 1, id: 'domain/tax-id', version: '1.0.0', actor: 'seed', action: 'imported', to: 'published', occurredAt: '2026-09-25T00:00:00Z' },
   ]);
-  respond('/api/playbooks/domain/tax-id/1.0.0', playbook('1.0.0', 'published', 'Tax IDs.'));
-  respond('/api/playbooks/domain/tax-id/1.1.0', playbook('1.1.0', 'draft', 'Tax IDs.'));
+  respond('/api/playbooks/domain/tax-id/1.0.0?format=yaml', playbook('1.0.0', 'published', 'Tax IDs.'));
+  respond('/api/playbooks/domain/tax-id/1.1.0?format=yaml', playbook('1.1.0', 'draft', 'Tax IDs.'));
   await settle(fixture);
   return { fixture, root: fixture.nativeElement as HTMLElement };
 }
@@ -74,14 +82,22 @@ describe('PlaybookDetail', () => {
     (tabs[1] as HTMLElement).click();
     await settle(fixture);
 
+    expect((root.querySelector('[data-testid="editor"]') as HTMLTextAreaElement).value).toContain('# Terms seen in other systems.');
+    edit(root, 'id: [unclosed');
+    await settle(fixture);
+    expect(text(root, 'parse-error')).toContain('Not valid YAML');
+    expect((root.querySelector('[data-testid="validate"]') as HTMLButtonElement).disabled).toBe(true);
+
     const changed = playbook('1.1.0', 'draft', 'Tax IDs incl. TIN.');
     edit(root, changed);
     await settle(fixture);
+    expect(root.querySelector('[data-testid="parse-error"]')).toBeNull();
     expect((root.querySelector('[data-testid="to-inReview"]') as HTMLButtonElement).disabled).toBe(true);
 
     click(root, 'validate');
     const validate = http().expectOne({ url: '/api/playbooks/validate', method: 'POST' });
     expect(validate.request.body).toBe(changed);
+    expect(validate.request.headers.get('Content-Type')).toBe('application/yaml');
     validate.flush({ valid: false, issues: [{ severity: 'error', code: 'PB010', location: '$.domain', message: 'Bad.' }] });
     await settle(fixture);
     expect(text(root, 'valid')).toBe('Invalid');
@@ -89,7 +105,7 @@ describe('PlaybookDetail', () => {
     (root.querySelectorAll('[role="tab"]')[1] as HTMLElement).click();
     await settle(fixture);
     click(root, 'save');
-    const save = http().expectOne({ url: '/api/playbooks/domain/tax-id/1.1.0', method: 'PUT' });
+    const save = http().expectOne({ url: '/api/playbooks/domain/tax-id/1.1.0?format=yaml', method: 'PUT' });
     expect(save.request.body).toBe(changed);
     expect(save.request.headers.get('X-MapWright-User')).toBe('ana');
     save.flush(changed);
@@ -97,12 +113,13 @@ describe('PlaybookDetail', () => {
     await settle(fixture);
 
     click(root, 'to-inReview');
-    const submit = http().expectOne({ url: '/api/playbooks/domain/tax-id/1.1.0/status', method: 'POST' });
+    const submit = http().expectOne({ url: '/api/playbooks/domain/tax-id/1.1.0/status?format=yaml', method: 'POST' });
     expect(submit.request.body).toEqual({ status: 'inReview', note: undefined });
     submit.flush(playbook('1.1.0', 'inReview', 'Tax IDs incl. TIN.'));
     await settle(fixture);
     expect(text(root, 'status')).toBe('In review');
     expect(root.querySelector('[data-testid="to-published"]')).not.toBeNull();
+    expect((root.querySelector('[data-testid="editor"]') as HTMLTextAreaElement).value).toContain('# Tax ID playbook.');
   });
 
   it('compares the draft side by side with the previous version', async () => {
@@ -118,9 +135,9 @@ describe('PlaybookDetail', () => {
       [...r.querySelectorAll('td')].map((c) => c.textContent?.trim()).join(' | '),
     );
     expect(changed).toEqual([
-      '6 | "version": "1.0.0", | 6 | "version": "1.1.0",',
-      '7 | "status": "published", | 7 | "status": "draft",',
-      '8 | "description": "Tax IDs.", | 8 | "description": "Changed.",',
+      "6 | version: '1.0.0' | 6 | version: '1.1.0'",
+      '7 | status: published | 7 | status: draft',
+      '8 | description: Tax IDs. | 8 | description: Changed.',
     ]);
   });
 });
