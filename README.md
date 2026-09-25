@@ -383,6 +383,46 @@ one) and the draft goes through test, review and publish as usual. `concept` def
 needed when the AI proposed a concept no playbook defines, or when two playbooks share the concept. A term that
 is already in the playbook, or a playbook that is in review, returns 409.
 
+## Deployment
+
+### Docker
+
+```bash
+docker build -t mapwright-api .
+docker run -p 8080:8080 -v mapwright-data:/var/data mapwright-api
+# http://localhost:8080/swagger, http://localhost:8080/health
+```
+
+The image seeds the starter playbooks into an empty store and keeps the SQLite file at
+`/var/data/mapwright.db`, so mount a volume there. Any setting can be overridden with an environment variable,
+e.g. `-e MapWright__RequireIndependentReview=false`. To use AI, pass the provider variables
+(`MAPWRIGHT_VERTEX_PROJECT`, `MAPWRIGHT_OLLAMA_URL`, ...) and, for Vertex AI, mount the service-account key and
+point `GOOGLE_APPLICATION_CREDENTIALS` at it:
+
+```bash
+docker run -p 8080:8080 -v mapwright-data:/var/data \
+  -v "$PWD/secrets/vertex-key.json:/etc/secrets/vertex-key.json:ro" \
+  -e GOOGLE_APPLICATION_CREDENTIALS=/etc/secrets/vertex-key.json \
+  -e MAPWRIGHT_VERTEX_PROJECT=<gcp-project> mapwright-api
+```
+
+Keep key files out of git: `secrets/` and `*-key.json` are ignored by both `.gitignore` and `.dockerignore`.
+
+### Render
+
+`render.yaml` is a Render Blueprint: a Docker web service with a 1 GB persistent disk at `/var/data` for the
+SQLite file and a `/health` check. Persistent disks need a paid instance type, which is why the plan is `starter`.
+
+1. In Render, choose **New > Blueprint** and pick this repository.
+2. When asked, fill in `MAPWRIGHT_VERTEX_PROJECT` (and optionally `MAPWRIGHT_VERTEX_LOCATION`, `MAPWRIGHT_VERTEX_MODEL`),
+   or `MAPWRIGHT_OLLAMA_URL`, or leave them empty to run with playbooks only.
+3. For Vertex AI, add the service-account key under **Environment > Secret Files** with the file name
+   `vertex-key.json`. It is available at `/etc/secrets/vertex-key.json`, where `GOOGLE_APPLICATION_CREDENTIALS`
+   already points. The account needs the Vertex AI User role.
+
+The API has no sign-in: `X-MapWright-User` is recorded for audit but not verified. Put it behind your own
+authentication (a gateway, VPN or Render private service) before exposing it.
+
 ## Build and test
 
 Requires the .NET 10 SDK.
@@ -402,9 +442,10 @@ src/MapWright.Output   Report model, Excel / CSV / HTML renderers and the Excel 
 src/MapWright.Ai       Optional AI assist: Vertex AI and Ollama providers, fallback, masked field prompts
 src/MapWright.Cli      `mapwright` command-line tool
 src/MapWright.Api      ASP.NET Core API (Swagger at /swagger) over the engine and the store
-src/MapWright.Store    SQLite store: playbook versions and lifecycle, profiles, mappings, review decisions
+src/MapWright.Store    SQLite store: playbook versions and lifecycle, profiles, mappings, review decisions, AI suggestions
 tests/MapWright.Tests  Unit and API tests
 samples/mappings       Example mapping specs
 samples/systems        Example sample payloads, contracts and generated system profiles
 playbooks              Starter domain and process playbooks
+Dockerfile, render.yaml  API container image and Render Blueprint
 ```
