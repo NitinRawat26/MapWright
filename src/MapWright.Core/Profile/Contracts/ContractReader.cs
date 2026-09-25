@@ -63,8 +63,6 @@ public static class ContractReader
     public static ContractDocument Read(string name, string content, InputKind kind, string? root = null) => kind switch
     {
         InputKind.JsonSchema => JsonSchemaReader.Read(name, content),
-        InputKind.OpenApi when content.TrimStart('\uFEFF', ' ', '\t', '\r', '\n').FirstOrDefault() != '{' =>
-            throw new ProfileException($"OpenAPI document '{name}' must be JSON; YAML is not supported yet, so convert it to JSON first."),
         InputKind.OpenApi => OpenApiReader.Read(name, content, root),
         InputKind.Xsd => XsdReader.Read(name, content, root),
         InputKind.Wsdl => WsdlReader.Read(name, content, root),

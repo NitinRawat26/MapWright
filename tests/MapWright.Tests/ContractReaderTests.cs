@@ -186,7 +186,7 @@ public sealed class ContractReaderTests
         Assert.Equal(FieldDataType.String, Field(doc, "$.mcc").DataType);
 
         var yaml = Assert.Throws<ProfileException>(() => ContractReader.Read("api.yaml", "openapi: 3.0.0", InputKind.OpenApi));
-        Assert.Contains("YAML is not supported", yaml.Message);
+        Assert.Contains("no operation with a JSON request body", yaml.Message);
         Assert.Contains("not an OpenAPI document", Assert.Throws<ProfileException>(() => OpenApiReader.Read("x.json", "{}")).Message);
     }
 

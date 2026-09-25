@@ -5,6 +5,7 @@ namespace MapWright.Core.Profile.Contracts;
 
 /// <summary>
 /// Reads the JSON request body of one OpenAPI 3.x or Swagger 2.0 operation, or one named schema, into profile fields.
+/// The document itself may be JSON or YAML.
 /// </summary>
 public static class OpenApiReader
 {
@@ -13,9 +14,10 @@ public static class OpenApiReader
     /// <param name="root">An operationId, "METHOD /path" or a schema name; optional when only one operation has a JSON request body.</param>
     public static ContractDocument Read(string name, string content, string? root = null)
     {
-        using var document = JsonSchemaReader.Parse(name, content, "OpenAPI document");
+        var json = IsJson(content) ? content : OpenApiYaml.ToJson(name, content);
+        using var document = JsonSchemaReader.Parse(name, json, "OpenAPI document");
         var spec = document.RootElement;
-        if (spec.ValueKind != JsonValueKind.Object || (JsonSchemaReader.Text(spec, "openapi") is null && JsonSchemaReader.Text(spec, "swagger") is null))
+        if (spec.ValueKind != JsonValueKind.Object || (Version(spec, "openapi") is null && Version(spec, "swagger") is null))
         {
             throw new ProfileException($"'{name}' is not an OpenAPI document (no 'openapi' or 'swagger' version).");
         }
@@ -59,6 +61,14 @@ public static class OpenApiReader
         walker.Root(selected.Schema);
         return builder.Build(ContractDocument.Hash(content), selected.Label);
     }
+
+    internal static bool IsJson(string content) => content.TrimStart('\uFEFF', ' ', '\t', '\r', '\n').FirstOrDefault() == '{';
+
+    /// <summary>The version property as text; YAML's <c>openapi: 3.1</c> reads as a number.</summary>
+    private static string? Version(JsonElement spec, string property) =>
+        spec.TryGetProperty(property, out var value) && value.ValueKind is JsonValueKind.String or JsonValueKind.Number
+            ? value.ToString()
+            : null;
 
     private static string Describe(IEnumerable<(string Route, string? Id, JsonElement Schema)> operations) =>
         string.Join(", ", operations.Select(o => o.Id is null ? o.Route : $"{o.Route} ({o.Id})")) is { Length: > 0 } list ? list : "none";

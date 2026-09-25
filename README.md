@@ -47,7 +47,7 @@ Unknown JSON properties and missing required properties are rejected.
 ## System profiles
 
 A system profile is a normalized description of one system's contract, built from any number of its inputs:
-JSON or XML sample payloads, JSON Schema, OpenAPI (JSON), XSD, WSDL, field specs (CSV or Excel) and PDF or
+JSON or XML sample payloads, JSON Schema, OpenAPI (JSON or YAML), XSD, WSDL, field specs (CSV or Excel) and PDF or
 Word (.docx) specifications. All inputs of one system are merged into one profile.
 
 ### Data dictionaries
@@ -120,7 +120,7 @@ seen in, and the source of each attribute.
 | Input | Recognised by | What is read |
 |---|---|---|
 | JSON Schema | `$schema`, or `type: object` with `properties` | `properties`, `required`, arrays and `maxItems`, `enum`/`const`, `format` (date, date-time), length, range, `multipleOf` (scale), `description`; local `$ref`, `allOf`; `oneOf`/`anyOf` are merged and their fields made optional |
-| OpenAPI 3.x / Swagger 2.0 (JSON) | `openapi` or `swagger` | The JSON request body of one operation, or one named schema, read as JSON Schema |
+| OpenAPI 3.x / Swagger 2.0 (JSON or YAML) | `openapi` or `swagger` | The JSON request body of one operation, or one named schema, read as JSON Schema |
 | XSD | `.xsd`, or an `xs:schema` root | One global element: sequences, `xs:all`, choices (optional), groups, attributes and attribute groups, named and inline types, extensions, `simpleContent` (`/text()`), `minOccurs`/`maxOccurs`, enumerations, length, range and `fractionDigits` facets, `fixed`, annotations |
 | WSDL 1.1 / 2.0 | `.wsdl`, or a WSDL root | The input element of one document/literal operation, read from the XSD in `types` |
 | Field spec | `.csv`, `.xlsx` | One row per field. Only a path column is required (`Path`, `Field Path`, `XPath`, `JSON Path`, `Field`, `Element`). Also recognised: type (`String(20)`, `Decimal(12,2)`, `Date`…), required/mandatory (`Y`, `M`, `C` = conditional…), format (`YYYY-MM-DD`), min/max length, min/max value, scale, allowed values (`CORP = Corporation; LLC = …`), description, sensitive/PII and repeats. `owners[].ssn` and `/uw:Merchant/uw:Name` style paths are normalized |
@@ -139,7 +139,9 @@ seen in, and the source of each attribute.
 - **Provenance**: every attribute records the input kind and file it came from, and `seenIn` lists samples and
   contracts. A field a contract marks sensitive masks the sample values too.
 - XML contracts are read with DTDs rejected and no external resolution; referenced files are not fetched.
-- YAML OpenAPI documents are not read yet; convert them to JSON first.
+- OpenAPI documents may be YAML (`.yaml`/`.yml`). Anchors, aliases and `<<` merge keys are resolved, plain
+  scalars follow the YAML core schema (so `openapi: 3.1` still counts), and errors give the YAML line. One document
+  per file. `samples/systems/sales-alpha/openapi-yaml` has the SalesAlpha OpenAPI document in YAML.
 
 ## Playbooks
 

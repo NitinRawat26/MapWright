@@ -43,7 +43,7 @@ public static class CliApp
           --format <list>   Comma-separated: {string.Join(",", MappingRenderers.All.Select(r => r.Format))} (default: all)
 
         Profile options:
-          <input|dir>       JSON or XML sample payloads, JSON Schema, OpenAPI (JSON), XSD, WSDL, field specs or
+          <input|dir>       JSON or XML sample payloads, JSON Schema, OpenAPI (JSON or YAML), XSD, WSDL, field specs or
                             data dictionaries (.csv, .xlsx) and PDF/Word (.pdf, .docx) specs with field tables; directories
                             contribute all of these
           --root <name>     XSD root element, WSDL operation, or OpenAPI operationId, "METHOD /path" or schema
