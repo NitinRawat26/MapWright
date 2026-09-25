@@ -163,6 +163,13 @@ public sealed partial class MapWrightDatabase : IDisposable
             CREATE INDEX IF NOT EXISTS ix_ai_suggestions_status ON ai_suggestions(status);
             """;
         command.ExecuteNonQuery();
+
+        command.CommandText = "SELECT COUNT(*) FROM pragma_table_info('playbook_versions') WHERE name = 'yaml'";
+        if ((long)command.ExecuteScalar()! == 0)
+        {
+            command.CommandText = "ALTER TABLE playbook_versions ADD COLUMN yaml TEXT";
+            command.ExecuteNonQuery();
+        }
     }
 
     [GeneratedRegex("[^a-z0-9._-]+")]

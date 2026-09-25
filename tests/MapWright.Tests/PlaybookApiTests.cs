@@ -113,4 +113,45 @@ public sealed class PlaybookApiTests : IDisposable
         Assert.False(tests["passed"]!.GetValue<bool>());
         Assert.Single(tests["results"]!.AsArray(), r => !r!["passed"]!.GetValue<bool>());
     }
+
+    [Fact]
+    public async Task Playbooks_are_accepted_and_served_as_yaml_with_their_comments()
+    {
+        var ana = _api.As("ana");
+        var file = File.ReadAllText(Path.Combine(StarterPlaybooks.Directory, "domain", "tax-id.yaml"));
+
+        var byQuery = await ana.GetAsync("/api/playbooks/domain/tax-id/1.0.0?format=yaml");
+        Assert.Equal("application/yaml", byQuery.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(file, await byQuery.Content.ReadAsStringAsync());
+        using var accept = new HttpRequestMessage(HttpMethod.Get, "/api/playbooks/domain/tax-id/1.0.0");
+        accept.Headers.Add("Accept", "application/yaml");
+        Assert.Equal(file, await (await ana.SendAsync(accept)).Content.ReadAsStringAsync());
+        Assert.StartsWith("{", await ana.GetStringAsync("/api/playbooks/domain/tax-id/1.0.0"), StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.BadRequest, (await ana.GetAsync("/api/playbooks/domain/tax-id/1.0.0?format=xml")).StatusCode);
+
+        var yaml = "# Owners, kept separately.\n" + file
+            .Replace("\nid: domain/tax-id\n", "\nid: domain/tax-id-v2\n", StringComparison.Ordinal)
+            .Replace("\nstatus: published\n", "\nstatus: draft\n", StringComparison.Ordinal);
+        var created = await ana.PostAsync("/api/playbooks?format=yaml", new StringContent(yaml, System.Text.Encoding.UTF8, "application/yaml"));
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        Assert.Equal(yaml, await created.Content.ReadAsStringAsync());
+
+        var validate = await (await ana.PostAsync("/api/playbooks/validate", new StringContent(file, System.Text.Encoding.UTF8, "application/yaml"))).Node();
+        Assert.True(validate["valid"]!.GetValue<bool>());
+
+        var edited = yaml.Replace("\nowner: Underwriting BA team\n", "\nowner: Underwriting BA team # changed below\n", StringComparison.Ordinal);
+        var put = await ana.PutAsync("/api/playbooks/domain/tax-id-v2/1.0.0", new StringContent(edited, System.Text.Encoding.UTF8, "application/yaml"));
+        Assert.Equal(HttpStatusCode.OK, put.StatusCode);
+        Assert.StartsWith("{", await put.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+
+        var abandoned = await ana.Post("/api/playbooks/domain/tax-id-v2/1.0.0/status?format=yaml", new { status = "retired" });
+        Assert.Equal(HttpStatusCode.OK, abandoned.StatusCode);
+        var text = await abandoned.Content.ReadAsStringAsync();
+        Assert.Contains("# changed below", text, StringComparison.Ordinal);
+        Assert.Contains("\nstatus: retired\n", text, StringComparison.Ordinal);
+
+        var malformed = await ana.PostAsync("/api/playbooks", new StringContent("id: [x", System.Text.Encoding.UTF8, "application/yaml"));
+        Assert.Equal(HttpStatusCode.BadRequest, malformed.StatusCode);
+        Assert.StartsWith("Invalid YAML at line", (await malformed.Node())["detail"].Text());
+    }
 }

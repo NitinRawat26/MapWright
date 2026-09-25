@@ -76,6 +76,6 @@ static void SeedPlaybooks(WebApplication app)
         return;
     }
 
-    var imported = store.Import(PlaybookLibrary.Load([directory]).All, "seed");
+    var imported = store.Import(PlaybookLibrary.Read([directory]), "seed");
     app.Logger.LogInformation("Imported {Count} playbook(s) from {Directory}.", imported.Count, directory);
 }

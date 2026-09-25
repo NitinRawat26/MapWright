@@ -86,6 +86,9 @@ public sealed class AiApiTests
         var term = Assert.Single(draft.Domain!.Vocabulary, v => v.Term == "legal name");
         Assert.Null(term.AppliesTo);
         Assert.Contains("approved by ben", term.Note);
+        var draftYaml = await ben.GetStringAsync($"/api/playbooks/{playbook}/1.1.0?format=yaml");
+        Assert.StartsWith("# Domain playbook:", draftYaml, StringComparison.Ordinal);
+        Assert.Contains("- term: legal name\n", draftYaml, StringComparison.Ordinal);
         Assert.Equal(PlaybookStatus.Published, PlaybookSerializer.Deserialize(await ben.GetStringAsync($"/api/playbooks/{playbook}/1.0.0")).Status);
 
         Assert.Equal(HttpStatusCode.Conflict, (await ben.Post($"/api/suggestions/{ids[0]}/reject", new { })).StatusCode);
