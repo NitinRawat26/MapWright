@@ -235,8 +235,7 @@ public sealed class PlaybookStore(MapWrightDatabase database)
         var next = current with { Status = to };
         if (to is PlaybookStatus.InReview or PlaybookStatus.Published)
         {
-            var others = AllPlaybooks(connection, transaction).Where(p => p.Reference != current.Reference && p.Status == PlaybookStatus.Published && p.Id != id);
-            var issues = PlaybookValidator.Validate([.. others, next]);
+            var issues = Validate(connection, transaction, next);
             var failed = PlaybookTestRunner.Run(next).Where(r => !r.Passed)
                 .Select(r => new SpecIssue(IssueSeverity.Error, "PBTEST", $"{r.Kind} {r.Id}", r.Message ?? "Test failed."));
             RequireValid([.. issues, .. failed], current.Reference);
@@ -262,6 +261,20 @@ public sealed class PlaybookStore(MapWrightDatabase database)
         Log(connection, transaction, id, version, actor, action, fromStatus, to, note);
         transaction.Commit();
         return next;
+    }
+
+    /// <summary>Validates the playbook on its own and against the published versions of the other playbooks.</summary>
+    public IReadOnlyList<SpecIssue> Validate(Playbook playbook)
+    {
+        using var connection = database.Open();
+        using var transaction = connection.BeginTransaction();
+        return Validate(connection, transaction, playbook);
+    }
+
+    private static IReadOnlyList<SpecIssue> Validate(SqliteConnection connection, SqliteTransaction transaction, Playbook playbook)
+    {
+        var others = AllPlaybooks(connection, transaction).Where(p => p.Status == PlaybookStatus.Published && p.Id != playbook.Id);
+        return PlaybookValidator.Validate([.. others, playbook]);
     }
 
     private static void RequireValid(IReadOnlyList<SpecIssue> issues, string what)

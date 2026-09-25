@@ -279,6 +279,53 @@ and plain XML applications) hold synthetic sample payloads and the profiles gene
 `contracts/` folders hold matching synthetic contracts: a JSON Schema, an OpenAPI document and a CSV field
 spec for SalesAlpha, and an XSD and WSDL for UW Core.
 
+## API
+
+`src/MapWright.Api` is an ASP.NET Core API over the same engine and the SQLite store. Run it with:
+
+```bash
+dotnet run --project src/MapWright.Api --urls http://localhost:5080
+# Swagger UI: http://localhost:5080/swagger
+```
+
+Settings (`appsettings.json`, or environment variables such as `MapWright__DatabasePath`):
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `MapWright:DatabasePath` | `data/mapwright.db` | SQLite file (`:memory:` for a throw-away store) |
+| `MapWright:SeedPlaybooks` | `playbooks` | Imported when the store has no playbooks (relative to the app folder) |
+| `MapWright:RequireIndependentReview` | `true` | The submitter of a version cannot publish it |
+
+Writes need an `X-MapWright-User` header; the name is recorded in the audit trail. Errors come back as
+`{ title, status, detail, issues }` with 400 (invalid), 404 (not found) or 409 (conflict, e.g. editing a
+published version).
+
+### Playbooks
+
+Playbooks are addressed as `/api/playbooks/{kind}/{slug}/{version}`, e.g. `/api/playbooks/domain/tax-id/1.0.0`.
+Bodies and responses use the playbook file format.
+
+| Method and path | Does |
+|---|---|
+| `GET /api/playbooks?status=` | List versions (`draft`, `inReview`, `published`, `retired`) |
+| `POST /api/playbooks` | Create a draft |
+| `POST /api/playbooks/validate`, `POST /api/playbooks/test` | Validate or test an unsaved playbook |
+| `GET /api/playbooks/{kind}/{slug}` | Versions of one playbook |
+| `GET /api/playbooks/{kind}/{slug}/history` | Audit trail |
+| `GET` / `PUT /api/playbooks/{kind}/{slug}/{version}` | Get a version; replace a draft |
+| `POST .../{version}/versions` | Draft a new version: `{ "version": "1.1.0", "note": "…" }` (both optional) |
+| `POST .../{version}/status` | Change status: `{ "status": "inReview", "note": "…" }` |
+| `GET .../{version}/validate`, `GET .../{version}/test` | Validate or test a stored version |
+
+```bash
+curl -X POST localhost:5080/api/playbooks/domain/tax-id/1.0.0/versions -H 'X-MapWright-User: ana' \
+  -H 'Content-Type: application/json' -d '{"note":"Add TIN as a term"}'
+curl -X POST localhost:5080/api/playbooks/domain/tax-id/1.1.0/status -H 'X-MapWright-User: ana' \
+  -H 'Content-Type: application/json' -d '{"status":"inReview"}'
+curl -X POST localhost:5080/api/playbooks/domain/tax-id/1.1.0/status -H 'X-MapWright-User: ben' \
+  -H 'Content-Type: application/json' -d '{"status":"published"}'
+```
+
 ## Build and test
 
 Requires the .NET 10 SDK.
@@ -297,8 +344,9 @@ src/MapWright.Core     Mapping spec model, system profiles, sample and contract 
 src/MapWright.Output   Report model, Excel / CSV / HTML renderers and the Excel field-spec reader
 src/MapWright.Ai       Optional AI assist: Vertex AI and Ollama providers, fallback, masked field prompts
 src/MapWright.Cli      `mapwright` command-line tool
+src/MapWright.Api      ASP.NET Core API (Swagger at /swagger) over the engine and the store
 src/MapWright.Store    SQLite store: playbook versions and lifecycle, profiles, mappings, review decisions
-tests/MapWright.Tests  Unit tests
+tests/MapWright.Tests  Unit and API tests
 samples/mappings       Example mapping specs
 samples/systems        Example sample payloads, contracts and generated system profiles
 playbooks              Starter domain and process playbooks
