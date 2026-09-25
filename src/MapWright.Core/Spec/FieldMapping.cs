@@ -56,6 +56,23 @@ public sealed record Transformation
     public string? Condition { get; init; }
     public string? DefaultValue { get; init; }
     public IReadOnlyList<ValueMapEntry> ValueMap { get; init; } = [];
+    /// <summary>Executable form of a condition over several source fields: the first case whose clauses all hold gives the value, else <see cref="DefaultValue"/>.</summary>
+    public IReadOnlyList<ConditionalCase>? Cases { get; init; }
+}
+
+public sealed record ConditionalCase
+{
+    /// <summary>All clauses must hold.</summary>
+    public required IReadOnlyList<ConditionalClause> When { get; init; }
+    public required string Then { get; init; }
+}
+
+public sealed record ConditionalClause
+{
+    /// <summary>One of the row's source paths.</summary>
+    public required string Source { get; init; }
+    /// <summary>Source values for which the clause holds.</summary>
+    public required IReadOnlyList<string> In { get; init; }
 }
 
 public sealed record ValueMapEntry

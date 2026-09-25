@@ -257,6 +257,7 @@ export interface FieldMapping {
     condition?: string;
     defaultValue?: string;
     valueMap?: { sourceValue: string; targetValue: string; notes?: string }[];
+    cases?: { when: { source: string; in: string[] }[]; then: string }[];
   };
   confidencePercent: number;
   reasoning: string;

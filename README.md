@@ -287,7 +287,12 @@ real data before anyone builds the integration.
 1. **Transform:** each row reads its source paths (list items stay aligned, e.g. `owners[1].firstName` with
    `owners[1].lastName`) and runs its transformation: copies, type casts (`999-99-9999` → `999999999`, date
    formats, decimals rounded to the target's scale), value maps, conditions, concatenation and expressions such
-   as `annual / 12` with the source fields recorded in the row's `transformation.inputs`.
+   as `annual / 12` with the source fields recorded in the row's `transformation.inputs`. A condition over
+   several fields runs from the row's `transformation.cases`: the first case whose clauses all hold gives the
+   value, otherwise `defaultValue`, e.g.
+   `{"when": [{"source": "$.account.entityType", "in": ["SOLE_PROP"]}, {"source": "$.account.country", "in": ["US"]}], "then": "SSN"}`.
+   Values match exactly or, after trimming, ignoring case. The mapping generator writes `cases` for playbook
+   conditional rules whose cases name more than one concept, using the source's own spellings of the codes.
 2. **Write:** values are written as target JSON or XML in the target profile's field order, with nested objects,
    JSON arrays, repeated XML elements and XML attributes. `--xml-namespace` sets the XML namespace.
 3. **Check:** every row gets a result: pass, fail (transformation error, required target field with no value,
