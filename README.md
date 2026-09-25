@@ -499,7 +499,8 @@ need review. If the provider fails, the API returns 502 and saves nothing.
 Approving never publishes anything. It opens a draft (the next minor version, or the open draft if there is
 one) and the draft goes through test, review and publish as usual. `concept` defaults to the AI's answer; it is
 needed when the AI proposed a concept no playbook defines, or when two playbooks share the concept. A term that
-is already in the playbook, or a playbook that is in review, returns 409.
+is already in the playbook, or a playbook that is in review, returns 409. The draft change and the decision are
+saved in one database transaction: if either fails, neither is stored and the suggestion stays pending.
 
 ## Deployment
 

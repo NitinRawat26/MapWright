@@ -85,17 +85,23 @@ public sealed class PlaybookStore(MapWrightDatabase database)
     public PlaybookLibrary Library()
     {
         using var connection = database.Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = "SELECT json FROM playbook_versions ORDER BY id, version";
-        var playbooks = new List<Playbook>();
-        using var reader = command.ExecuteReader();
-        while (reader.Read())
-        {
-            playbooks.Add(PlaybookSerializer.Deserialize(reader.GetString(0)));
-        }
-
-        return new(playbooks);
+        return Library(connection, null);
     }
+
+    internal static PlaybookLibrary Library(SqliteConnection connection, SqliteTransaction? transaction) => new(AllPlaybooks(connection, transaction));
+
+    /// <summary>Versions of one playbook, none when it does not exist.</summary>
+    internal static List<PlaybookSummary> Versions(SqliteConnection connection, SqliteTransaction transaction, string id)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = $"SELECT {SummaryColumns} FROM playbook_versions WHERE id = $id";
+        command.Parameters.AddWithValue("$id", id);
+        return Order(ReadSummaries(command));
+    }
+
+    internal static Playbook Get(SqliteConnection connection, SqliteTransaction transaction, string id, string version) =>
+        Find(connection, transaction, id, version) ?? throw StoreException.NotFound($"Playbook '{id}@{version}'");
 
     public IReadOnlyList<PlaybookEvent> History(string id)
     {
@@ -148,14 +154,22 @@ public sealed class PlaybookStore(MapWrightDatabase database)
     /// <param name="yaml">The YAML the playbook was read from, if any; kept so its comments are served back.</param>
     public Playbook Create(Playbook playbook, string actor, string? yaml = null)
     {
+        using var connection = database.Open();
+        using var transaction = connection.BeginTransaction();
+        var created = Create(connection, transaction, playbook, actor, yaml);
+        transaction.Commit();
+        return created;
+    }
+
+    /// <summary>As <see cref="Create(Playbook, string, string?)"/>, inside the caller's transaction.</summary>
+    internal Playbook Create(SqliteConnection connection, SqliteTransaction transaction, Playbook playbook, string actor, string? yaml = null)
+    {
         if (playbook.Status != PlaybookStatus.Draft)
         {
             throw new StoreException(StoreError.Invalid, "A new playbook starts as a draft.");
         }
 
         RequireValid(PlaybookValidator.Validate(playbook), playbook.Reference);
-        using var connection = database.Open();
-        using var transaction = connection.BeginTransaction();
         if (Find(connection, transaction, playbook.Id, playbook.Version) is not null)
         {
             throw new StoreException(StoreError.Conflict, $"Playbook '{playbook.Reference}' already exists.");
@@ -164,7 +178,6 @@ public sealed class PlaybookStore(MapWrightDatabase database)
         RequireNoOpenVersion(connection, transaction, playbook.Id);
         Insert(connection, transaction, playbook, yaml, actor);
         Log(connection, transaction, playbook.Id, playbook.Version, actor, "created", null, PlaybookStatus.Draft, null);
-        transaction.Commit();
         return playbook;
     }
 
@@ -174,6 +187,17 @@ public sealed class PlaybookStore(MapWrightDatabase database)
     /// </param>
     public Playbook UpdateDraft(string id, string version, Playbook playbook, string actor, string? yaml = null)
     {
+        using var connection = database.Open();
+        using var transaction = connection.BeginTransaction();
+        var updated = UpdateDraft(connection, transaction, id, version, playbook, actor, yaml);
+        transaction.Commit();
+        return updated;
+    }
+
+    /// <summary>As <see cref="UpdateDraft(string, string, Playbook, string, string?)"/>, inside the caller's transaction.</summary>
+    internal Playbook UpdateDraft(
+        SqliteConnection connection, SqliteTransaction transaction, string id, string version, Playbook playbook, string actor, string? yaml = null)
+    {
         if (playbook.Id != id || playbook.Version != version)
         {
             throw new StoreException(StoreError.Invalid, $"The body is '{playbook.Reference}' but the address is '{id}@{version}'.");
@@ -181,8 +205,6 @@ public sealed class PlaybookStore(MapWrightDatabase database)
 
         var updated = playbook with { Status = PlaybookStatus.Draft };
         RequireValid(PlaybookValidator.Validate(updated), updated.Reference);
-        using var connection = database.Open();
-        using var transaction = connection.BeginTransaction();
         var (current, currentYaml) = FindWithYaml(connection, transaction, id, version) ?? throw StoreException.NotFound($"Playbook '{id}@{version}'");
         if (current.Status != PlaybookStatus.Draft)
         {
@@ -192,7 +214,6 @@ public sealed class PlaybookStore(MapWrightDatabase database)
         var source = yaml is null ? PlaybookYaml.Update(currentYaml, current, updated) : PlaybookYaml.Update(yaml, playbook, updated);
         Update(connection, transaction, updated, source, actor);
         Log(connection, transaction, id, version, actor, "edited", PlaybookStatus.Draft, PlaybookStatus.Draft, null);
-        transaction.Commit();
         return updated;
     }
 
@@ -201,6 +222,15 @@ public sealed class PlaybookStore(MapWrightDatabase database)
     {
         using var connection = database.Open();
         using var transaction = connection.BeginTransaction();
+        var draft = DraftNewVersion(connection, transaction, id, fromVersion, newVersion, actor, note);
+        transaction.Commit();
+        return draft;
+    }
+
+    /// <summary>As <see cref="DraftNewVersion(string, string, string?, string, string?)"/>, inside the caller's transaction.</summary>
+    internal Playbook DraftNewVersion(
+        SqliteConnection connection, SqliteTransaction transaction, string id, string fromVersion, string? newVersion, string actor, string? note)
+    {
         var (source, sourceYaml) = FindWithYaml(connection, transaction, id, fromVersion) ?? throw StoreException.NotFound($"Playbook '{id}@{fromVersion}'");
         var version = newVersion ?? NextMinor(source.Version);
         while (newVersion is null && Find(connection, transaction, id, version) is not null)
@@ -234,7 +264,6 @@ public sealed class PlaybookStore(MapWrightDatabase database)
         RequireValid(PlaybookValidator.Validate(draft), draft.Reference);
         Insert(connection, transaction, draft, PlaybookYaml.Update(sourceYaml, source, draft), actor);
         Log(connection, transaction, id, version, actor, "drafted", null, PlaybookStatus.Draft, $"From {source.Version}. {note}".Trim());
-        transaction.Commit();
         return draft;
     }
 
@@ -399,11 +428,11 @@ public sealed class PlaybookStore(MapWrightDatabase database)
         return reader.Read() ? (PlaybookSerializer.Deserialize(reader.GetString(0)), reader.IsDBNull(1) ? null : reader.GetString(1)) : null;
     }
 
-    private static List<Playbook> AllPlaybooks(SqliteConnection connection, SqliteTransaction transaction)
+    private static List<Playbook> AllPlaybooks(SqliteConnection connection, SqliteTransaction? transaction)
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = "SELECT json FROM playbook_versions";
+        command.CommandText = "SELECT json FROM playbook_versions ORDER BY id, version";
         var playbooks = new List<Playbook>();
         using var reader = command.ExecuteReader();
         while (reader.Read())

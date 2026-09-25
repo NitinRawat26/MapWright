@@ -46,6 +46,7 @@ public sealed record Suggestion(
 /// <summary>
 /// The AI suggestions inbox. Approving a suggestion adds the field's name as a vocabulary term to a draft of the
 /// domain playbook that defines the concept; the draft still goes through review and publishing like any other edit.
+/// The draft change and the decision are saved in one transaction, so either both are stored or neither is.
 /// </summary>
 public sealed partial class SuggestionStore(MapWrightDatabase database, PlaybookStore playbooks)
 {
@@ -103,14 +104,17 @@ public sealed partial class SuggestionStore(MapWrightDatabase database, Playbook
     public Suggestion Get(long id)
     {
         using var connection = database.Open();
-        return Find(connection, id) ?? throw StoreException.NotFound($"Suggestion {id}");
+        return Find(connection, null, id) ?? throw StoreException.NotFound($"Suggestion {id}");
     }
 
     public Suggestion Reject(long id, string reviewer, string? comment)
     {
-        RequirePending(Get(id));
-        Decide(id, SuggestionStatus.Rejected, reviewer, comment, null);
-        return Get(id);
+        using var connection = database.Open();
+        using var transaction = connection.BeginTransaction();
+        RequirePending(Find(connection, transaction, id) ?? throw StoreException.NotFound($"Suggestion {id}"));
+        Decide(connection, transaction, id, SuggestionStatus.Rejected, reviewer, comment, null);
+        transaction.Commit();
+        return Find(connection, null, id)!;
     }
 
     /// <param name="concept">
@@ -123,7 +127,9 @@ public sealed partial class SuggestionStore(MapWrightDatabase database, Playbook
     /// </param>
     public (Suggestion Suggestion, Playbook Draft, bool Created) Approve(long id, string reviewer, string? concept, string? comment, bool create = false)
     {
-        var suggestion = Get(id);
+        using var connection = database.Open();
+        using var transaction = connection.BeginTransaction();
+        var suggestion = Find(connection, transaction, id) ?? throw StoreException.NotFound($"Suggestion {id}");
         RequirePending(suggestion);
         var content = suggestion.Content;
         var chosen = !string.IsNullOrWhiteSpace(concept) ? concept.Trim()
@@ -143,7 +149,7 @@ public sealed partial class SuggestionStore(MapWrightDatabase database, Playbook
             throw new StoreException(StoreError.Invalid, $"The field name '{content.FieldName}' has no letters or digits to use as a term.");
         }
 
-        var candidates = playbooks.Library().Domains.Where(p => Same(p.Domain!.Concept.Name, parts[0])).ToList();
+        var candidates = PlaybookStore.Library(connection, transaction).Domains.Where(p => Same(p.Domain!.Concept.Name, parts[0])).ToList();
         if (candidates.Count == 0)
         {
             if (!create)
@@ -151,9 +157,9 @@ public sealed partial class SuggestionStore(MapWrightDatabase database, Playbook
                 throw new StoreException(StoreError.Invalid, $"No published domain playbook defines the concept '{parts[0]}'; send create: true to draft a new playbook for it.");
             }
 
-            var (created, isNew) = DraftConcept(suggestion, Pascal(parts[0]), Pascal(parts.Length == 2 ? parts[1] : content.FieldName), term, reviewer);
-            Decide(id, SuggestionStatus.Approved, reviewer, comment, created.Reference);
-            return (Get(id), created, isNew);
+            var (created, isNew) = DraftConcept(
+                connection, transaction, suggestion, Pascal(parts[0]), Pascal(parts.Length == 2 ? parts[1] : content.FieldName), term, reviewer);
+            return Approved(connection, transaction, id, reviewer, comment, created, isNew);
         }
 
         if (parts.Length == 2)
@@ -173,10 +179,10 @@ public sealed partial class SuggestionStore(MapWrightDatabase database, Playbook
                         $"'{parts[0]}' is defined by {string.Join(" and ", candidates.Select(p => p.Id))}; add the attribute '{parts[1]}' to one of them by hand.");
                 }
 
-                var open = OpenDraft(candidates[0], reviewer, id);
-                var extended = playbooks.UpdateDraft(open.Id, open.Version, WithAttribute(open, Pascal(parts[1]), term, suggestion, reviewer), reviewer);
-                Decide(id, SuggestionStatus.Approved, reviewer, comment, extended.Reference);
-                return (Get(id), extended, false);
+                var open = OpenDraft(connection, transaction, candidates[0], reviewer, id);
+                var extended = playbooks.UpdateDraft(
+                    connection, transaction, open.Id, open.Version, WithAttribute(open, Pascal(parts[1]), term, suggestion, reviewer), reviewer);
+                return Approved(connection, transaction, id, reviewer, comment, extended, false);
             }
 
             candidates = owners;
@@ -198,7 +204,7 @@ public sealed partial class SuggestionStore(MapWrightDatabase database, Playbook
                 $"'{term}' is already a term in '{published.Reference}'{(existing?.AppliesTo is { } at ? $" for {at}" : "")}; reject this suggestion instead.");
         }
 
-        var draft = OpenDraft(published, reviewer, id);
+        var draft = OpenDraft(connection, transaction, published, reviewer, id);
         var domain = draft.Domain!;
         var edited = draft with
         {
@@ -211,9 +217,16 @@ public sealed partial class SuggestionStore(MapWrightDatabase database, Playbook
                 ],
             },
         };
-        var saved = playbooks.UpdateDraft(edited.Id, edited.Version, edited, reviewer);
-        Decide(id, SuggestionStatus.Approved, reviewer, comment, saved.Reference);
-        return (Get(id), saved, false);
+        var saved = playbooks.UpdateDraft(connection, transaction, edited.Id, edited.Version, edited, reviewer);
+        return Approved(connection, transaction, id, reviewer, comment, saved, false);
+    }
+
+    private (Suggestion Suggestion, Playbook Draft, bool Created) Approved(
+        SqliteConnection connection, SqliteTransaction transaction, long id, string reviewer, string? comment, Playbook draft, bool created)
+    {
+        Decide(connection, transaction, id, SuggestionStatus.Approved, reviewer, comment, draft.Reference);
+        transaction.Commit();
+        return (Find(connection, null, id)!, draft, created);
     }
 
     private static VocabularyTerm Term(string term, string? attribute, Suggestion suggestion, string reviewer) => new()
@@ -246,10 +259,11 @@ public sealed partial class SuggestionStore(MapWrightDatabase database, Playbook
     }
 
     /// <summary>A new draft domain playbook "domain/&lt;concept&gt;" at 0.1.0, or its open draft when an earlier approval started one.</summary>
-    private (Playbook Draft, bool Created) DraftConcept(Suggestion suggestion, string concept, string attribute, string term, string reviewer)
+    private (Playbook Draft, bool Created) DraftConcept(
+        SqliteConnection connection, SqliteTransaction transaction, Suggestion suggestion, string concept, string attribute, string term, string reviewer)
     {
         var id = "domain/" + Slug(concept);
-        var versions = playbooks.List().Where(v => v.Id == id).ToList();
+        var versions = PlaybookStore.Versions(connection, transaction, id);
         var open = versions.FirstOrDefault(v => v.Status is PlaybookStatus.Draft or PlaybookStatus.InReview);
         if (open?.Status == PlaybookStatus.InReview)
         {
@@ -258,13 +272,13 @@ public sealed partial class SuggestionStore(MapWrightDatabase database, Playbook
 
         if (open is not null)
         {
-            var draft = playbooks.Get(id, open.Version);
+            var draft = PlaybookStore.Get(connection, transaction, id, open.Version);
             if (draft.Domain is null || !Same(draft.Domain.Concept.Name, concept))
             {
                 throw new StoreException(StoreError.Conflict, $"'{draft.Reference}' is not about {concept}; add the concept to a playbook by hand.");
             }
 
-            return (playbooks.UpdateDraft(id, open.Version, WithAttribute(draft, attribute, term, suggestion, reviewer), reviewer), false);
+            return (playbooks.UpdateDraft(connection, transaction, id, open.Version, WithAttribute(draft, attribute, term, suggestion, reviewer), reviewer), false);
         }
 
         if (versions.Count > 0)
@@ -290,7 +304,7 @@ public sealed partial class SuggestionStore(MapWrightDatabase database, Playbook
                 Concept = new() { Name = concept, Attributes = [] },
             },
         };
-        return (playbooks.Create(WithAttribute(playbook, attribute, term, suggestion, reviewer), reviewer), true);
+        return (playbooks.Create(connection, transaction, WithAttribute(playbook, attribute, term, suggestion, reviewer), reviewer), true);
     }
 
     /// <summary>"merchant.sales_rep" → "Merchant", "SalesRep"; names already in PascalCase are kept.</summary>
@@ -313,12 +327,12 @@ public sealed partial class SuggestionStore(MapWrightDatabase database, Playbook
     [GeneratedRegex("(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")]
     private static partial Regex WordStart();
 
-    private Playbook OpenDraft(Playbook published, string reviewer, long suggestion)
+    private Playbook OpenDraft(SqliteConnection connection, SqliteTransaction transaction, Playbook published, string reviewer, long suggestion)
     {
-        var open = playbooks.Versions(published.Id).FirstOrDefault(v => v.Status is PlaybookStatus.Draft or PlaybookStatus.InReview);
+        var open = PlaybookStore.Versions(connection, transaction, published.Id).FirstOrDefault(v => v.Status is PlaybookStatus.Draft or PlaybookStatus.InReview);
         if (open is null)
         {
-            return playbooks.DraftNewVersion(published.Id, published.Version, null, reviewer, $"Approved AI suggestion {suggestion}.");
+            return playbooks.DraftNewVersion(connection, transaction, published.Id, published.Version, null, reviewer, $"Approved AI suggestion {suggestion}.");
         }
 
         if (open.Status == PlaybookStatus.InReview)
@@ -328,7 +342,7 @@ public sealed partial class SuggestionStore(MapWrightDatabase database, Playbook
                 $"'{published.Id}@{open.Version}' is in review; finish that review before approving more suggestions for it.");
         }
 
-        return playbooks.Get(published.Id, open.Version);
+        return PlaybookStore.Get(connection, transaction, published.Id, open.Version);
     }
 
     private static void RequirePending(Suggestion suggestion)
@@ -339,10 +353,10 @@ public sealed partial class SuggestionStore(MapWrightDatabase database, Playbook
         }
     }
 
-    private void Decide(long id, SuggestionStatus status, string reviewer, string? comment, string? playbook)
+    private void Decide(SqliteConnection connection, SqliteTransaction transaction, long id, SuggestionStatus status, string reviewer, string? comment, string? playbook)
     {
-        using var connection = database.Open();
         using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = """
             UPDATE ai_suggestions SET status = $status, decided_by = $reviewer, decided_at = $now, comment = $comment, playbook_ref = $playbook
             WHERE seq = $id AND status = 'Pending'
@@ -359,9 +373,10 @@ public sealed partial class SuggestionStore(MapWrightDatabase database, Playbook
         }
     }
 
-    private static Suggestion? Find(SqliteConnection connection, long id)
+    private static Suggestion? Find(SqliteConnection connection, SqliteTransaction? transaction, long id)
     {
         using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = $"SELECT {Columns} FROM ai_suggestions WHERE seq = $id";
         command.Parameters.AddWithValue("$id", id);
         using var reader = command.ExecuteReader();
