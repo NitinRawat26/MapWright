@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using MapWright.Ai;
 using MapWright.Cli;
+using MapWright.Core.Matching;
 using MapWright.Core.Profile;
 using MapWright.Core.Spec;
 
@@ -412,5 +413,182 @@ public sealed class DetectAiCliTests
     public void Invalid_ai_mode_is_a_usage_error()
     {
         Assert.Equal(CliApp.UsageError, Detect("", null, "--ai", "maybe"));
+    }
+}
+
+public sealed class AiMappingTests
+{
+    private static readonly SystemProfile Source = AiSamples.SalesAlpha();
+    private static readonly SystemProfile Target = ProfileSerializer.Load(Path.Combine(AppContext.BaseDirectory, "samples", "systems", "uw-core", "profile.json"));
+    private static readonly MappingDocument Playbooks = SampleProfiles.Map(Source, Target);
+
+    private static Task<AiPairingResult> Pair(FakeProvider ai) =>
+        new AiMappingAssistant(ai).PairAsync(Playbooks, Source, Target, StarterPlaybooks.Library().Domains);
+
+    private static FakeProvider Established(int confidence = 90) => new("fake", _ => JsonSerializer.Serialize(new
+    {
+        pairings = new object[]
+        {
+            new { target = "/UnderwritingRequest/Merchant/EstablishedDate", sources = new[] { "$.account.incorporationDate" }, transformation = "direct", confidence, reasoning = "Both are the date the business started.", question = "Is incorporation the same as established?" },
+            new { target = "/UnderwritingRequest/Merchant/WebsiteUrl", sources = Array.Empty<string>(), confidence = 0, reasoning = "No source holds a URL." },
+        },
+    }));
+
+    [Fact]
+    public async Task Only_unmapped_targets_and_masked_sources_are_sent()
+    {
+        var ai = Established();
+
+        await Pair(ai);
+
+        var input = AiSamples.Input(Assert.Single(ai.Prompts));
+        var targets = input["targets"]!.AsArray().Select(t => t!["path"]!.GetValue<string>()).ToList();
+        Assert.Equal(Playbooks.Mappings.Where(m => m.Type == MappingType.Unmapped).Select(m => m.Target.Path), targets);
+        var ssn = input["sources"]!.AsArray().Single(s => s!["path"]!.GetValue<string>() == "$.owners[*].ssn")!;
+        Assert.True(ssn["sensitive"]!.GetValue<bool>());
+        Assert.Null(ssn["values"]);
+        Assert.True(ssn["used"]!.GetValue<bool>());
+        Assert.False(input["sources"]!.AsArray().Single(s => s!["path"]!.GetValue<string>() == "$.account.incorporationDate")!["used"]!.GetValue<bool>());
+        Assert.DoesNotContain("Acme", input.ToJsonString());
+    }
+
+    [Fact]
+    public async Task Suggestions_fill_unmapped_rows_capped_and_needing_review()
+    {
+        var result = await Pair(Established());
+
+        var row = result.Document.Row("/UnderwritingRequest/Merchant/EstablishedDate");
+        Assert.Equal([row.Id], result.Suggested);
+        Assert.Equal(MappingType.OneToOne, row.Type);
+        Assert.Equal("$.account.incorporationDate", Assert.Single(row.Sources).Path);
+        Assert.Equal(TransformationType.Direct, row.Transformation.Type);
+        Assert.Equal(AiFieldAssistant.DefaultMaxConfidence, row.ConfidencePercent);
+        Assert.Equal(ReviewStatus.NeedsReview, row.Review.Status);
+        Assert.Equal("Is incorporation the same as established?", row.Review.OpenQuestion);
+        Assert.Equal(EvidenceKind.AiSuggestion, Assert.Single(row.Evidence).Kind);
+        Assert.StartsWith("AI suggestion (fake/fake-model)", row.Reasoning);
+
+        Assert.Contains("/UnderwritingRequest/Merchant/WebsiteUrl", result.Unresolved);
+        Assert.Equal(MappingType.Unmapped, result.Document.Row("/UnderwritingRequest/Merchant/WebsiteUrl").Type);
+        Assert.DoesNotContain(result.Document.OrphanSourceFields, o => o.Field.Path == "$.account.incorporationDate");
+        Assert.Equal(Playbooks.Mappings.Where(m => m.Type != MappingType.Unmapped), result.Document.Mappings.Where(m => m.Type != MappingType.Unmapped && m.Id != row.Id));
+        Assert.DoesNotContain(MappingSpecValidator.Validate(result.Document), i => i.Severity == IssueSeverity.Error);
+    }
+
+    [Fact]
+    public async Task Answers_for_mapped_or_unknown_fields_are_ignored_with_a_warning()
+    {
+        var ai = new FakeProvider("fake", _ => JsonSerializer.Serialize(new
+        {
+            pairings = new object[]
+            {
+                new { target = "/UnderwritingRequest/Merchant/TaxId/Number", sources = new[] { "$.account.phone" }, confidence = 60, reasoning = "x" },
+                new { target = "/UnderwritingRequest/Merchant/YearsInBusiness", sources = new[] { "$.account.founded" }, confidence = 60, reasoning = "x" },
+                new { target = "/UnderwritingRequest/Merchant/WebsiteUrl", sources = new[] { "$.account.phone", "$.account.leadSource" }, transformation = "bogus", confidence = 20, reasoning = "x" },
+            },
+        }));
+
+        var result = await Pair(ai);
+
+        Assert.Equal(2, result.Warnings.Count);
+        Assert.Equal(Playbooks.Row("/UnderwritingRequest/Merchant/TaxId/Number"), result.Document.Row("/UnderwritingRequest/Merchant/TaxId/Number"));
+        Assert.Equal(MappingType.Unmapped, result.Document.Row("/UnderwritingRequest/Merchant/YearsInBusiness").Type);
+        var many = result.Document.Row("/UnderwritingRequest/Merchant/WebsiteUrl");
+        Assert.Equal(MappingType.ManyToOne, many.Type);
+        Assert.Equal(TransformationType.Rename, many.Transformation.Type);
+    }
+
+    [Fact]
+    public async Task Nothing_is_sent_when_every_target_is_mapped()
+    {
+        var ai = Established();
+        var complete = Playbooks with { Mappings = [.. Playbooks.Mappings.Where(m => m.Type != MappingType.Unmapped)] };
+
+        var result = await new AiMappingAssistant(ai).PairAsync(complete, Source, Target, StarterPlaybooks.Library().Domains);
+
+        Assert.Empty(ai.Prompts);
+        Assert.Same(complete, result.Document);
+    }
+}
+
+public sealed class MapAiCliTests : IDisposable
+{
+    private readonly string _dir = Directory.CreateTempSubdirectory("mapwright-tests-").FullName;
+    private readonly StringWriter _out = new();
+    private readonly StringWriter _err = new();
+
+    public void Dispose() => Directory.Delete(_dir, recursive: true);
+
+    private static string Profile(string system) => Path.Combine(AppContext.BaseDirectory, "samples", "systems", system, "profile.json");
+
+    private string OutPath => Path.Combine(_dir, "mapping.json");
+
+    private int Map(string stdin, IAiProvider? ai, params string[] extra) =>
+        CliApp.Run(["map", Profile("sales-alpha"), Profile("uw-core"), "--playbooks", StarterPlaybooks.Directory, "--out", OutPath, .. extra], new StringReader(stdin), _out, _err, ai);
+
+    private static FakeProvider Established() => new("fake", _ => JsonSerializer.Serialize(new
+    {
+        pairings = new[] { new { target = "/UnderwritingRequest/Merchant/EstablishedDate", sources = new[] { "$.account.incorporationDate" }, confidence = 90, reasoning = "Start date." } },
+    }));
+
+    [Fact]
+    public void Asks_after_the_playbooks_and_pairs_on_yes()
+    {
+        var ai = Established();
+
+        Assert.Equal(CliApp.Success, Map("y\n", ai));
+
+        var output = _out.ToString();
+        Assert.True(output.IndexOf("remaining.", StringComparison.Ordinal) < output.IndexOf("Do you want to use AI to decode the remaining 6 field(s)?", StringComparison.Ordinal));
+        Assert.Contains("AI suggested a source for 1 target field(s) (capped at 70%, all need review); 5 still unmapped.", output);
+        Assert.Contains("/UnderwritingRequest/Merchant/EstablishedDate <- $.account.incorporationDate  Rename 70% NeedsReview", output);
+        Assert.Single(ai.Prompts);
+        Assert.Equal(ReviewStatus.NeedsReview, MappingSpecSerializer.Load(OutPath).Row("/UnderwritingRequest/Merchant/EstablishedDate").Review.Status);
+    }
+
+    [Theory]
+    [InlineData("n\n")]
+    [InlineData("")]
+    public void Anything_but_yes_keeps_the_playbook_mapping(string answer)
+    {
+        var ai = Established();
+
+        Assert.Equal(CliApp.Success, Map(answer, ai));
+
+        Assert.Empty(ai.Prompts);
+        Assert.Contains("Skipped AI; continuing with playbooks only.", _out.ToString());
+        Assert.Equal(MappingType.Unmapped, MappingSpecSerializer.Load(OutPath).Row("/UnderwritingRequest/Merchant/EstablishedDate").Type);
+    }
+
+    [Fact]
+    public void Ai_no_never_calls_and_no_provider_means_playbooks_only()
+    {
+        var ai = Established();
+        Assert.Equal(CliApp.Success, Map("y\n", ai, "--ai", "no"));
+        Assert.Empty(ai.Prompts);
+
+        Assert.Equal(CliApp.Success, Map("", null, "--ai", "yes"));
+        Assert.Contains("No AI provider is configured", _err.ToString());
+    }
+
+    [Fact]
+    public void A_failing_provider_falls_back_to_the_playbook_mapping()
+    {
+        Assert.Equal(CliApp.Success, Map("", FakeProvider.Failing("fake"), "--ai", "yes"));
+
+        Assert.Contains("AI assist failed: fake: down", _err.ToString());
+        Assert.True(File.Exists(OutPath));
+    }
+
+    [Fact]
+    public void Without_out_the_question_goes_to_stderr_and_stdout_stays_json()
+    {
+        var ai = Established();
+
+        Assert.Equal(CliApp.Success, CliApp.Run(["map", Profile("sales-alpha"), Profile("uw-core"), "--playbooks", StarterPlaybooks.Directory], new StringReader("y\n"), _out, _err, ai));
+
+        Assert.Contains("Do you want to use AI", _err.ToString());
+        var document = MappingSpecSerializer.Deserialize(_out.ToString());
+        Assert.Equal("$.account.incorporationDate", Assert.Single(document.Row("/UnderwritingRequest/Merchant/EstablishedDate").Sources).Path);
     }
 }

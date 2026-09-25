@@ -129,6 +129,34 @@ What the AI sees and what it can do:
 
 `--out <report.json>` writes the playbook matches, AI suggestions and still-remaining fields.
 
+## Generating a mapping
+
+`mapwright map <source-profile.json> <target-profile.json>` pairs two system profiles through the playbooks
+and writes a mapping spec with one row per target field. Either side can be JSON or XML.
+
+1. **Concept match:** both fields are recognised as the same business concept with agreeing qualifiers,
+   e.g. `$.account.taxId` → `TaxId/Number` (LegalEntity.TaxId). Differences become a rename, a type cast
+   (`999-99-9999` → `999999999`) or a code value map (`SOLE_PROP` → `SP`).
+2. **Playbook rules:** when no source has the target's concept or qualifiers, a derivation or conditional rule
+   builds it: `annual / 12`, `moto + ecomm`, first + last name → full name, SSN/EIN from the entity type.
+   Rules that lose data (full name → first name, CNP → ecommerce) carry their risk and always need review.
+3. **Name-only fallback:** fields no playbook covers are paired by name (`legalName` ~ `LegalName`,
+   `dbaName` ~ `DoingBusinessAs`), capped at 75% and always reviewed.
+4. **Gaps and leftovers:** target fields with no source are `unmapped` with a suggested resolution; unused
+   source fields are listed as orphans.
+5. **Findings:** rule assumptions, list pairings (owners → Officer: "are all officers owners?"), qualifier
+   conflicts and profile type conflicts on mapped fields.
+
+A row is auto-accepted only at or above the auto-accept threshold (90%) with no review reason and no data
+loss; everything else is `needsReview`. Sensitive sample values stay masked.
+
+If target fields are still unmapped after the playbooks, `map` asks *"Do you want to use AI to decode the
+remaining N field(s)?"* (same `--ai ask|yes|no` and providers as `playbook detect`). On yes, the AI sees the
+unmapped target fields and all source fields as masked metadata (each marked used or unused) and proposes the
+source field(s) and transformation for each target. Its rows are capped at 70%, always `needsReview`, carry
+`aiSuggestion` evidence naming the provider and model, and never replace a playbook row. Without `--out` the
+question goes to stderr so stdout stays pure JSON.
+
 ## Usage
 
 ```bash
@@ -148,12 +176,20 @@ dotnet run --project src/MapWright.Cli -- playbook detect samples/systems/uw-cor
 dotnet run --project src/MapWright.Cli -- playbook detect samples/systems/sales-alpha/profile.json --ai yes --out out/sales-alpha.decode.json
 ```
 
+```bash
+dotnet run --project src/MapWright.Cli -- map samples/systems/sales-alpha/profile.json samples/systems/uw-core/profile.json \
+  --out out/sales-alpha__uw-core.mapping.json
+dotnet run --project src/MapWright.Cli -- render out/sales-alpha__uw-core.mapping.json --out out/
+dotnet run --project src/MapWright.Cli -- map samples/systems/uw-core/profile.json samples/systems/sales-alpha/profile.json
+```
+
 `profile` accepts files and directories (their `*.json` and `*.xml` files). All samples of one system must
 share a format. Without `--out` the profile is printed to stdout.
 
 `samples/mappings/sales-alpha__uw-core/mapping.json` is a synthetic example covering Owners → Officers,
 annual → monthly volume, CNP = MOTO + ECOMM, SSN/EIN tax-id type, enum value maps, gaps, conflicts and a
-validation run. `samples/systems/sales-alpha` (three JSON applications) and `samples/systems/uw-core` (SOAP
+validation run. `generated-mapping.json` next to it is what `mapwright map` produces from the two sample
+profiles. `samples/systems/sales-alpha` (three JSON applications) and `samples/systems/uw-core` (SOAP
 and plain XML applications) hold synthetic sample payloads and the profiles generated from them.
 
 ## Build and test
@@ -169,7 +205,8 @@ dotnet format MapWright.slnx --verify-no-changes
 ## Layout
 
 ```
-src/MapWright.Core     Mapping spec model, system profiles and sample readers, playbook model, validator and matcher
+src/MapWright.Core     Mapping spec model, system profiles and sample readers, playbook model, validator and matcher,
+                       mapping generator
 src/MapWright.Output   Report model and Excel / CSV / HTML renderers
 src/MapWright.Ai       Optional AI assist: Vertex AI and Ollama providers, fallback, masked field prompts
 src/MapWright.Cli      `mapwright` command-line tool

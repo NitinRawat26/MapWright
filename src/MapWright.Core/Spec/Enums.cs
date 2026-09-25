@@ -61,6 +61,8 @@ public enum EvidenceKind
     Playbook,
     PriorMapping,
     Reviewer,
+    NameSimilarity,
+    AiSuggestion,
 }
 
 public enum RiskLevel

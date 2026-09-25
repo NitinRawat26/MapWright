@@ -1,4 +1,5 @@
 using MapWright.Cli;
+using MapWright.Core.Matching;
 using MapWright.Core.Playbooks;
 using MapWright.Core.Profile;
 using MapWright.Core.Spec;
@@ -77,6 +78,10 @@ public sealed class CliAppTests : IDisposable
     [InlineData("playbook", "test", "--bogus")]
     [InlineData("playbook", "detect")]
     [InlineData("playbook", "detect", "p.json", "--bogus")]
+    [InlineData("map")]
+    [InlineData("map", "a.json")]
+    [InlineData("map", "a.json", "b.json", "c.json")]
+    [InlineData("map", "a.json", "b.json", "--bogus")]
     public void Usage_errors(params string[] args)
     {
         Assert.Equal(CliApp.UsageError, Run(args));
@@ -177,5 +182,54 @@ public sealed class CliAppTests : IDisposable
     public void Playbook_detect_reports_a_missing_profile()
     {
         Assert.Equal(CliApp.InvalidInput, Run("playbook", "detect", Path.Combine(_dir, "nope.json"), "--playbooks", StarterPlaybooks.Directory));
+    }
+
+    private static string SystemProfile(string system) => Path.Combine(AppContext.BaseDirectory, "samples", "systems", system, "profile.json");
+
+    [Fact]
+    public void Map_writes_a_valid_mapping_spec_and_a_summary()
+    {
+        var path = Path.Combine(_dir, "out", "mapping.json");
+
+        Assert.Equal(CliApp.Success, Run("map", SystemProfile("sales-alpha"), SystemProfile("uw-core"), "--playbooks", StarterPlaybooks.Directory, "--out", path, "--id", "sa-uw", "--title", "SA to UW"));
+
+        var document = MappingSpecSerializer.Load(path);
+        Assert.Equal("sa-uw", document.Id);
+        Assert.Equal("SA to UW", document.Title);
+        Assert.DoesNotContain(MappingSpecValidator.Validate(document), i => i.Severity == IssueSeverity.Error);
+        Assert.Contains($"Wrote {path}: 17 of 23 target field(s) mapped", _out.ToString());
+        Assert.Contains("M017 /UnderwritingRequest/Processing/MonthlyVolume <- $.processing.annualCardVolume  PeriodConversion 95% AutoAccepted", _out.ToString());
+        Assert.Equal(CliApp.Success, Run("render", path, "--out", _dir, "--format", "csv"));
+    }
+
+    [Fact]
+    public void Map_without_out_prints_the_spec()
+    {
+        Assert.Equal(CliApp.Success, Run("map", SystemProfile("uw-core"), SystemProfile("sales-alpha"), "--playbooks", StarterPlaybooks.Directory));
+
+        var document = MappingSpecSerializer.Deserialize(_out.ToString());
+        Assert.Equal("UW Core", document.Source.Name);
+        Assert.Equal("SalesAlpha CRM", document.Target.Name);
+    }
+
+    [Fact]
+    public void Map_reports_a_missing_profile()
+    {
+        Assert.Equal(CliApp.InvalidInput, Run("map", Path.Combine(_dir, "nope.json"), SystemProfile("uw-core"), "--playbooks", StarterPlaybooks.Directory));
+    }
+
+    [Fact]
+    public void Generated_sample_mapping_is_up_to_date()
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "samples", "mappings", "sales-alpha__uw-core", "generated-mapping.json");
+        var sample = MappingSpecSerializer.Load(path);
+
+        var regenerated = MappingGenerator.Generate(
+            ProfileSerializer.Load(SystemProfile("sales-alpha")),
+            ProfileSerializer.Load(SystemProfile("uw-core")),
+            StarterPlaybooks.Library(),
+            new() { CreatedAt = sample.CreatedAt });
+
+        Assert.Equal(MappingSpecSerializer.Serialize(sample), MappingSpecSerializer.Serialize(regenerated));
     }
 }
