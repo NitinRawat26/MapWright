@@ -57,24 +57,14 @@ public static partial class Display
         mapping.Evidence.FirstOrDefault(e => e.Kind == EvidenceKind.AiSuggestion);
 
     /// <summary>What produced the row: "AI (provider/model)", "Playbook", "Name match" or "Reviewer"; empty for unmapped rows.</summary>
-    public static string Origin(FieldMapping mapping)
+    public static string Origin(FieldMapping mapping) => MappingSummary.OriginOf(mapping) switch
     {
-        if (mapping.Type == MappingType.Unmapped)
-        {
-            return "";
-        }
-
-        if (AiEvidence(mapping) is { } ai)
-        {
-            return $"AI ({ai.Reference})";
-        }
-
-        bool Has(EvidenceKind kind) => mapping.Evidence.Any(e => e.Kind == kind);
-        return Has(EvidenceKind.Playbook) ? "Playbook"
-            : Has(EvidenceKind.NameSimilarity) ? "Name match"
-            : Has(EvidenceKind.Reviewer) ? "Reviewer"
-            : "";
-    }
+        MappingOrigin.Ai => $"AI ({AiEvidence(mapping)!.Reference})",
+        MappingOrigin.Playbook => "Playbook",
+        MappingOrigin.NameMatch => "Name match",
+        MappingOrigin.Reviewer => "Reviewer",
+        _ => "",
+    };
 
     public static string YesNo(bool value) => value ? "Yes" : "No";
 

@@ -13,7 +13,8 @@ public sealed record MappingSummaryItem(
     string TargetSystem,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
-    string UpdatedBy);
+    string UpdatedBy,
+    MappingSummary Summary);
 
 public enum ReviewDecisionKind
 {
@@ -41,7 +42,7 @@ public sealed class MappingStore(MapWrightDatabase database)
     {
         using var connection = database.Open();
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT id, title, version, source_system, target_system, created_at, updated_at, updated_by FROM mappings ORDER BY id";
+        command.CommandText = "SELECT id, title, version, source_system, target_system, created_at, updated_at, updated_by, json FROM mappings ORDER BY id";
         var summaries = new List<MappingSummaryItem>();
         using var reader = command.ExecuteReader();
         while (reader.Read())
@@ -54,7 +55,8 @@ public sealed class MappingStore(MapWrightDatabase database)
                 reader.GetString(4),
                 MapWrightDatabase.ParseTime(reader.GetString(5)),
                 MapWrightDatabase.ParseTime(reader.GetString(6)),
-                reader.GetString(7)));
+                reader.GetString(7),
+                MappingSummary.From(JsonSerializer.Deserialize<MappingDocument>(reader.GetString(8), MapWrightJson.Options)!)));
         }
 
         return summaries;

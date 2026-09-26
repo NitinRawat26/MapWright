@@ -2,8 +2,25 @@
 
 html {
   color-scheme: light;
+  --mw-bg: #f5f6fb;
+  --mw-panel: #fff;
+  --mw-ink: #141a33;
+  --mw-muted: #6b7394;
+  --mw-line: #e6e8f2;
+  --mw-brand: #4f46e5;
+  --mw-brand2: #7c3aed;
+  --mw-ok: #10b981;
+  --mw-okbg: #e7f8f1;
+  --mw-warn: #d97706;
+  --mw-warnbg: #fff4df;
+  --mw-bad: #ef4444;
+  --mw-badbg: #fdecec;
+  --mw-ai: #8b5cf6;
+  --mw-aibg: #f1ebff;
+  --mw-info: #0ea5e9;
+  --mw-infobg: #e6f6fd;
   @include mat.theme((
-    color: mat.$azure-palette,
+    color: mat.$violet-palette,
     typography: (plain-family: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif', brand-family: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif'),
     density: -1,
   ));
@@ -14,8 +31,122 @@ body {
   height: 100%;
   margin: 0;
   font: var(--mat-sys-body-medium);
-  background: var(--mat-sys-surface);
-  color: var(--mat-sys-on-surface);
+  background: var(--mw-bg);
+  color: var(--mw-ink);
+}
+
+/* A white panel with a soft border; the building block of the redesigned pages. */
+.card {
+  background: var(--mw-panel);
+  border: 1px solid var(--mw-line);
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 2px rgba(20, 26, 51, 0.04);
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.card-head h2 {
+  margin: 0;
+}
+
+.card-head .more {
+  margin-left: auto;
+  color: var(--mw-muted);
+  font-size: 12.5px;
+  text-decoration: none;
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.page-head h1 {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.page-head .sub {
+  color: var(--mw-muted);
+  margin-top: 4px;
+}
+
+.page-head .head-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+}
+
+.mat-mdc-unelevated-button.mat-primary:not(:disabled),
+.mat-mdc-unelevated-button:not(.mat-warn):not(:disabled) {
+  background: linear-gradient(135deg, var(--mw-brand), var(--mw-brand2));
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.25);
+}
+
+.mat-mdc-button-base app-icon {
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.bar {
+  display: inline-block;
+  width: 70px;
+  height: 6px;
+  border-radius: 99px;
+  background: #eceef6;
+  overflow: hidden;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+.bar > i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #6366f1, #a855f7);
+}
+
+table.grid {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+table.grid th {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--mw-muted);
+  text-align: left;
+  font-weight: 600;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--mw-line);
+  background: #fafbfe;
+}
+
+table.grid td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--mw-line);
+  vertical-align: middle;
+}
+
+table.grid tr.link {
+  cursor: pointer;
+}
+
+table.grid tr.link:hover td {
+  background: #f7f7fe;
 }
 
 h1 {
@@ -36,12 +167,12 @@ pre,
 }
 
 .page {
-  padding: 24px;
-  max-width: 1400px;
+  padding: 26px 28px;
+  max-width: 1440px;
 }
 
 .muted {
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--mw-muted);
 }
 
 .row {
@@ -60,33 +191,41 @@ table.mat-mdc-table {
 }
 
 .chip {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 99px;
   font-size: 12px;
-  background: var(--mat-sys-surface-container-high);
+  font-weight: 600;
+  background: #eef0f6;
+  color: #4b5375;
   white-space: nowrap;
 }
 
 .chip.good {
-  background: #d7f5dd;
-  color: #0b5a1f;
+  background: var(--mw-okbg);
+  color: #047857;
 }
 
 .chip.warn {
-  background: #fff0c2;
-  color: #6b4d00;
+  background: var(--mw-warnbg);
+  color: #b45309;
 }
 
 .chip.ai {
-  background: #f3e5f5;
-  color: #6a1b9a;
-  font-weight: 600;
+  background: var(--mw-aibg);
+  color: #6d28d9;
 }
 
 .chip.bad {
-  background: #ffdad6;
-  color: #8c1d18;
+  background: var(--mw-badbg);
+  color: #b91c1c;
+}
+
+.chip.info {
+  background: var(--mw-infobg);
+  color: #0369a1;
 }
 
 .problem {

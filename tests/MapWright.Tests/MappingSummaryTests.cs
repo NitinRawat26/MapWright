@@ -24,6 +24,28 @@ public class MappingSummaryTests
     }
 
     [Fact]
+    public void Mapped_rows_are_counted_by_what_produced_them()
+    {
+        Evidence Of(EvidenceKind kind) => new() { Kind = kind, Reference = "ollama/qwen3" };
+        FieldMapping Row(string id, params EvidenceKind[] kinds) => TestSpecs.OneToOne(id, $"$.{id}", $"/B/{id}") with { Evidence = [.. kinds.Select(Of)] };
+        var unmapped = Row("M5") with { Type = MappingType.Unmapped, Sources = [] };
+        var doc = TestSpecs.Minimal(
+            Row("M1", EvidenceKind.Playbook, EvidenceKind.Sample),
+            Row("M2", EvidenceKind.Playbook, EvidenceKind.AiSuggestion),
+            Row("M3", EvidenceKind.NameSimilarity),
+            Row("M4", EvidenceKind.Reviewer),
+            unmapped,
+            Row("M6", EvidenceKind.Schema));
+
+        var byOrigin = MappingSummary.From(doc).ByOrigin;
+
+        Assert.Equal(
+            [(MappingOrigin.Playbook, 1), (MappingOrigin.NameMatch, 1), (MappingOrigin.Ai, 1), (MappingOrigin.Reviewer, 1), (MappingOrigin.Other, 1)],
+            byOrigin.Select(p => (p.Key, p.Value)));
+        Assert.Null(MappingSummary.OriginOf(unmapped));
+    }
+
+    [Fact]
     public void Coverage_is_100_when_no_required_targets()
     {
         var mapping = TestSpecs.OneToOne("M1", "$.a", "/B/A");

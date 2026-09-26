@@ -1,37 +1,73 @@
-<mat-toolbar class="toolbar">
-  <a routerLink="/" class="brand">MapWright</a>
-  <span class="spacer"></span>
-  @if (!user.signInRequired()) {
-    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="user">
-      <mat-label>Your name</mat-label>
-      <input matInput data-testid="user" [ngModel]="user.name()" (change)="user.set($any($event.target).value)" />
-    </mat-form-field>
-    @if (!user.name()) {
-      <span class="hint">Enter your name to make changes</span>
-    }
-  } @else if (user.name()) {
-    <span class="hint" data-testid="signed-in">Signed in as {{ user.name() }}</span>
-    @if (user.me()?.method === 'apiKey') {
-      <button mat-button data-testid="sign-out" (click)="signOut()">Sign out</button>
-    }
-  } @else {
-    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="user">
-      <mat-label>API key</mat-label>
-      <input matInput type="password" autocomplete="off" data-testid="api-key" (change)="signIn($any($event.target).value)" />
-    </mat-form-field>
-    <span class="hint">Sign in to use MapWright</span>
-  }
-  <a mat-button href="/swagger" target="_blank" rel="noopener">API</a>
-</mat-toolbar>
-<mat-sidenav-container class="container">
-  <mat-sidenav mode="side" opened class="nav">
+<div class="shell">
+  <aside class="side">
+    <a routerLink="/" class="logo"><span class="mark"><app-icon name="conversion_path" /></span>MapWright</a>
+    <div class="navh">Workspace</div>
     <nav>
       @for (link of links; track link.path) {
-        <a [routerLink]="link.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: link.exact }">{{ link.label }}</a>
+        <a
+          class="nav"
+          [routerLink]="link.path"
+          routerLinkActive="on"
+          [routerLinkActiveOptions]="{ exact: link.exact }"
+          [attr.data-testid]="'nav-' + link.key">
+          <app-icon [name]="link.icon" />{{ link.label }}
+          @if (link.key === 'suggestions' && pending()) {
+            <span class="badge" data-testid="pending-badge">{{ pending() }}</span>
+          }
+        </a>
       }
     </nav>
-  </mat-sidenav>
-  <mat-sidenav-content>
-    <router-outlet />
-  </mat-sidenav-content>
-</mat-sidenav-container>
+    <div class="foot" data-testid="ai-status">
+      @if (ai(); as ai) {
+        @if (ai.available) {
+          <div><span class="dot on"></span><b>AI ready</b></div>
+          <div>{{ ai.provider }} · capped at {{ ai.maxConfidence }}%</div>
+        } @else {
+          <div><span class="dot"></span><b>Playbooks only</b></div>
+          <div>AI is not configured</div>
+        }
+      } @else {
+        <div><span class="dot"></span><b>Checking AI…</b></div>
+      }
+    </div>
+  </aside>
+  <div class="main">
+    <header class="top">
+      <div class="crumbs" data-testid="section">{{ section() }}</div>
+      <app-search />
+      <div class="user">
+        @if (!user.signInRequired()) {
+          <input
+            class="name"
+            data-testid="user"
+            placeholder="Your name"
+            aria-label="Your name"
+            [value]="user.name()"
+            (change)="user.set($any($event.target).value)" />
+          @if (!user.name()) {
+            <span class="hint">Enter your name to make changes</span>
+          }
+        } @else if (user.name()) {
+          <span class="avatar">{{ initials(user.name()) }}</span>
+          <div class="who">
+            <b data-testid="signed-in">Signed in as {{ user.name() }}</b>
+            <span class="hint">{{ method() }}</span>
+          </div>
+          @if (user.me()?.method === 'apiKey') {
+            <button mat-button data-testid="sign-out" (click)="signOut()"><app-icon name="logout" [size]="18" /> Sign out</button>
+          }
+        } @else {
+          <input class="name" type="password" autocomplete="off" data-testid="api-key" placeholder="API key" aria-label="API key" (change)="signIn($any($event.target).value)" />
+          <span class="hint">Sign in to use MapWright</span>
+        }
+        @if (!user.signInRequired() && user.name()) {
+          <span class="avatar" title="Changes are recorded as {{ user.name() }}">{{ initials(user.name()) }}</span>
+        }
+        <a mat-stroked-button href="/swagger" target="_blank" rel="noopener"><app-icon name="api" [size]="18" /> API</a>
+      </div>
+    </header>
+    <main class="content">
+      <router-outlet />
+    </main>
+  </div>
+</div>

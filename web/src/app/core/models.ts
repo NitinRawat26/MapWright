@@ -57,6 +57,7 @@ export interface MappingListItem {
   createdAt: string;
   updatedAt: string;
   updatedBy: string;
+  summary?: MappingSummary;
 }
 
 export type SuggestionStatus = 'pending' | 'approved' | 'rejected';
@@ -306,6 +307,8 @@ export interface MappingDocument {
   aiPass?: { provider: string; maxConfidence: number; suggestedRows?: string[]; unmatched?: string[]; warnings?: string[] };
 }
 
+export type MappingOrigin = 'playbook' | 'nameMatch' | 'ai' | 'reviewer' | 'other';
+
 export interface MappingSummary {
   totalTargetFields: number;
   mappedTargetFields: number;
@@ -315,6 +318,8 @@ export interface MappingSummary {
   requiredCoveragePercent: number;
   byConfidenceBand: Record<'high' | 'medium' | 'low', number>;
   byReviewStatus: Record<ReviewStatus, number>;
+  /** Mapped rows by what produced them. */
+  byOrigin?: Record<MappingOrigin, number>;
   orphanSourceFields: number;
   conflicts: number;
   assumptions: number;
