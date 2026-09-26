@@ -47,6 +47,7 @@
               <mat-button-toggle value="open">Needs review</mat-button-toggle>
               <mat-button-toggle value="unmapped">Unmapped</mat-button-toggle>
               <mat-button-toggle value="decided">Decided</mat-button-toggle>
+              <mat-button-toggle value="ai">Suggested by AI</mat-button-toggle>
             </mat-button-toggle-group>
             <mat-form-field appearance="outline" subscriptSizing="dynamic">
               <mat-label>Search</mat-label>
@@ -68,7 +69,12 @@
                   }
                 </td>
                 <td>{{ r.type === 'unmapped' ? '—' : (r.transformation.rule ?? r.transformation.type) }}</td>
-                <td>{{ r.confidencePercent }}%</td>
+                <td>
+                  {{ r.confidencePercent }}%
+                  @if (aiProvider(r); as provider) {
+                    <span class="chip ai" [title]="'Suggested by ' + provider + '; check it before relying on it'" data-testid="ai-row">AI</span>
+                  }
+                </td>
                 <td><span class="chip" [class]="classes[r.review.status]">{{ labels[r.review.status] }}</span></td>
               </tr>
               @if (selected() === r.id) {

@@ -21,7 +21,10 @@ public sealed record OllamaOptions
     public int MaxOutputTokens { get; init; } = DefaultMaxOutputTokens;
 }
 
-/// <summary>A self-hosted Ollama server (<c>/api/chat</c>) with structured output.</summary>
+/// <summary>
+/// A self-hosted Ollama server (<c>/api/chat</c>) with structured output. Thinking is turned off: a thinking model
+/// such as qwen3 otherwise spends the answer budget on reasoning and leaves the JSON answer empty.
+/// </summary>
 public sealed class OllamaProvider(HttpClient http, OllamaOptions options) : IAiProvider
 {
     public string Name => "ollama";
@@ -34,6 +37,7 @@ public sealed class OllamaProvider(HttpClient http, OllamaOptions options) : IAi
         {
             ["model"] = options.Model,
             ["stream"] = false,
+            ["think"] = false,
             ["format"] = prompt.ResponseSchema.DeepClone(),
             ["options"] = new JsonObject
             {

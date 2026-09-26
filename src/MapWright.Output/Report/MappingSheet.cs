@@ -8,10 +8,13 @@ public static class MappingSheet
 {
     public const string BandTag = "band";
     public const string StatusTag = "status";
+    public const string OriginTag = "origin";
+    public const string AiOrigin = "ai";
 
     public const string ConfidenceHeader = "Confidence %";
     public const string BandHeader = "Confidence Band";
     public const string StatusHeader = "Review Status";
+    public const string OriginHeader = "Mapped By";
 
     private sealed record Column(string Group, ReportColumn Definition, Func<FieldMapping, ConfidencePolicy, string> Value);
 
@@ -32,6 +35,7 @@ public static class MappingSheet
         new("transformation", new("Condition", Width: 26), (m, _) => m.Transformation.Condition ?? ""),
         new("transformation", new("Default Value", Width: 14), (m, _) => m.Transformation.DefaultValue ?? ""),
 
+        new("confidence", new(OriginHeader, Width: 18), (m, _) => Display.Origin(m)),
         new("confidence", new(ConfidenceHeader, CellKind.Number, 12),
             (m, _) => m.Type == MappingType.Unmapped ? "" : m.ConfidencePercent.ToString(CultureInfo.InvariantCulture)),
         new("confidence", new(BandHeader, Width: 12), (m, p) => Display.Of(m, p)),
@@ -95,6 +99,7 @@ public static class MappingSheet
                 {
                     [BandTag] = m.Type == MappingType.Unmapped ? "unmapped" : document.ConfidencePolicy.BandFor(m.ConfidencePercent).ToString(),
                     [StatusTag] = m.Review.Status.ToString(),
+                    [OriginTag] = Display.AiEvidence(m) is null ? "" : AiOrigin,
                 }))
             .ToList();
 
