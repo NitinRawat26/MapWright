@@ -113,4 +113,20 @@ describe('SuggestionList', () => {
     expect(text(root, 'decision')).toContain('Approved by bo');
     expect(root.querySelector('[data-testid="decision"] a')?.getAttribute('href')).toBe('/playbooks/domain/tax-id/1.1.0');
   });
+
+  it('counts suggestions from mappings, from detection and those that would draft a new playbook', async () => {
+    const fixture = TestBed.createComponent(SuggestionList);
+    fixture.detectChanges();
+    await settle(fixture);
+    const base = suggestion(3);
+    const pairing = { mappingId: 'a__b', rowId: 'M001', targetSystem: 'B', target: '/Request/X', targetField: 'X', sources: ['$.x'] };
+    const proposed = { ...base, id: 4, content: { ...base.content, businessConcept: undefined, domainPlaybook: undefined, proposedConcept: 'Merchant.Mcc' } };
+    respond('/api/suggestions?status=pending', [suggestion(1), { ...base, content: { ...base.content, mapping: pairing } }, proposed]);
+    await settle(fixture);
+    const root = fixture.nativeElement as HTMLElement;
+    expect(text(root, 'kinds')).toContain('1 from mappings');
+    expect(text(root, 'kinds')).toContain('2 from detection');
+    expect(text(root, 'kinds')).toContain('1 would draft a new playbook');
+    expect(root.querySelector('[data-suggestion="3"] [data-testid="pairing"] .node.target')?.textContent?.trim()).toBe('/Request/X');
+  });
 });

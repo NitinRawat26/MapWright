@@ -57,6 +57,7 @@ app.MapPlaybookEndpoints();
 app.MapProfileEndpoints();
 app.MapMappingEndpoints();
 app.MapSuggestionEndpoints();
+app.MapSettingsEndpoints();
 if (app.Environment.WebRootFileProvider.GetFileInfo("index.html").Exists)
 {
     app.MapFallbackToFile("{*path:regex(^(?!api/|swagger/|health$).*$)}", "index.html");

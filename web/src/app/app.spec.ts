@@ -87,6 +87,7 @@ describe('App sign-in', () => {
     expect(text(root, 'pending-badge')).toBe('2');
     expect(text(root, 'section')).toBe('Mappings');
     expect(root.querySelector('[data-testid="nav-mappings"]')?.classList).toContain('on');
+    expect(root.querySelector('[data-testid="nav-settings"]')?.getAttribute('href')).toBe('/settings');
 
     const search = root.querySelector<HTMLInputElement>('[data-testid="search"]')!;
     search.focus();

@@ -1,50 +1,82 @@
 <div class="page">
-  <h1>AI suggestions</h1>
-  <p class="muted">When detection or mapping asks AI about a field no playbook recognises, its answer waits here. Approving adds the field name as a vocabulary term to a <b>draft</b> of the concept's domain playbook; the draft is then tested, reviewed and published like any other change. For a concept or attribute no playbook has yet, tick <b>Create if missing</b>: approving then drafts a new domain playbook, or adds the attribute to a draft of the concept's playbook. Rejecting changes nothing. A suggestion from a mapping's AI pass also approves or rejects that mapping row; clear its concept to approve only the row.</p>
-  <mat-button-toggle-group [value]="status()" (change)="status.set($event.value)" class="filters" data-testid="status-filter">
-    <mat-button-toggle value="pending">Pending</mat-button-toggle>
-    <mat-button-toggle value="approved">Approved</mat-button-toggle>
-    <mat-button-toggle value="rejected">Rejected</mat-button-toggle>
-    <mat-button-toggle value="">All</mat-button-toggle>
-  </mat-button-toggle-group>
+  <div class="page-head">
+    <div>
+      <h1>AI suggestions</h1>
+      <div class="sub">Answers from AI about fields no playbook recognises. Nothing is used until someone approves it.</div>
+    </div>
+  </div>
+  <details class="how card">
+    <summary><app-icon name="info" [size]="18" /> How approving works</summary>
+    <p class="muted">When detection or mapping asks AI about a field no playbook recognises, its answer waits here. Approving adds the field name as a vocabulary term to a <b>draft</b> of the concept's domain playbook; the draft is then tested, reviewed and published like any other change. For a concept or attribute no playbook has yet, tick <b>Create if missing</b>: approving then drafts a new domain playbook, or adds the attribute to a draft of the concept's playbook. Rejecting changes nothing. A suggestion from a mapping's AI pass also approves or rejects that mapping row; clear its concept to approve only the row.</p>
+  </details>
+  <div class="toolbar">
+    <mat-button-toggle-group [value]="status()" (change)="status.set($event.value)" class="filters" data-testid="status-filter" hideSingleSelectionIndicator>
+      <mat-button-toggle value="pending"><app-icon name="schedule" [size]="16" /> Pending</mat-button-toggle>
+      <mat-button-toggle value="approved"><app-icon name="check_circle" [size]="16" /> Approved</mat-button-toggle>
+      <mat-button-toggle value="rejected"><app-icon name="cancel" [size]="16" /> Rejected</mat-button-toggle>
+      <mat-button-toggle value="">All</mat-button-toggle>
+    </mat-button-toggle-group>
+    <span class="spacer"></span>
+    <div class="meta" data-testid="kinds">
+      <span class="chip ai">{{ kinds().mapping }} from mappings</span>
+      <span class="chip info">{{ kinds().detection }} from detection</span>
+      @if (kinds().drafts) {
+        <span class="chip warn">{{ kinds().drafts }} would draft a new playbook</span>
+      }
+    </div>
+  </div>
 
   @for (s of suggestions(); track s.id) {
-    <div class="actions suggestion" [attr.data-suggestion]="s.id">
-      <div class="row">
-        <b class="mono">{{ s.content.path }}</b>
-        <span class="muted">{{ s.system }} (<a [routerLink]="['/profiles', s.profileId]">{{ s.profileId }}</a>)</span>
-        <span class="chip warn">{{ s.content.confidencePercent }}%</span>
-        <span class="chip" [class.good]="s.status === 'approved'" [class.bad]="s.status === 'rejected'">{{ s.status }}</span>
-        <span class="spacer"></span>
-        <span class="muted">{{ s.content.provider }} · {{ s.content.model }} · {{ s.createdAt | date: 'medium' }}</span>
+    <div class="card suggestion" [class]="'is-' + s.status" [attr.data-suggestion]="s.id">
+      <div class="head">
+        <span class="icon-badge ai"><app-icon [name]="s.content.mapping ? 'conversion_path' : 'star_shine'" [size]="18" /></span>
+        <div class="title">
+          <div class="row">
+            <b class="mono">{{ s.content.path }}</b>
+            <span class="chip" [class.ai]="!!s.content.mapping" [class.info]="!s.content.mapping">{{ s.content.mapping ? 'Mapping row' : 'Detection' }}</span>
+            <span class="chip" [class.warn]="s.status === 'pending'" [class.good]="s.status === 'approved'" [class.bad]="s.status === 'rejected'">{{ s.status }}</span>
+          </div>
+          <div class="muted">{{ s.system }} (<a [routerLink]="['/profiles', s.profileId]">{{ s.profileId }}</a>) · {{ s.content.provider }} · {{ s.content.model }} · {{ s.createdAt | date: 'medium' }}</div>
+        </div>
+        <span class="confidence" [title]="'AI confidence, capped'">
+          <span class="bar"><i class="medium" [style.width.%]="s.content.confidencePercent"></i></span>{{ s.content.confidencePercent }}%
+        </span>
       </div>
       @if (s.content.mapping; as m) {
-        <div data-testid="pairing">
-          <span class="chip ai">Mapping</span>
-          Source of <b class="mono">{{ m.target }}</b> in {{ m.targetSystem }}, row
-          <a [routerLink]="['/mappings', m.mappingId]" class="mono">{{ m.mappingId }} · {{ m.rowId }}</a>
-          @if (m.sources.length > 1) {
-            <span class="muted">(with {{ m.sources.slice(1).join(', ') }})</span>
-          }
+        <div class="pairing" data-testid="pairing">
+          <div class="flow">
+            @for (src of m.sources; track src) {
+              <span class="node">{{ src }}</span>
+            }
+            <app-icon name="arrow_forward" [size]="16" />
+            <span class="node target">{{ m.target }}</span>
+          </div>
+          <div class="muted">
+            Source of <b class="mono">{{ m.target }}</b> in {{ m.targetSystem }}, row
+            <a [routerLink]="['/mappings', m.mappingId]" class="mono">{{ m.mappingId }} · {{ m.rowId }}</a>
+            @if (m.sources.length > 1) {
+              <span class="muted">(with {{ m.sources.slice(1).join(', ') }})</span>
+            }
+          </div>
         </div>
       } @else {
         <div>{{ s.content.meaning }}</div>
       }
-      <div class="muted">
-        Concept: <b>{{ s.content.businessConcept ?? s.content.proposedConcept ?? 'none' }}</b>
+      <div class="concept">
+        <app-icon name="school" [size]="16" /> Concept: <b>{{ s.content.businessConcept ?? s.content.proposedConcept ?? 'none' }}</b>
         @if (s.content.domainPlaybook) {
           in <span class="mono">{{ s.content.domainPlaybook }}</span>
         } @else if (s.content.proposedConcept) {
-          (no playbook defines it yet)
+          <span class="chip warn">no playbook defines it yet</span>
         }
       </div>
-      <div class="muted">{{ s.content.reasoning }}</div>
+      <div class="reason"><app-icon name="lightbulb" [size]="16" /> {{ s.content.reasoning }}</div>
       @if (s.content.question) {
-        <div class="warn-text">{{ s.content.question }}</div>
+        <div class="callout warn question"><app-icon name="help" [size]="18" /><div>{{ s.content.question }}</div></div>
       }
       @if (s.status === 'pending') {
         @let d = draft(s);
-        <div class="row">
+        <div class="row decide">
           <mat-form-field appearance="outline" subscriptSizing="dynamic">
             <mat-label>Concept (Concept.Attribute)</mat-label>
             <input matInput [ngModel]="d.concept" (ngModelChange)="edit(s, { concept: $event })" data-testid="concept" />
@@ -54,11 +86,11 @@
             <input matInput [ngModel]="d.comment" (ngModelChange)="edit(s, { comment: $event })" data-testid="comment" />
           </mat-form-field>
           <mat-checkbox [ngModel]="d.create" (ngModelChange)="edit(s, { create: $event })" data-testid="create">Create if missing</mat-checkbox>
-          <button mat-flat-button type="button" [disabled]="!user.name() || busy() === s.id || (!d.concept.trim() && !s.content.mapping)" (click)="approve(s)" data-testid="approve">Approve</button>
-          <button mat-stroked-button type="button" [disabled]="!user.name() || busy() === s.id" (click)="reject(s)" data-testid="reject">Reject</button>
+          <button mat-flat-button type="button" [disabled]="!user.name() || busy() === s.id || (!d.concept.trim() && !s.content.mapping)" (click)="approve(s)" data-testid="approve"><app-icon name="check" [size]="18" /> Approve</button>
+          <button mat-stroked-button type="button" [disabled]="!user.name() || busy() === s.id" (click)="reject(s)" data-testid="reject"><app-icon name="close" [size]="18" /> Reject</button>
         </div>
         @if (!user.name()) {
-          <div class="muted">Enter your name in the toolbar to decide.</div>
+          <div class="muted">Enter your name in the header to decide.</div>
         }
       } @else {
         <div class="muted" data-testid="decision">
@@ -70,6 +102,10 @@
       }
     </div>
   } @empty {
-    <p class="muted" data-testid="empty">No {{ status() || '' }} suggestions.</p>
+    <div class="card empty" data-testid="empty">
+      <app-icon name="star_shine" [size]="32" />
+      <b>No {{ status() || '' }} suggestions.</b>
+      <span>Tick the AI option when you detect concepts on a profile or generate a mapping.</span>
+    </div>
   }
 </div>

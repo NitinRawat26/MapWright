@@ -30,6 +30,9 @@ public sealed class AiAccess : IDisposable
 
     public IAiProvider? Provider { get; }
 
+    /// <summary>Why the configured provider could not be set up, if it could not.</summary>
+    public string? Error => _error;
+
     public IAiProvider Require() => Provider ?? throw new StoreException(
         StoreError.Invalid,
         _error ?? $"No AI provider is configured (set {AiProviders.VertexProjectVariable} or {AiProviders.OllamaUrlVariable}); send useAi: false to use the playbooks only.");

@@ -1,11 +1,51 @@
+.list {
+  padding: 0;
+  overflow: hidden;
+}
+
 .filters {
-  margin-bottom: 12px;
+  margin: 0;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--mw-line);
+}
+
+.search {
+  width: 260px;
+}
+
+.search app-icon {
+  margin: 0 4px 0 10px;
+  color: var(--mw-muted);
+}
+
+.ident {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ident .icon-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+}
+
+.ident .icon-badge.process {
+  background: var(--mw-aibg);
+  color: #6d28d9;
 }
 
 .import {
   margin-top: 24px;
+  scroll-margin-top: 80px;
 }
 
 .json {
   width: 100%;
+}
+
+@media (max-width: 720px) {
+  .search {
+    width: 100%;
+  }
 }

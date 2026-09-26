@@ -6,17 +6,32 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTabsModule } from '@angular/material/tabs';
 import { RouterLink } from '@angular/router';
 import { catchError, finalize, of } from 'rxjs';
 import { Api } from '../core/api';
+import { Icon } from '../core/icon';
 import { DetectResponse, SystemProfile } from '../core/models';
 import { UserService } from '../core/user';
 
 @Component({
   selector: 'app-profile-detail',
-  imports: [DatePipe, FormsModule, MatButtonModule, MatCheckboxModule, UpperCasePipe, MatFormFieldModule, MatInputModule, MatTabsModule, RouterLink],
+  imports: [
+    DatePipe,
+    FormsModule,
+    Icon,
+    MatButtonModule,
+    MatCheckboxModule,
+    UpperCasePipe,
+    MatFormFieldModule,
+    MatInputModule,
+    MatProgressSpinnerModule,
+    MatTabsModule,
+    RouterLink,
+  ],
   templateUrl: './profile-detail.html',
+  styleUrl: './profile-detail.scss',
 })
 export class ProfileDetail {
   private readonly api = inject(Api);
@@ -35,6 +50,22 @@ export class ProfileDetail {
     const text = this.search().trim().toLowerCase();
     const fields = this.profile()?.fields ?? [];
     return text ? fields.filter((f) => f.path.toLowerCase().includes(text) || (f.description ?? '').toLowerCase().includes(text)) : fields;
+  });
+
+  protected readonly counts = computed(() => {
+    const fields = this.profile()?.fields ?? [];
+    return {
+      values: fields.filter((f) => f.kind === 'value').length,
+      groups: fields.filter((f) => f.kind !== 'value').length,
+      required: fields.filter((f) => f.required === 'required' || f.required === 'likelyRequired').length,
+      sensitive: fields.filter((f) => f.sensitive).length,
+    };
+  });
+
+  protected readonly coverage = computed(() => {
+    const d = this.detection();
+    const total = d ? d.recognised.length + d.remaining.length + d.suggestions.length : 0;
+    return total ? Math.round((100 * (d?.recognised.length ?? 0)) / total) : 0;
   });
 
   constructor() {

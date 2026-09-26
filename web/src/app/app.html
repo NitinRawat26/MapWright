@@ -17,6 +17,20 @@
         </a>
       }
     </nav>
+    <div class="navh">Configure</div>
+    <nav>
+      @for (link of configure; track link.key) {
+        <a
+          class="nav"
+          [routerLink]="link.path"
+          [fragment]="link.fragment"
+          routerLinkActive="on"
+          [routerLinkActiveOptions]="{ paths: 'exact', fragment: 'exact', queryParams: 'ignored', matrixParams: 'ignored' }"
+          [attr.data-testid]="'nav-' + link.key"
+          ><app-icon [name]="link.icon" />{{ link.label }}</a
+        >
+      }
+    </nav>
     <div class="foot" data-testid="ai-status">
       @if (ai(); as ai) {
         @if (ai.available) {

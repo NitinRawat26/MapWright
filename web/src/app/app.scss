@@ -53,6 +53,10 @@ nav {
   gap: 2px;
 }
 
+nav + .navh {
+  margin-top: 14px;
+}
+
 .nav {
   display: flex;
   align-items: center;

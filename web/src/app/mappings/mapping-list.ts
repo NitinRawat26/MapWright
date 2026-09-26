@@ -12,7 +12,9 @@ import { MatSelectModule } from '@angular/material/select';
 import { Router, RouterLink } from '@angular/router';
 import { catchError, finalize, of } from 'rxjs';
 import { Api } from '../core/api';
+import { Icon } from '../core/icon';
 import { MappingListItem, ProfileSummary } from '../core/models';
+import { ago } from '../core/time';
 import { UserService } from '../core/user';
 
 @Component({
@@ -20,6 +22,7 @@ import { UserService } from '../core/user';
   imports: [
     DatePipe,
     FormsModule,
+    Icon,
     MatButtonModule,
     MatCheckboxModule,
     MatFormFieldModule,
@@ -68,6 +71,24 @@ export class MappingList {
 
   protected patch(change: Partial<ReturnType<typeof this.request>>): void {
     this.request.update((r) => ({ ...r, ...change }));
+  }
+
+  protected coverage(mapping: MappingListItem): number {
+    const s = mapping.summary;
+    return s?.totalTargetFields ? Math.round((100 * s.mappedTargetFields) / s.totalTargetFields) : 0;
+  }
+
+  protected open(mapping: MappingListItem): void {
+    void this.router.navigate(['/mappings', mapping.id]);
+  }
+
+  protected scrollToGenerator(event: Event): void {
+    event.preventDefault();
+    document.getElementById('generate')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  protected ago(iso: string): string {
+    return iso ? ago(iso) : '—';
   }
 
   protected drop(mapping: MappingListItem): void {

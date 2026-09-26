@@ -1,23 +1,97 @@
 <div class="page">
-  <h1>Mappings</h1>
-  <p class="muted">A mapping document says, for every target field, which source field(s) feed it, how the value is transformed, how confident MapWright is and why.</p>
-  <table class="plain wide" data-testid="mappings">
-    <tr><th>ID</th><th>Title</th><th>Source → target</th><th>Version</th><th>Updated</th><th></th></tr>
-    @for (m of mappings(); track m.id) {
-      <tr>
-        <td><a class="mono" [routerLink]="['/mappings', m.id]">{{ m.id }}</a></td>
-        <td>{{ m.title }}</td><td>{{ m.sourceSystem }} → {{ m.targetSystem }}</td><td>{{ m.version }}</td>
-        <td>{{ m.updatedAt | date: 'medium' }} · {{ m.updatedBy }}</td>
-        <td><button mat-button type="button" (click)="drop(m)">Delete</button></td>
-      </tr>
-    } @empty {
-      <tr><td colspan="6" class="muted">No mappings yet.</td></tr>
-    }
-  </table>
+  <div class="page-head">
+    <div>
+      <h1>Mappings</h1>
+      <div class="sub">A mapping document says, for every target field, which source field(s) feed it, how the value is transformed, how confident MapWright is and why.</div>
+    </div>
+    <div class="head-actions">
+      <a mat-flat-button href="#generate" (click)="scrollToGenerator($event)"><app-icon name="add" [size]="18" /> Generate a mapping</a>
+    </div>
+  </div>
 
-  <h2>Generate a mapping</h2>
-  <div class="form">
-    <div class="row">
+  <div class="card list">
+    <div class="card-head">
+      <h2>All mappings</h2>
+      <span class="muted">{{ mappings().length }}</span>
+    </div>
+    <table class="grid" data-testid="mappings">
+      <thead>
+        <tr><th>Mapping</th><th>Source → target</th><th>Coverage</th><th>Mapped by</th><th>Needs review</th><th>Updated</th><th></th></tr>
+      </thead>
+      <tbody>
+        @for (m of mappings(); track m.id) {
+          <tr class="link" (click)="open(m)">
+            <td>
+              <b>{{ m.title }}</b>
+              <div class="muted"><a class="mono" [routerLink]="['/mappings', m.id]" (click)="$event.stopPropagation()">{{ m.id }}</a> · v{{ m.version }}</div>
+            </td>
+            <td>
+              <div class="flow">
+                <span class="node">{{ m.sourceSystem }}</span><app-icon name="arrow_forward" [size]="16" /><span class="node target">{{ m.targetSystem }}</span>
+              </div>
+            </td>
+            <td>
+              @if (m.summary; as s) {
+                <span class="bar"><i [style.width.%]="coverage(m)"></i></span>
+                <b>{{ coverage(m) }}%</b> <span class="muted">{{ s.mappedTargetFields }}/{{ s.totalTargetFields }}</span>
+              } @else {
+                <span class="muted">—</span>
+              }
+            </td>
+            <td>
+              @if (m.summary?.byOrigin; as o) {
+                <div class="origins">
+                  @if (o.playbook) {
+                    <span class="chip good" title="From playbooks">{{ o.playbook }} playbook</span>
+                  }
+                  @if (o.nameMatch) {
+                    <span class="chip info" title="By field name">{{ o.nameMatch }} name</span>
+                  }
+                  @if (o.ai) {
+                    <span class="chip ai" title="Suggested by AI">{{ o.ai }} AI</span>
+                  }
+                  @if (o.reviewer) {
+                    <span class="chip" title="Set by a reviewer">{{ o.reviewer }} reviewer</span>
+                  }
+                </div>
+              }
+            </td>
+            <td>
+              @if (m.summary?.byReviewStatus?.needsReview; as n) {
+                <span class="chip warn">{{ n }}</span>
+              } @else {
+                <span class="muted">0</span>
+              }
+            </td>
+            <td><span [title]="(m.updatedAt | date: 'medium') ?? ''">{{ ago(m.updatedAt) }}</span> <span class="muted">· {{ m.updatedBy }}</span></td>
+            <td class="end">
+              <button type="button" class="icon-button" (click)="drop(m); $event.stopPropagation()" [attr.aria-label]="'Delete ' + m.id" title="Delete"><app-icon name="delete" [size]="18" /></button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="7">
+              <div class="empty">
+                <app-icon name="account_tree" [size]="32" />
+                <b>No mappings yet.</b>
+                <span>Generate one below from two profiles.</span>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card form" id="generate">
+    <div class="card-head">
+      <span class="icon-badge"><app-icon name="conversion_path" [size]="18" /></span>
+      <div>
+        <h2>Generate a mapping</h2>
+        <div class="muted">Playbooks pair fields by business meaning first, then field names; AI only looks at what is left, if you ask it to.</div>
+      </div>
+    </div>
+    <div class="pair">
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
         <mat-label>Source profile</mat-label>
         <mat-select [ngModel]="request().source" (ngModelChange)="patch({ source: $event })" data-testid="source">
@@ -26,7 +100,7 @@
           }
         </mat-select>
       </mat-form-field>
-      <span>→</span>
+      <span class="arrow"><app-icon name="arrow_forward" [size]="20" /></span>
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
         <mat-label>Target profile</mat-label>
         <mat-select [ngModel]="request().target" (ngModelChange)="patch({ target: $event })" data-testid="target">
@@ -35,27 +109,35 @@
           }
         </mat-select>
       </mat-form-field>
+    </div>
+    <div class="pair">
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
         <mat-label>Title (optional)</mat-label>
         <input matInput [ngModel]="request().title" (ngModelChange)="patch({ title: $event })" />
       </mat-form-field>
+      <span></span>
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
         <mat-label>ID (optional)</mat-label>
         <input matInput placeholder="source__target" [ngModel]="request().id" (ngModelChange)="patch({ id: $event })" />
       </mat-form-field>
     </div>
-    <div class="row">
+    <div class="options">
       <mat-checkbox [ngModel]="request().replace" (ngModelChange)="patch({ replace: $event })">Regenerate if it exists (review decisions on old rows are kept in the history)</mat-checkbox>
-      <mat-checkbox [disabled]="!ai()?.available" [ngModel]="request().useAi" (ngModelChange)="patch({ useAi: $event })" data-testid="use-ai">Ask AI to suggest sources for unmapped target fields</mat-checkbox>
     </div>
-    <div class="muted">
-      @if (!ai()?.available) {
-        AI is not configured, so only the published playbooks and field names are used.
-      } @else if (request().useAi) {
-        Field names, types and masked sample values of both systems are sent to {{ ai()?.provider }}. AI rows are capped at {{ ai()?.maxConfidence }}% and always need review.
-      } @else {
-        Only the published playbooks and field names are used; nothing leaves MapWright.
-      }
+    <div class="callout" [class.ai]="ai()?.available">
+      <app-icon name="star_shine" [size]="20" />
+      <div>
+        <mat-checkbox [disabled]="!ai()?.available" [ngModel]="request().useAi" (ngModelChange)="patch({ useAi: $event })" data-testid="use-ai">Ask AI to suggest sources for unmapped target fields</mat-checkbox>
+        <span class="muted">
+          @if (!ai()?.available) {
+            AI is not configured, so only the published playbooks and field names are used.
+          } @else if (request().useAi) {
+            Field names, types and masked sample values of both systems are sent to {{ ai()?.provider }}. AI rows are capped at {{ ai()?.maxConfidence }}% and always need review.
+          } @else {
+            Only the published playbooks and field names are used; nothing leaves MapWright.
+          }
+        </span>
+      </div>
     </div>
     <div class="row">
       <button mat-flat-button type="button" [disabled]="!user.name() || !request().source || !request().target || !!busy()" (click)="generate()" data-testid="generate">
@@ -63,11 +145,11 @@
           <mat-spinner diameter="18" class="button-spinner" />
           Generating…
         } @else {
-          Generate mapping
+          <app-icon name="bolt" [size]="18" /> Generate mapping
         }
       </button>
       @if (!user.name()) {
-        <span class="muted">Enter your name in the toolbar first.</span>
+        <span class="muted">Enter your name in the header first.</span>
       }
     </div>
     @if (busy()) {

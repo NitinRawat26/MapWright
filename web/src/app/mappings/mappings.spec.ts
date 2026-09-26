@@ -226,4 +226,22 @@ describe('Mappings', () => {
     expect(override.request.body.decision).toBe('override');
     expect(override.request.body.row).toMatchObject({ id: 'M003', type: 'constant', target: { path: '/Request/M003' }, review: { status: 'needsReview' } });
   });
+
+  it('says which rows came from a playbook or a name match', async () => {
+    const fixture = TestBed.createComponent(MappingDetail);
+    fixture.componentRef.setInput('id', 'a__b');
+    fixture.detectChanges();
+    const byPlaybook = { ...row('M001', 'autoAccepted'), confidencePercent: 95, evidence: [{ kind: 'playbook', reference: 'domain/tax-id@1.0.0' }] };
+    const byName = { ...row('M002', 'needsReview'), evidence: [{ kind: 'nameSimilarity', reference: 'dbaName' }] };
+    respond('/api/mappings/a__b', { ...mapping, mappings: [byPlaybook, byName, mapping.mappings[2]] });
+    respond('/api/mappings/a__b/summary', summary(2, 0));
+    await settle(fixture);
+    const root = fixture.nativeElement as HTMLElement;
+    const origin = (id: string) => root.querySelector(`tr[data-row="${id}"] td:nth-child(6)`)?.textContent?.trim();
+    expect(origin('M001')).toBe('Playbook');
+    expect(origin('M002')).toBe('Name match');
+    expect(origin('M003')).toBe('—');
+    expect(root.querySelector('tr[data-row="M001"] .confidence i')?.classList).toContain('high');
+    expect(root.querySelector('tr[data-row="M002"] .confidence i')?.classList).toContain('medium');
+  });
 });

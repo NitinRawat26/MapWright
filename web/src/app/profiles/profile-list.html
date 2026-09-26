@@ -1,39 +1,107 @@
 <div class="page">
-  <h1>Profiles</h1>
-  <p class="muted">A profile describes one system's payload: every field with its type, how often it repeats, whether it is required, and sample values (masked when sensitive).</p>
+  <div class="page-head">
+    <div>
+      <h1>Profiles</h1>
+      <div class="sub">A profile describes one system's payload: every field with its type, how often it repeats, whether it is required, and sample values (masked when sensitive).</div>
+    </div>
+    <div class="head-actions">
+      <a mat-flat-button href="#build" (click)="scrollToBuilder($event)"><app-icon name="add" [size]="18" /> Build a profile</a>
+    </div>
+  </div>
 
-  <table class="plain wide" data-testid="profiles">
-    <tr><th>ID</th><th>System</th><th>Format</th><th>Fields</th><th>Updated</th><th></th></tr>
-    @for (p of profiles(); track p.id) {
-      <tr>
-        <td><a class="mono" [routerLink]="['/profiles', p.id]">{{ p.id }}</a></td>
-        <td>{{ p.system }}</td><td>{{ p.format }}</td><td>{{ p.fieldCount }}</td>
-        <td>{{ p.updatedAt | date: 'medium' }} · {{ p.updatedBy }}</td>
-        <td><button mat-button type="button" (click)="drop(p)">Delete</button></td>
-      </tr>
-    } @empty {
-      <tr><td colspan="6" class="muted">No profiles yet. Build one below.</td></tr>
-    }
-  </table>
+  <div class="stats">
+    <div class="stat-card">
+      <span class="label"><app-icon name="database" [size]="16" /> Profiles</span>
+      <span class="value" data-testid="profile-count">{{ profiles().length }}</span>
+    </div>
+    <div class="stat-card">
+      <span class="label"><app-icon name="data_object" [size]="16" /> JSON · XML</span>
+      <span class="value">{{ formats().json }} · {{ formats().xml }}</span>
+    </div>
+    <div class="stat-card">
+      <span class="label"><app-icon name="list_alt" [size]="16" /> Fields profiled</span>
+      <span class="value">{{ totalFields() }}</span>
+    </div>
+  </div>
 
-  <h2>Build a profile</h2>
-  <p class="muted">Pick what you have for the system. Contracts (schemas, WSDL, field specs, data dictionaries, documents) decide types and requiredness; samples add observed values.</p>
-  <div class="form">
-    <mat-button-toggle-group [value]="preset().id" (change)="choose($event.value)" aria-label="Preset" data-testid="preset">
+  <div class="card list">
+    <div class="card-head">
+      <h2>All profiles</h2>
+      @if (profiles().length > 5) {
+        <input class="filter" placeholder="Filter by name or ID" aria-label="Filter profiles" [value]="filter()" (input)="filter.set($any($event.target).value)" data-testid="profile-filter" />
+      }
+    </div>
+    <table class="grid" data-testid="profiles">
+      <thead>
+        <tr><th>System</th><th>Format</th><th>Version</th><th>Fields</th><th>Updated</th><th></th></tr>
+      </thead>
+      <tbody>
+        @for (p of shown(); track p.id) {
+          <tr class="link" (click)="open(p)">
+            <td>
+              <div class="system">
+                <span class="icon-badge"><app-icon [name]="p.format === 'xml' ? 'schema' : 'data_object'" [size]="18" /></span>
+                <div>
+                  <b>{{ p.system }}</b>
+                  <div><a class="mono" [routerLink]="['/profiles', p.id]" (click)="$event.stopPropagation()">{{ p.id }}</a></div>
+                </div>
+              </div>
+            </td>
+            <td><span class="chip" [class.info]="p.format === 'json'" [class.ai]="p.format === 'xml'">{{ p.format | uppercase }}</span></td>
+            <td class="mono">{{ p.version ?? '—' }}</td>
+            <td><b>{{ p.fieldCount }}</b></td>
+            <td><span [title]="(p.updatedAt | date: 'medium') ?? ''">{{ ago(p.updatedAt) }}</span> <span class="muted">· {{ p.updatedBy }}</span></td>
+            <td class="end">
+              <button type="button" class="icon-button" (click)="drop(p); $event.stopPropagation()" [attr.aria-label]="'Delete ' + p.id" title="Delete"><app-icon name="delete" [size]="18" /></button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="6">
+              <div class="empty">
+                <app-icon name="database" [size]="32" />
+                <b>{{ profiles().length ? 'No profiles match.' : 'No profiles yet.' }}</b>
+                @if (!profiles().length) {
+                  <span>Build one below from samples, schemas or specs.</span>
+                }
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card builder" id="build">
+    <div class="card-head">
+      <span class="icon-badge"><app-icon name="upload_file" [size]="18" /></span>
+      <div>
+        <h2>Build a profile</h2>
+        <div class="muted">Pick what you have for the system. Contracts (schemas, WSDL, field specs, data dictionaries, documents) decide types and requiredness; samples add observed values.</div>
+      </div>
+    </div>
+
+    <div class="step-head"><span class="num">1</span> What do you have?</div>
+    <mat-button-toggle-group class="presets" [value]="preset().id" (change)="choose($event.value)" aria-label="Preset" data-testid="preset" hideSingleSelectionIndicator>
       @for (p of presets; track p.id) {
-        <mat-button-toggle [value]="p.id" [attr.data-preset]="p.id">{{ p.label }}</mat-button-toggle>
+        <mat-button-toggle [value]="p.id" [attr.data-preset]="p.id"><app-icon [name]="presetIcons[p.id] ?? 'tune'" [size]="18" />{{ p.label }}</mat-button-toggle>
       }
     </mat-button-toggle-group>
-    <div class="actions" data-testid="preset-guide">
-      <strong>{{ preset().label }}</strong> <span class="muted">{{ preset().summary }}</span>
-      <ul>
-        @for (line of preset().upload; track line) {
-          <li>{{ line }}</li>
-        }
-      </ul>
-      <span class="muted">File types offered: <span class="mono" data-testid="accept">{{ extensions() }}</span></span>
+    <div class="callout guide" data-testid="preset-guide">
+      <app-icon name="lightbulb" [size]="20" />
+      <div>
+        <div><strong>{{ preset().label }}</strong> <span class="muted">{{ preset().summary }}</span></div>
+        <ul>
+          @for (line of preset().upload; track line) {
+            <li>{{ line }}</li>
+          }
+        </ul>
+        <span class="muted">File types offered: <span class="mono" data-testid="accept">{{ extensions() }}</span></span>
+      </div>
     </div>
-    <div class="row">
+
+    <div class="step-head"><span class="num">2</span> Describe the system</div>
+    <div class="fields">
       <mat-form-field appearance="outline" subscriptSizing="dynamic">
         <mat-label>System name</mat-label>
         <input matInput required [ngModel]="request().system" (ngModelChange)="patch({ system: $event })" data-testid="system" />
@@ -55,40 +123,72 @@
       <mat-label>Description (optional)</mat-label>
       <input matInput [ngModel]="request().description" (ngModelChange)="patch({ description: $event })" data-testid="description" />
     </mat-form-field>
-    <div class="row">
-      <input #picker type="file" multiple [accept]="extensions()" hidden (change)="pick(picker)" data-testid="files" />
-      <button mat-stroked-button type="button" (click)="picker.click()">Add files</button>
-      @for (f of files(); track f) {
-        <span class="chip">{{ f.name }} <button type="button" class="link" (click)="remove(f)" [attr.aria-label]="'Remove ' + f.name">×</button></span>
-      }
+
+    <div class="step-head"><span class="num">3</span> Add files</div>
+    <input #picker type="file" multiple [accept]="extensions()" hidden (change)="pick(picker)" data-testid="files" />
+    <div
+      class="dropzone"
+      [class.over]="dragging()"
+      role="button"
+      tabindex="0"
+      (click)="picker.click()"
+      (keydown.enter)="picker.click()"
+      (dragover)="$event.preventDefault(); dragging.set(true)"
+      (dragleave)="dragging.set(false)"
+      (drop)="dropFiles($event)"
+      data-testid="dropzone">
+      <app-icon name="upload_file" [size]="28" />
+      <div><b>Drop files here</b> or click to choose</div>
+      <div class="muted mono">{{ extensions() }}</div>
     </div>
-    @if (outside()) {
-      <span class="warn-text" data-testid="outside">
-        Not a usual input for {{ preset().label }}: {{ outside() }}. It is still uploaded; pick Mixed/custom if that is intended.
-      </span>
+    @if (files().length) {
+      <div class="row files">
+        @for (f of files(); track f) {
+          <span class="chip file"><app-icon name="description" [size]="14" />{{ f.name }} <button type="button" class="link" (click)="remove(f)" [attr.aria-label]="'Remove ' + f.name">×</button></span>
+        }
+      </div>
     }
-    <div class="row">
+    @if (outside()) {
+      <div class="callout warn" data-testid="outside">
+        <app-icon name="warning" [size]="20" />
+        <div>Not a usual input for {{ preset().label }}: {{ outside() }}. It is still uploaded; pick Mixed/custom if that is intended.</div>
+      </div>
+    }
+
+    <div class="options">
       <mat-checkbox [ngModel]="request().noValues" (ngModelChange)="patch({ noValues: $event })">Don't keep sample values</mat-checkbox>
       <mat-checkbox [ngModel]="request().replace" (ngModelChange)="patch({ replace: $event })">Replace an existing profile with this ID</mat-checkbox>
     </div>
     @if (hasDocuments()) {
-      <div class="row">
-        <mat-checkbox [disabled]="!ai()?.available" [ngModel]="request().useAi" (ngModelChange)="patch({ useAi: $event })" data-testid="use-ai">Let AI read document text</mat-checkbox>
-        <span class="muted" data-testid="ai-note">
-          @if (!ai()?.available) {
-            Field tables in the documents are read by rules. AI is not configured, so text outside the tables is not read.
-          } @else if (request().useAi) {
-            Text outside the field tables is sent to {{ ai()?.provider }} with e-mail addresses and long numbers masked. Fields it finds are capped at {{ ai()?.maxConfidence }}% confidence and marked for review.
-          } @else {
-            Field tables in the documents are read by rules; nothing is sent to AI.
-          }
-        </span>
+      <div class="callout ai">
+        <app-icon name="star_shine" [size]="20" />
+        <div>
+          <mat-checkbox [disabled]="!ai()?.available" [ngModel]="request().useAi" (ngModelChange)="patch({ useAi: $event })" data-testid="use-ai">Let AI read document text</mat-checkbox>
+          <span class="muted" data-testid="ai-note">
+            @if (!ai()?.available) {
+              Field tables in the documents are read by rules. AI is not configured, so text outside the tables is not read.
+            } @else if (request().useAi) {
+              Text outside the field tables is sent to {{ ai()?.provider }} with e-mail addresses and long numbers masked. Fields it finds are capped at {{ ai()?.maxConfidence }}% confidence and marked for review.
+            } @else {
+              Field tables in the documents are read by rules; nothing is sent to AI.
+            }
+          </span>
+        </div>
       </div>
     }
-    <div class="row">
-      <button mat-flat-button type="button" [disabled]="!user.name() || !request().system.trim() || !files().length || busy()" (click)="build()" data-testid="build">Build profile</button>
+    <div class="row submit">
+      <button mat-flat-button type="button" [disabled]="!user.name() || !request().system.trim() || !files().length || busy()" (click)="build()" data-testid="build">
+        @if (busy()) {
+          <mat-spinner diameter="18" class="button-spinner" />
+          Building…
+        } @else {
+          <app-icon name="bolt" [size]="18" /> Build profile
+        }
+      </button>
       @if (!user.name()) {
-        <span class="muted">Enter your name in the toolbar first.</span>
+        <span class="muted">Enter your name in the header first.</span>
+      } @else {
+        <span class="muted">{{ files().length }} file(s) selected</span>
       }
     </div>
   </div>

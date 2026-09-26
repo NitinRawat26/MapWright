@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatTableModule } from '@angular/material/table';
 import { Router, RouterLink } from '@angular/router';
 import { Api } from '../core/api';
+import { Icon } from '../core/icon';
 import { Playbook, PlaybookStatus, PlaybookSummary } from '../core/models';
 import { UserService } from '../core/user';
 import { statusClass, statusLabels } from './status';
@@ -18,6 +19,7 @@ import { statusClass, statusLabels } from './status';
   imports: [
     DatePipe,
     FormsModule,
+    Icon,
     MatButtonModule,
     MatButtonToggleModule,
     MatExpansionModule,
@@ -40,7 +42,20 @@ export class PlaybookList {
   protected readonly status = signal<PlaybookStatus | ''>('');
   protected readonly search = signal('');
   protected readonly all = signal<PlaybookSummary[]>([]);
+  private readonly everything = signal<PlaybookSummary[]>([]);
   protected readonly importText = signal('');
+  protected readonly importOpen = signal(false);
+  protected readonly stats = computed(() => {
+    const list = this.everything();
+    const count = (status: PlaybookStatus) => list.filter((p) => p.status === status).length;
+    return {
+      published: count('published'),
+      draft: count('draft'),
+      inReview: count('inReview'),
+      domain: list.filter((p) => p.kind === 'domain' && p.status !== 'abandoned').length,
+      process: list.filter((p) => p.kind === 'process' && p.status !== 'abandoned').length,
+    };
+  });
 
   /** "All" leaves out abandoned drafts; the Abandoned filter shows them. */
   protected readonly rows = computed(() => {
@@ -75,11 +90,26 @@ export class PlaybookList {
     });
   }
 
+  protected open(p: PlaybookSummary): void {
+    void this.router.navigate(this.link(p));
+  }
+
+  protected openImport(): void {
+    this.importOpen.set(true);
+    setTimeout(() => document.getElementById('add-playbook')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }
+
   protected link(p: PlaybookSummary): string[] {
     return ['/playbooks', ...p.id.split('/'), p.version];
   }
 
   private load(): void {
-    this.api.playbooks(this.status() || undefined).subscribe((list) => this.all.set(list));
+    const status = this.status();
+    this.api.playbooks(status || undefined).subscribe((list) => {
+      this.all.set(list);
+      if (!status) {
+        this.everything.set(list);
+      }
+    });
   }
 }

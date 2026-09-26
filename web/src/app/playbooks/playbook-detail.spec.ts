@@ -29,6 +29,87 @@ const versions = [
 
 const imported = { sequence: 1, id: 'domain/tax-id', version: '1.0.0', actor: 'seed', action: 'imported', to: 'published', occurredAt: '2026-09-25T00:00:00Z' };
 
+const rich = `specVersion: '1.0'
+id: domain/processing-volume
+name: Processing Volume
+kind: domain
+version: '1.0.0'
+status: published
+domain:
+  concept:
+    name: ProcessingVolume
+    attributes:
+      - name: Amount
+        dataType: decimal
+      - name: CardNotPresentShare
+        dataType: decimal
+  vocabulary:
+    - term: monthlyVolume
+    - term: sales
+      relation: broader
+  qualifiers:
+    - name: period
+      values:
+        - value: monthly
+          terms: [monthly]
+        - value: annual
+          terms: [annual, yearly]
+      default: monthly
+  signals:
+    - id: amount-range
+      kind: valueRange
+      minValue: 0
+      maxValue: 100000000
+      weight: 10
+  derivations:
+    - id: annual-to-monthly
+      description: Annual volume divided by twelve
+      output:
+        attribute: Amount
+        qualifiers: { period: monthly }
+      inputs:
+        - name: annual
+          attribute: Amount
+          qualifiers: { period: annual }
+      expression: annual / 12
+      transformation: derived
+      dataLoss: low
+  conditions:
+    - id: risk-tier
+      description: Tier from the card-not-present share
+      output: { attribute: Amount }
+      cases:
+        - when: [{ concept: ProcessingVolume.CardNotPresentShare, in: [high] }]
+          then: tier2
+      otherwise: tier1
+  valueMaps:
+    - id: currencies
+      attribute: Amount
+      values:
+        - code: USD
+          label: US dollar
+          aliases: [us-dollar]
+  validations:
+    - id: positive
+      description: Volume is not negative
+      inputs: [{ name: v, attribute: Amount }]
+      expression: v >= 0
+  confidence:
+    matchThreshold: 55
+  risks:
+    - id: period
+      level: high
+      text: Annual and monthly volumes are easy to mix up.
+  reviewGuidance:
+    - id: ask-period
+      question: Is this monthly or annual?
+  aiGuidance: Volumes are usually monthly.
+  tests:
+    - id: monthly
+      field: { name: monthlyVolume }
+      expect: ProcessingVolume.Amount
+`;
+
 async function open(version: string, status: string, history: object[] = [imported]) {
   const fixture = TestBed.createComponent(PlaybookDetail);
   fixture.componentRef.setInput('kind', 'domain');
@@ -173,5 +254,76 @@ describe('PlaybookDetail', () => {
       '7 | status: published | 7 | status: draft',
       '8 | description: Tax IDs. | 8 | description: Changed.',
     ]);
+  });
+
+  it('shows every section of a domain playbook on the overview', async () => {
+    const fixture = TestBed.createComponent(PlaybookDetail);
+    fixture.componentRef.setInput('kind', 'domain');
+    fixture.componentRef.setInput('slug', 'processing-volume');
+    fixture.componentRef.setInput('version', '1.0.0');
+    fixture.detectChanges();
+    respond('/api/playbooks/domain/processing-volume/1.0.0?format=yaml', rich);
+    respond('/api/playbooks/domain/processing-volume', [{ id: 'domain/processing-volume', version: '1.0.0', status: 'published' }]);
+    respond('/api/playbooks/domain/processing-volume/history', []);
+    await settle(fixture);
+    const root = fixture.nativeElement as HTMLElement;
+
+    for (const section of ['concept', 'vocabulary', 'qualifiers', 'signals', 'derivations', 'conditions', 'valuemaps', 'validations', 'confidence', 'risks', 'review', 'ai', 'tests']) {
+      expect(root.querySelector(`[data-testid="section-${section}"]`), section).not.toBeNull();
+    }
+    expect(text(root, 'section-derivations')).toContain('Amount [period=annual]');
+    expect(text(root, 'section-derivations')).toContain('annual / 12');
+    expect(text(root, 'section-conditions')).toContain('tier2');
+    expect(text(root, 'section-valuemaps')).toContain('us-dollar');
+    expect(text(root, 'section-confidence')).toContain('55');
+    expect(text(root, 'section-ai')).toContain('Volumes are usually monthly.');
+    expect(root.querySelector('[data-testid="section-vocabulary"] .rel-broader')?.textContent?.trim()).toBe('sales');
+    expect([...root.querySelectorAll('[data-testid="contents"] .tile b')].map((b) => b.textContent)).toEqual(['2', '2', '1', '1', '1', '1', '1', '1', '1', '1', '1']);
+  });
+
+  it('shows the inputs, steps, gates, thresholds and outputs of a process playbook', async () => {
+    const fixture = TestBed.createComponent(PlaybookDetail);
+    fixture.componentRef.setInput('kind', 'process');
+    fixture.componentRef.setInput('slug', 'onboard');
+    fixture.componentRef.setInput('version', '1.0.0');
+    fixture.detectChanges();
+    respond('/api/playbooks/process/onboard/1.0.0?format=yaml', `specVersion: '1.0'
+id: process/onboard
+name: Onboard
+kind: process
+version: '1.0.0'
+status: published
+process:
+  inputs:
+    - side: source
+      kinds: [samplePayload, wsdl]
+  steps:
+    - id: ai
+      name: Ask AI
+      kind: aiAssist
+      optional: true
+      maxConfidence: 70
+      gates:
+        - id: cover
+          metric: requiredTargetCoverage
+          operator: lt
+          value: 100
+          action: requireReview
+  thresholds:
+    autoAcceptAt: 90
+    reviewBelow: 90
+    rejectBelow: 30
+  outputs: [json, xlsx]
+`);
+    respond('/api/playbooks/process/onboard', [{ id: 'process/onboard', version: '1.0.0', status: 'published' }]);
+    respond('/api/playbooks/process/onboard/history', []);
+    await settle(fixture);
+    const root = fixture.nativeElement as HTMLElement;
+
+    expect(text(root, 'section-inputs')).toContain('wsdl');
+    expect(text(root, 'section-steps')).toContain('capped at 70%');
+    expect(text(root, 'section-steps')).toContain('requiredTargetCoverage < 100');
+    expect(text(root, 'section-thresholds')).toContain('30%');
+    expect(text(root, 'section-outputs')).toContain('xlsx');
   });
 });

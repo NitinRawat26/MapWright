@@ -9,7 +9,8 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { Api } from '../core/api';
-import { FieldMapping, MappingDocument, MappingSummary, ReviewDecision, ReviewDecisionKind, ReviewStatus } from '../core/models';
+import { Icon } from '../core/icon';
+import { FieldMapping, MappingDocument, MappingOrigin, MappingSummary, ReviewDecision, ReviewDecisionKind, ReviewStatus } from '../core/models';
 import { UserService } from '../core/user';
 import { Replay } from './replay';
 
@@ -19,6 +20,22 @@ export const reviewLabels: Record<ReviewStatus | string, string> = {
   approved: 'Approved',
   rejected: 'Rejected',
   overridden: 'Overridden',
+};
+
+export const originLabels: Record<MappingOrigin, string> = {
+  playbook: 'Playbook',
+  nameMatch: 'Name match',
+  ai: 'AI',
+  reviewer: 'Reviewer',
+  other: 'Other',
+};
+
+const originClasses: Record<MappingOrigin, string> = {
+  playbook: 'good',
+  nameMatch: 'info',
+  ai: 'ai',
+  reviewer: '',
+  other: '',
 };
 
 export const reviewClass: Record<ReviewStatus | string, string> = {
@@ -58,7 +75,7 @@ const cardFilterLabels: Partial<Record<RowFilter, string>> = {
 
 @Component({
   selector: 'app-mapping-detail',
-  imports: [DatePipe, FormsModule, UpperCasePipe, MatButtonModule, MatButtonToggleModule, MatFormFieldModule, MatInputModule, MatTabsModule, Replay, RouterLink],
+  imports: [DatePipe, FormsModule, Icon, UpperCasePipe, MatButtonModule, MatButtonToggleModule, MatFormFieldModule, MatInputModule, MatTabsModule, Replay, RouterLink],
   templateUrl: './mapping-detail.html',
   styleUrl: './mapping-detail.scss',
 })
@@ -70,6 +87,8 @@ export class MappingDetail {
 
   protected readonly labels = reviewLabels;
   protected readonly classes = reviewClass;
+  protected readonly originLabels = originLabels;
+  protected readonly originClasses = originClasses;
   protected readonly mapping = signal<MappingDocument | null>(null);
   protected readonly summary = signal<MappingSummary | null>(null);
   protected readonly reviews = signal<ReviewDecision[]>([]);
@@ -127,6 +146,20 @@ export class MappingDetail {
       case 'rejected':
         return status === 'rejected';
     }
+  }
+
+  /** What produced a row, in the same order as the server's summary: AI, playbook, name match, reviewer. */
+  protected origin(row: FieldMapping): MappingOrigin | null {
+    if (row.type === 'unmapped') {
+      return null;
+    }
+    const has = (kind: string) => row.evidence?.some((e) => e.kind === kind) ?? false;
+    return has('aiSuggestion') ? 'ai' : has('playbook') ? 'playbook' : has('nameSimilarity') ? 'nameMatch' : has('reviewer') ? 'reviewer' : 'other';
+  }
+
+  protected band(row: FieldMapping): 'high' | 'medium' | 'low' {
+    const policy = this.mapping()?.confidencePolicy;
+    return !policy || row.confidencePercent >= policy.highThreshold ? 'high' : row.confidencePercent >= policy.mediumThreshold ? 'medium' : 'low';
   }
 
   protected aiProvider(row: FieldMapping): string | null {

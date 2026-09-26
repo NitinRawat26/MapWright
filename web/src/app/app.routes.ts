@@ -14,5 +14,6 @@ export const routes: Routes = [
   { path: 'mappings', loadComponent: () => import('./mappings/mapping-list').then((m) => m.MappingList), title: 'Mappings · MapWright' },
   { path: 'mappings/:id', loadComponent: () => import('./mappings/mapping-detail').then((m) => m.MappingDetail), title: 'Mapping · MapWright' },
   { path: 'suggestions', loadComponent: () => import('./suggestions/suggestion-list').then((m) => m.SuggestionList), title: 'AI suggestions · MapWright' },
+  { path: 'settings', loadComponent: () => import('./settings/settings').then((m) => m.SettingsPage), title: 'Settings · MapWright' },
   { path: '**', redirectTo: '' },
 ];

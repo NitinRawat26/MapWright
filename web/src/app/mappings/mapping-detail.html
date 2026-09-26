@@ -1,26 +1,37 @@
 <div class="page">
-  <a routerLink="/mappings" class="muted back">← Mappings</a>
+  <a routerLink="/mappings" class="muted back"><app-icon name="chevron_right" [size]="16" class="flip" /> Mappings</a>
   @if (mapping(); as m) {
-    <h1>{{ m.title }}</h1>
-    <div class="row muted">
-      <span class="mono">{{ m.id }}</span><span>Version {{ m.version }}</span>
-      <span>{{ m.source.name }} ({{ m.source.format | uppercase }}) → {{ m.target.name }} ({{ m.target.format | uppercase }})</span>
-      <span class="spacer"></span>
-      <a mat-stroked-button [href]="exportUrl('xlsx')" download data-testid="export-xlsx">Excel</a>
-      <a mat-stroked-button [href]="exportUrl('csv')" download>CSV</a>
-      <a mat-stroked-button [href]="exportUrl('html')" target="_blank">HTML report</a>
-      <a mat-stroked-button [href]="exportUrl('pdf')" download data-testid="export-pdf">PDF</a>
+    <div class="page-head">
+      <span class="icon-badge big"><app-icon name="account_tree" [size]="24" /></span>
+      <div>
+        <h1>{{ m.title }}</h1>
+        <div class="meta">
+          <span class="mono">{{ m.id }}</span><span class="chip">Version {{ m.version }}</span>
+          <div class="flow">
+            <span class="node">{{ m.source.name }} · {{ m.source.format | uppercase }}</span>
+            <app-icon name="arrow_forward" [size]="16" />
+            <span class="node target">{{ m.target.name }} · {{ m.target.format | uppercase }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="head-actions exports">
+        <a mat-stroked-button [href]="exportUrl('xlsx')" download data-testid="export-xlsx"><app-icon name="table_chart" [size]="18" /> Excel</a>
+        <a mat-stroked-button [href]="exportUrl('csv')" download><app-icon name="download" [size]="18" /> CSV</a>
+        <a mat-stroked-button [href]="exportUrl('html')" target="_blank"><app-icon name="open_in_new" [size]="18" /> HTML report</a>
+        <a mat-stroked-button [href]="exportUrl('pdf')" download data-testid="export-pdf"><app-icon name="description" [size]="18" /> PDF</a>
+      </div>
     </div>
 
     @if (summary(); as s) {
-      <div class="cards" data-testid="summary">
-        <div class="card">
-          <div class="muted">Target fields mapped</div>
+      <div class="stats" data-testid="summary">
+        <div class="stat-card">
+          <div class="label"><app-icon name="conversion_path" [size]="16" /> Target fields mapped</div>
           <div class="value"><button type="button" class="stat" [class.active]="filter() === 'mapped'" (click)="show('mapped')" title="Show the mapped rows" data-testid="card-mapped">{{ s.mappedTargetFields }}</button> / <button type="button" class="stat" [class.active]="filter() === 'all'" (click)="show('all')" title="Show all rows" data-testid="card-all">{{ s.totalTargetFields }}</button></div>
+          <span class="bar"><i [style.width.%]="s.totalTargetFields ? (100 * s.mappedTargetFields) / s.totalTargetFields : 0"></i></span>
           <div class="muted"><button type="button" class="stat" [class.active]="filter() === 'unmapped'" (click)="show('unmapped')" data-testid="card-unmapped">{{ s.unmappedTargetFields }} unmapped</button></div>
         </div>
-        <div class="card">
-          <div class="muted">Required coverage</div>
+        <div class="stat-card">
+          <div class="label"><app-icon name="verified" [size]="16" /> Required coverage</div>
           <div class="value"><button type="button" class="stat" [class.active]="filter() === 'required'" (click)="show('required')" title="Show the required target fields" data-testid="card-required">{{ s.requiredCoveragePercent }}%</button></div>
           <div class="muted">{{ s.requiredTargetFieldsMapped }} of {{ s.requiredTargetFields }}
             @if (s.requiredTargetFields > s.requiredTargetFieldsMapped) {
@@ -28,8 +39,8 @@
             }
           </div>
         </div>
-        <div class="card">
-          <div class="muted">Confidence</div>
+        <div class="stat-card">
+          <div class="label"><app-icon name="lightbulb" [size]="16" /> Confidence</div>
           <div class="value">
             <button type="button" class="stat" [class.active]="filter() === 'high'" (click)="show('high')" title="Show high-confidence rows" data-testid="card-high">{{ s.byConfidenceBand.high }}</button> ·
             <button type="button" class="stat" [class.active]="filter() === 'medium'" (click)="show('medium')" title="Show medium-confidence rows" data-testid="card-medium">{{ s.byConfidenceBand.medium }}</button> ·
@@ -37,28 +48,30 @@
           </div>
           <div class="muted">high · medium · low</div>
         </div>
-        <div class="card">
-          <div class="muted">Needs review</div>
+        <div class="stat-card">
+          <div class="label"><app-icon name="schedule" [size]="16" /> Needs review</div>
           <div class="value"><button type="button" class="stat" [class.active]="filter() === 'open'" (click)="show('open')" title="Show the rows that need review" data-testid="needs-review">{{ s.byReviewStatus.needsReview }}</button></div>
           <div class="muted">
             <button type="button" class="stat" [class.active]="filter() === 'approved'" (click)="show('approved')" data-testid="card-approved">{{ s.byReviewStatus.approved + s.byReviewStatus.overridden }} approved</button>,
             <button type="button" class="stat" [class.active]="filter() === 'rejected'" (click)="show('rejected')" data-testid="card-rejected">{{ s.byReviewStatus.rejected }} rejected</button>
           </div>
         </div>
-        <div class="card">
-          <div class="muted">Findings</div>
+        <div class="stat-card">
+          <div class="label"><app-icon name="warning" [size]="16" /> Findings</div>
           <div class="value"><button type="button" class="stat" (click)="tab.set(1)" title="Open the findings" data-testid="card-findings">{{ s.conflicts + s.assumptions }}</button></div>
           <div class="muted">{{ s.conflicts }} conflicts, {{ s.assumptions }} assumptions</div>
         </div>
-        <div class="card">
-          <div class="muted">Unused source fields</div>
+        <div class="stat-card">
+          <div class="label"><app-icon name="call_split" [size]="16" /> Unused source fields</div>
           <div class="value"><button type="button" class="stat" (click)="tab.set(2)" title="Open the unused source fields" data-testid="card-orphans">{{ s.orphanSourceFields }}</button></div>
         </div>
       </div>
     }
 
     @if (m.aiPass; as ai) {
-      <div class="ai-pass" data-testid="ai-pass">
+      <div class="callout ai" data-testid="ai-pass">
+        <span class="icon-badge ai"><app-icon name="star_shine" [size]="18" /></span>
+        <div>
         <div>
           AI ({{ ai.provider }}, capped at {{ ai.maxConfidence }}%) suggested sources for {{ ai.suggestedRows?.length ?? 0 }} row(s);
           {{ ai.unmatched?.length ?? 0 }} target field(s) were still unmatched.
@@ -72,9 +85,11 @@
         @for (w of ai.warnings ?? []; track $index) {
           <div class="warn-text" data-testid="ai-warning">{{ w }}</div>
         }
+        </div>
       </div>
     }
 
+    <div class="card tabs">
     <mat-tab-group animationDuration="0ms" [selectedIndex]="tab()" (selectedIndexChange)="tab.set($event); $event === 4 && loadReviews()">
       <mat-tab label="Rows">
         <div class="tab">
@@ -96,8 +111,11 @@
               <button mat-button type="button" (click)="show('all')" data-testid="clear-filter">Show all</button>
             }
           </div>
-          <table class="plain wide" data-testid="rows">
-            <tr><th>ID</th><th>Target</th><th>Source</th><th>Transformation</th><th>Confidence</th><th>Review</th></tr>
+          <table class="grid" data-testid="rows">
+            <thead>
+              <tr><th>ID</th><th>Target</th><th>Source</th><th>Transformation</th><th>Confidence</th><th>Mapped by</th><th>Review</th></tr>
+            </thead>
+            <tbody>
             @for (r of rows(); track r.id) {
               <tr class="clickable" [class.selected]="selected() === r.id" (click)="select(r)" [attr.data-row]="r.id">
                 <td class="mono">{{ r.id }}</td>
@@ -111,16 +129,35 @@
                 </td>
                 <td>{{ r.type === 'unmapped' ? '—' : (r.transformation.rule ?? r.transformation.type) }}</td>
                 <td>
-                  {{ r.confidencePercent }}%
+                  <span class="confidence">
+                    <span class="bar"><i [class]="band(r)" [style.width.%]="r.confidencePercent"></i></span>{{ r.confidencePercent }}%
+                  </span>
+                </td>
+                <td>
                   @if (aiProvider(r); as provider) {
                     <span class="chip ai" [title]="'Suggested by ' + provider + '; check it before relying on it'" data-testid="ai-row">AI</span>
+                  } @else if (origin(r); as o) {
+                    <span class="chip" [class]="originClasses[o]">{{ originLabels[o] }}</span>
+                  } @else {
+                    <span class="muted">—</span>
                   }
                 </td>
                 <td><span class="chip" [class]="classes[r.review.status]">{{ labels[r.review.status] }}</span></td>
               </tr>
               @if (selected() === r.id) {
                 <tr>
-                  <td colspan="6" class="detail" data-testid="row-detail">
+                  <td colspan="7" class="detail" data-testid="row-detail">
+                    <div class="flow detail-flow">
+                      @for (src of r.sources; track src.path) {
+                        <span class="node">{{ src.path }}</span>
+                      } @empty {
+                        <span class="node muted">no source</span>
+                      }
+                      <app-icon name="arrow_forward" [size]="16" />
+                      <span class="chip info">{{ r.transformation.type }}</span>
+                      <app-icon name="arrow_forward" [size]="16" />
+                      <span class="node target">{{ r.target.path }}</span>
+                    </div>
                     <dl>
                       <dt>Why</dt><dd>{{ r.reasoning }}</dd>
                       @if (r.businessConcept) {
@@ -163,13 +200,13 @@
                       </mat-form-field>
                     </div>
                     <div class="row">
-                      <button mat-flat-button type="button" [disabled]="!user.name() || busy()" (click)="decide('approve')" data-testid="approve">Approve</button>
-                      <button mat-stroked-button type="button" [disabled]="!user.name() || busy()" (click)="decide('reject')" data-testid="reject">Reject</button>
+                      <button mat-flat-button type="button" [disabled]="!user.name() || busy()" (click)="decide('approve')" data-testid="approve"><app-icon name="check" [size]="18" /> Approve</button>
+                      <button mat-stroked-button type="button" [disabled]="!user.name() || busy()" (click)="decide('reject')" data-testid="reject"><app-icon name="close" [size]="18" /> Reject</button>
                       @if (!override()) {
-                        <button mat-stroked-button type="button" (click)="editOverride(r)" data-testid="edit-override">Override…</button>
+                        <button mat-stroked-button type="button" (click)="editOverride(r)" data-testid="edit-override"><app-icon name="edit" [size]="18" /> Override…</button>
                       }
                       @if (!user.name()) {
-                        <span class="muted">Enter your name in the toolbar to review.</span>
+                        <span class="muted">Enter your name in the header to review.</span>
                       }
                     </div>
                     @if (override()) {
@@ -187,14 +224,15 @@
                 </tr>
               }
             }
+            </tbody>
           </table>
         </div>
       </mat-tab>
       <mat-tab [label]="'Findings (' + (m.findings?.length ?? 0) + ')'">
         <div class="tab">
-          <table class="plain wide">
+          <table class="grid">
             @for (f of m.findings ?? []; track f.id) {
-              <tr><td class="mono">{{ f.id }}</td><td>{{ f.kind }}</td><td>{{ f.description }}@if (f.resolution) {<div class="muted">{{ f.resolution }}</div>}</td><td class="mono">{{ f.mappingIds?.join(', ') }}</td></tr>
+              <tr><td class="mono">{{ f.id }}</td><td><span class="chip" [class.bad]="f.kind === 'conflict'" [class.warn]="f.kind !== 'conflict'">{{ f.kind }}</span></td><td>{{ f.description }}@if (f.resolution) {<div class="muted">{{ f.resolution }}</div>}</td><td class="mono">{{ f.mappingIds?.join(', ') }}</td></tr>
             } @empty {
               <tr><td class="muted">No findings.</td></tr>
             }
@@ -203,9 +241,11 @@
       </mat-tab>
       <mat-tab [label]="'Unused source fields (' + (m.orphanSourceFields?.length ?? 0) + ')'">
         <div class="tab">
-          <table class="plain wide">
+          <table class="grid">
             @for (o of m.orphanSourceFields ?? []; track o.field.path) {
-              <tr><td class="mono">{{ o.field.path }}</td><td>{{ o.field.dataType }}</td><td>{{ o.suggestedResolution }}</td></tr>
+              <tr><td class="mono">{{ o.field.path }}</td><td><span class="chip info">{{ o.field.dataType }}</span></td><td>{{ o.suggestedResolution }}</td></tr>
+            } @empty {
+              <tr><td class="muted">Every source field is used.</td></tr>
             }
           </table>
         </div>
@@ -217,10 +257,10 @@
       </mat-tab>
       <mat-tab label="Review history">
         <div class="tab">
-          <table class="plain wide" data-testid="reviews">
+          <table class="grid" data-testid="reviews">
             <tr><th>When</th><th>Who</th><th>Row</th><th>Decision</th><th>Was</th><th>Comment</th></tr>
             @for (d of reviews(); track d.sequence) {
-              <tr><td>{{ d.decidedAt | date: 'medium' }}</td><td>{{ d.reviewer }}</td><td class="mono">{{ d.rowId }}</td><td>{{ d.decision }}</td><td>{{ labels[d.previousStatus] }}</td><td>{{ d.comment }}</td></tr>
+              <tr><td>{{ d.decidedAt | date: 'medium' }}</td><td>{{ d.reviewer }}</td><td class="mono">{{ d.rowId }}</td><td><span class="chip" [class.good]="d.decision === 'approve'" [class.bad]="d.decision === 'reject'" [class.info]="d.decision === 'override'">{{ d.decision }}</span></td><td>{{ labels[d.previousStatus] }}</td><td>{{ d.comment }}</td></tr>
             } @empty {
               <tr><td colspan="6" class="muted">No decisions yet.</td></tr>
             }
@@ -228,5 +268,6 @@
         </div>
       </mat-tab>
     </mat-tab-group>
+    </div>
   }
 </div>

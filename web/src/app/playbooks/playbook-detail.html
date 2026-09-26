@@ -1,19 +1,24 @@
 <div class="page">
-  <a routerLink="/playbooks" class="muted back">← Playbooks</a>
+  <a routerLink="/playbooks" class="muted back"><app-icon name="chevron_right" [size]="16" class="flip" /> Playbooks</a>
   @if (playbook(); as p) {
-    <div class="row header">
-      <h1>{{ p.name }}</h1>
-      <span class="chip" [class]="classes[p.status]" data-testid="status">{{ labels[p.status] }}</span>
-    </div>
-    <div class="row muted">
-      <span class="mono">{{ p.id }}&#64;{{ p.version }}</span>
-      <span>{{ p.kind }} playbook</span>
-      @if (p.owner) {
-        <span>Owner: {{ p.owner }}</span>
-      }
+    <div class="page-head">
+      <span class="icon-badge big"><app-icon [name]="p.kind === 'process' ? 'conversion_path' : 'menu_book'" [size]="24" /></span>
+      <div>
+        <div class="row header">
+          <h1>{{ p.name }}</h1>
+          <span class="chip" [class]="classes[p.status]" data-testid="status">{{ labels[p.status] }}</span>
+        </div>
+        <div class="meta">
+          <span class="mono">{{ p.id }}&#64;{{ p.version }}</span>
+          <span class="chip info">{{ p.kind }} playbook</span>
+          @if (p.owner) {
+            <span><app-icon name="person" [size]="14" /> {{ p.owner }}</span>
+          }
+        </div>
+      </div>
     </div>
     <div class="row versions" data-testid="versions">
-      Versions:
+      <span class="muted">Versions:</span>
       @for (v of versions(); track v.version) {
         <a [routerLink]="['/playbooks', kind(), slug(), v.version]" class="chip" [class]="classes[v.status]" [class.current]="v.version === version()">
           {{ v.version }} · {{ labels[v.status] }}
@@ -24,11 +29,11 @@
     <div class="actions">
       <div class="row">
         @if (isDraft()) {
-          <button mat-flat-button type="button" [disabled]="!dirty() || !!parseError() || !canWrite()" (click)="save()" data-testid="save">Save draft</button>
+          <button mat-flat-button type="button" [disabled]="!dirty() || !!parseError() || !canWrite()" (click)="save()" data-testid="save"><app-icon name="check" [size]="18" /> Save draft</button>
           <button mat-stroked-button type="button" [disabled]="!dirty()" (click)="revert()">Discard changes</button>
         }
-        <button mat-stroked-button type="button" [disabled]="busy() || !!parseError()" (click)="validate(); tab.set(2)" data-testid="validate">Validate</button>
-        <button mat-stroked-button type="button" [disabled]="busy() || !!parseError()" (click)="test(); tab.set(2)" data-testid="test">Run tests</button>
+        <button mat-stroked-button type="button" [disabled]="busy() || !!parseError()" (click)="validate(); tab.set(2)" data-testid="validate"><app-icon name="rule" [size]="18" /> Validate</button>
+        <button mat-stroked-button type="button" [disabled]="busy() || !!parseError()" (click)="test(); tab.set(2)" data-testid="test"><app-icon name="science" [size]="18" /> Run tests</button>
       </div>
       <div class="row">
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="note">
@@ -54,7 +59,7 @@
         }
       </div>
       @if (!user.name()) {
-        <div class="muted">Enter your name in the toolbar to save or change status.</div>
+        <div class="muted">Enter your name in the header to save or change status.</div>
       } @else if (dirty()) {
         <div class="muted">Save or discard your changes before changing the status.</div>
       } @else if (canDelete()) {
@@ -64,59 +69,414 @@
       }
     </div>
 
+    <div class="card tabs">
     <mat-tab-group [selectedIndex]="tab()" (selectedIndexChange)="tab.set($event)" animationDuration="0ms">
       <mat-tab label="Overview">
-        <div class="tab">
+        <div class="tab overview">
           @if (p.description) {
-            <p>{{ p.description }}</p>
+            <p class="lead">{{ p.description }}</p>
           }
           @if (p.domain; as d) {
-            <h2>Concept: {{ d.concept.name }}</h2>
-            @if (d.concept.description) {
-              <p class="muted">{{ d.concept.description }}</p>
-            }
-            <table class="plain">
-              <tr><th>Attribute</th><th>Type</th><th>Sensitivity</th><th>Description</th></tr>
-              @for (a of d.concept.attributes; track a.name) {
-                <tr><td class="mono">{{ a.name }}</td><td>{{ a.dataType ?? 'string' }}</td><td>{{ a.sensitivity ?? 'none' }}</td><td>{{ a.description }}</td></tr>
-              }
-            </table>
-            <h2>Vocabulary</h2>
-            <div class="row terms">
-              @for (t of d.vocabulary ?? []; track $index) {
-                <span class="chip" [title]="(t.appliesTo ?? d.concept.name) + ' · ' + (t.relation ?? 'equivalent')">{{ t.term }}</span>
-              }
-            </div>
-            <h2>Contents</h2>
-            <div class="row">
+            <div class="contents" data-testid="contents">
               @for (c of counts(); track c[0]) {
-                <span class="chip">{{ c[0] }}: {{ c[1] }}</span>
+                <a class="tile" [href]="'#' + c[2]" (click)="jump($event, c[2])"><b>{{ c[1] }}</b><span>{{ c[0] }}</span></a>
               }
             </div>
-            @if (d.risks?.length) {
-              <h2>Risks</h2>
-              <ul>
-                @for (r of d.risks; track r.id) {
-                  <li><b>{{ r.level }}</b> {{ r.text }}</li>
+
+            <section class="card" id="pb-concept" data-testid="section-concept">
+              <h3 class="section-title"><app-icon name="school" [size]="18" /> Concept: {{ d.concept.name }} <span class="chip">{{ d.concept.cardinality ?? 'single' }}</span></h3>
+              @if (d.concept.description) {
+                <p class="muted">{{ d.concept.description }}</p>
+              }
+              <table class="grid">
+                <thead>
+                  <tr><th>Attribute</th><th>Type</th><th>Sensitivity</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                  @for (a of d.concept.attributes; track a.name) {
+                    <tr>
+                      <td class="mono">{{ a.name }}@if (a.requiresContext) {<span class="chip warn" title="Only recognised with surrounding context">context</span>}</td>
+                      <td><span class="chip info">{{ a.dataType ?? 'string' }}</span></td>
+                      <td>
+                        @if ((a.sensitivity ?? 'none') !== 'none') {
+                          <span class="chip bad"><app-icon name="lock" [size]="12" /> {{ a.sensitivity }}</span>
+                        } @else {
+                          <span class="muted">none</span>
+                        }
+                      </td>
+                      <td>{{ a.description }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </section>
+
+            <section class="card" id="pb-vocabulary" data-testid="section-vocabulary">
+              <h3 class="section-title"><app-icon name="translate" [size]="18" /> Vocabulary <span class="count">{{ d.vocabulary?.length ?? 0 }} terms</span></h3>
+              <p class="muted">Names other systems use for this concept. Equivalent terms score highest; narrower, broader and related terms need review.</p>
+              <div class="row terms">
+                @for (t of d.vocabulary ?? []; track $index) {
+                  <span class="chip term" [class]="'rel-' + (t.relation ?? 'equivalent')" [title]="(t.appliesTo ?? d.concept.name) + ' · ' + (t.relation ?? 'equivalent') + (t.note ? ' · ' + t.note : '')">{{ t.term }}</span>
+                } @empty {
+                  <span class="muted">No terms.</span>
+                }
+              </div>
+              <div class="legend muted">
+                <span class="chip term rel-equivalent">equivalent</span><span class="chip term rel-narrower">narrower</span><span class="chip term rel-broader">broader</span><span class="chip term rel-related">related</span>
+              </div>
+            </section>
+
+            @if (d.qualifiers?.length) {
+              <section class="card" id="pb-qualifiers" data-testid="section-qualifiers">
+                <h3 class="section-title"><app-icon name="label" [size]="18" /> Qualifiers <span class="count">{{ d.qualifiers?.length }}</span></h3>
+                <table class="grid">
+                  <thead>
+                    <tr><th>Qualifier</th><th>Values</th><th>Default</th><th>Applies to</th></tr>
+                  </thead>
+                  <tbody>
+                    @for (q of d.qualifiers; track q.name) {
+                      <tr>
+                        <td><b class="mono">{{ q.name }}</b><div class="muted">{{ q.description }}</div></td>
+                        <td>
+                          @for (v of q.values; track v.value) {
+                            <div><span class="chip">{{ v.value }}</span> <span class="muted">{{ v.terms?.join(', ') }}{{ range(v.minValue, v.maxValue) }}</span></div>
+                          }
+                        </td>
+                        <td class="mono">{{ q.default ?? '—' }}</td>
+                        <td class="mono">{{ q.appliesTo?.join(', ') || 'all attributes' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </section>
+            }
+
+            @if (d.signals?.length) {
+              <section class="card" id="pb-signals" data-testid="section-signals">
+                <h3 class="section-title"><app-icon name="bolt" [size]="18" /> Detection signals <span class="count">{{ d.signals?.length }}</span></h3>
+                <table class="grid">
+                  <thead>
+                    <tr><th>Signal</th><th>Kind</th><th>Looks for</th><th>Weight</th><th>Applies to</th></tr>
+                  </thead>
+                  <tbody>
+                    @for (g of d.signals; track g.id) {
+                      <tr>
+                        <td class="mono">{{ g.id }}<div class="muted">{{ g.note }}</div></td>
+                        <td><span class="chip info">{{ g.kind }}</span></td>
+                        <td class="mono">{{ g.pattern ?? '' }}{{ range(g.minValue, g.maxValue) }}</td>
+                        <td><b>+{{ g.weight }}</b></td>
+                        <td class="mono">{{ g.appliesTo ?? d.concept.name }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </section>
+            }
+
+            @if (d.derivations?.length) {
+              <section class="card" id="pb-derivations" data-testid="section-derivations">
+                <h3 class="section-title"><app-icon name="functions" [size]="18" /> Derivations <span class="count">{{ d.derivations?.length }}</span></h3>
+                @for (r of d.derivations; track r.id) {
+                  <div class="rule">
+                    <div class="rule-head">
+                      <b>{{ r.description }}</b>
+                      <span class="mono muted">{{ r.id }}</span>
+                      <span class="chip info">{{ r.transformation }}</span>
+                      @if (r.dataLoss && r.dataLoss !== 'none') {
+                        <span class="chip warn">data loss {{ r.dataLoss }}</span>
+                      }
+                      @if (r.requiresReview) {
+                        <span class="chip warn">needs review</span>
+                      }
+                    </div>
+                    <div class="flow">
+                      @for (i of r.inputs; track i.name) {
+                        <span class="node" [title]="i.name">{{ ref(i) }}</span>
+                      }
+                      <app-icon name="arrow_forward" [size]="16" />
+                      <span class="node target">{{ ref(r.output) }}</span>
+                    </div>
+                    @if (r.expression) {
+                      <code class="expr">{{ r.expression }}</code>
+                    }
+                    @if (r.note) {
+                      <div class="muted">{{ r.note }}</div>
+                    }
+                  </div>
+                }
+              </section>
+            }
+
+            @if (d.conditions?.length) {
+              <section class="card" id="pb-conditions" data-testid="section-conditions">
+                <h3 class="section-title"><app-icon name="call_split" [size]="18" /> Conditional rules <span class="count">{{ d.conditions?.length }}</span></h3>
+                @for (c of d.conditions; track c.id) {
+                  <div class="rule">
+                    <div class="rule-head"><b>{{ c.description }}</b> <span class="mono muted">{{ c.id }}</span> <span class="muted">sets</span> <span class="node target mono">{{ ref(c.output) }}</span></div>
+                    <table class="plain">
+                      @for (k of c.cases; track $index) {
+                        <tr>
+                          <td class="muted">when</td>
+                          <td>
+                            @for (w of k.when; track $index) {
+                              <div><span class="mono">{{ w.concept }}</span> in <span class="mono">{{ w.in.join(', ') }}</span></div>
+                            }
+                          </td>
+                          <td class="muted">then</td>
+                          <td><span class="chip good">{{ k.then }}</span></td>
+                        </tr>
+                      }
+                      @if (c.otherwise) {
+                        <tr><td class="muted" colspan="3">otherwise</td><td><span class="chip">{{ c.otherwise }}</span></td></tr>
+                      }
+                    </table>
+                  </div>
+                }
+              </section>
+            }
+
+            @if (d.valueMaps?.length) {
+              <section class="card" id="pb-valuemaps" data-testid="section-valuemaps">
+                <h3 class="section-title"><app-icon name="swap_horiz" [size]="18" /> Value maps <span class="count">{{ d.valueMaps?.length }}</span></h3>
+                @for (v of d.valueMaps; track v.id) {
+                  <div class="rule">
+                    <div class="rule-head"><b class="mono">{{ v.attribute }}</b> <span class="mono muted">{{ v.id }}</span></div>
+                    <table class="grid">
+                      <thead>
+                        <tr><th>Code</th><th>Label</th><th>Also written as</th></tr>
+                      </thead>
+                      <tbody>
+                        @for (c of v.values; track c.code) {
+                          <tr><td class="mono"><b>{{ c.code }}</b></td><td>{{ c.label }}</td><td class="mono muted">{{ c.aliases?.join(', ') }}</td></tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+              </section>
+            }
+
+            @if (d.validations?.length) {
+              <section class="card" id="pb-validations" data-testid="section-validations">
+                <h3 class="section-title"><app-icon name="rule" [size]="18" /> Validation rules <span class="count">{{ d.validations?.length }}</span></h3>
+                @for (v of d.validations; track v.id) {
+                  <div class="rule">
+                    <div class="rule-head">
+                      <b>{{ v.description }}</b> <span class="mono muted">{{ v.id }}</span>
+                      <span class="chip" [class.bad]="(v.severity ?? 'error') === 'error'" [class.warn]="v.severity === 'warning'">{{ v.severity ?? 'error' }}</span>
+                    </div>
+                    <code class="expr">{{ v.expression }}</code>
+                    <div class="muted">
+                      @for (i of v.inputs; track i.name) {
+                        <span class="mono">{{ i.name }} = {{ ref(i) }}</span>{{ $last ? '' : ' · ' }}
+                      }
+                    </div>
+                  </div>
+                }
+              </section>
+            }
+
+            <div class="two-col">
+              <section class="card" id="pb-confidence" data-testid="section-confidence">
+                <h3 class="section-title"><app-icon name="verified" [size]="18" /> Confidence</h3>
+                <dl class="kv">
+                  <dt>Equivalent term</dt><dd>{{ d.confidence?.equivalentTermPoints ?? 60 }} points</dd>
+                  <dt>Narrower term</dt><dd>{{ d.confidence?.narrowerTermPoints ?? 45 }} points</dd>
+                  <dt>Broader term</dt><dd>{{ d.confidence?.broaderTermPoints ?? 40 }} points</dd>
+                  <dt>Related term</dt><dd>{{ d.confidence?.relatedTermPoints ?? 35 }} points</dd>
+                  <dt>Context</dt><dd>{{ d.confidence?.contextPoints ?? 25 }} points</dd>
+                  <dt>Match threshold</dt><dd><b>{{ d.confidence?.matchThreshold ?? 50 }}</b></dd>
+                  @if (d.confidence?.reviewTriggers?.length) {
+                    <dt>Review when</dt>
+                    <dd>
+                      @for (t of d.confidence?.reviewTriggers; track t) {
+                        <span class="chip warn">{{ t }}</span>
+                      }
+                    </dd>
+                  }
+                </dl>
+              </section>
+
+              <section class="card" id="pb-risks" data-testid="section-risks">
+                <h3 class="section-title"><app-icon name="shield" [size]="18" /> Risks <span class="count">{{ d.risks?.length ?? 0 }}</span></h3>
+                @for (r of d.risks ?? []; track r.id) {
+                  <div class="risk">
+                    <span class="chip" [class.bad]="r.level === 'high'" [class.warn]="r.level === 'medium'" [class.info]="r.level === 'low'">{{ r.level }}</span>
+                    <div>{{ r.text }}@if (r.appliesTo) {<div class="mono muted">{{ r.appliesTo }}</div>}</div>
+                  </div>
+                } @empty {
+                  <p class="muted">No risks recorded.</p>
+                }
+              </section>
+            </div>
+
+            <div class="two-col">
+              <section class="card" id="pb-review" data-testid="section-review">
+                <h3 class="section-title"><app-icon name="fact_check" [size]="18" /> Review guidance <span class="count">{{ d.reviewGuidance?.length ?? 0 }}</span></h3>
+                @for (q of d.reviewGuidance ?? []; track q.id) {
+                  <div class="risk">
+                    <app-icon name="help" [size]="18" />
+                    <div>
+                      {{ q.question }}
+                      <div class="muted">
+                        @if (q.when) {
+                          when <span class="chip warn">{{ q.when }}</span>
+                        }
+                        @if (q.appliesTo) {
+                          <span class="mono">{{ q.appliesTo }}</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                } @empty {
+                  <p class="muted">No review questions.</p>
+                }
+              </section>
+
+              <section class="card ai-guidance" id="pb-ai" data-testid="section-ai">
+                <h3 class="section-title"><app-icon name="star_shine" [size]="18" /> AI guidance</h3>
+                @if (d.aiGuidance) {
+                  <p class="pre">{{ d.aiGuidance }}</p>
+                } @else {
+                  <p class="muted">None. AI gets only the concept, attributes and vocabulary.</p>
+                }
+              </section>
+            </div>
+
+            @if (d.tests?.length) {
+              <section class="card" id="pb-tests" data-testid="section-tests">
+                <h3 class="section-title"><app-icon name="science" [size]="18" /> Tests <span class="count">{{ d.tests?.length }}</span></h3>
+                <table class="grid">
+                  <thead>
+                    <tr><th>Test</th><th>Field</th><th>Expects</th></tr>
+                  </thead>
+                  <tbody>
+                    @for (t of d.tests; track t.id) {
+                      <tr>
+                        <td class="mono">{{ t.id }}<div class="muted">{{ t.description }}</div></td>
+                        <td class="mono">{{ t.field.path ?? t.field.name }}</td>
+                        <td>
+                          @if (t.expect) {
+                            <span class="chip good">{{ t.expect }}</span>
+                          } @else {
+                            <span class="chip">no match</span>
+                          }
+                          @for (e of entries(t.expectQualifiers); track e[0]) {
+                            <span class="chip">{{ e[0] }}={{ e[1] }}</span>
+                          }
+                          @if (t.minScore) {
+                            <span class="muted">score ≥ {{ t.minScore }}</span>
+                          }
+                          @if (t.expectReview !== undefined && t.expectReview !== null) {
+                            <span class="chip warn">{{ t.expectReview ? 'needs review' : 'no review' }}</span>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </section>
+            }
+          }
+
+          @if (p.process; as pr) {
+            @if (pr.inputs?.length) {
+              <section class="card" data-testid="section-inputs">
+                <h3 class="section-title"><app-icon name="upload_file" [size]="18" /> Inputs</h3>
+                <table class="grid">
+                  <thead>
+                    <tr><th>Side</th><th>Accepted kinds</th><th>At least</th><th>Note</th></tr>
+                  </thead>
+                  <tbody>
+                    @for (i of pr.inputs; track $index) {
+                      <tr>
+                        <td><span class="chip info">{{ i.side }}</span></td>
+                        <td>
+                          @for (k of i.kinds; track k) {
+                            <span class="chip">{{ k }}</span>
+                          }
+                        </td>
+                        <td>{{ i.minCount ?? 1 }}</td>
+                        <td>{{ i.note }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </section>
+            }
+            @if (pr.steps?.length) {
+              <section class="card" data-testid="section-steps">
+                <h3 class="section-title"><app-icon name="conversion_path" [size]="18" /> Steps</h3>
+                <ol class="steps">
+                  @for (s of pr.steps; track s.id) {
+                    <li>
+                      <div class="rule-head">
+                        <b>{{ s.name }}</b> <span class="chip info">{{ s.kind }}</span>
+                        @if (s.optional) {
+                          <span class="chip">optional</span>
+                        }
+                        @if (s.maxConfidence) {
+                          <span class="chip ai">capped at {{ s.maxConfidence }}%</span>
+                        }
+                      </div>
+                      @if (s.description) {
+                        <div class="muted">{{ s.description }}</div>
+                      }
+                      @if (s.uses?.length) {
+                        <div class="row terms">
+                          @for (u of s.uses; track u) {
+                            <span class="chip mono">{{ u }}</span>
+                          }
+                        </div>
+                      }
+                      @for (g of s.gates ?? []; track g.id) {
+                        <div class="gate">
+                          <span class="chip" [class.bad]="g.action === 'stop'" [class.warn]="g.action !== 'stop'">{{ g.action }}</span>
+                          <span class="mono">{{ g.metric }} {{ operators[g.operator] ?? g.operator }} {{ g.value }}</span>
+                          <span class="muted">{{ g.message }}</span>
+                        </div>
+                      }
+                      @if (s.reviewers?.length) {
+                        <div class="muted">Reviewers: {{ s.reviewers?.join(', ') }}</div>
+                      }
+                    </li>
+                  }
+                </ol>
+              </section>
+            }
+            <div class="two-col">
+              @if (pr.thresholds; as t) {
+                <section class="card" data-testid="section-thresholds">
+                  <h3 class="section-title"><app-icon name="tune" [size]="18" /> Thresholds</h3>
+                  <dl class="kv">
+                    <dt>Auto-accept at</dt><dd>{{ t.autoAcceptAt ?? 90 }}%</dd>
+                    <dt>Review below</dt><dd>{{ t.reviewBelow ?? 90 }}%</dd>
+                    <dt>Reject below</dt><dd>{{ t.rejectBelow ?? 30 }}%</dd>
+                  </dl>
+                </section>
+              }
+              @if (pr.outputs?.length) {
+                <section class="card" data-testid="section-outputs">
+                  <h3 class="section-title"><app-icon name="download" [size]="18" /> Outputs</h3>
+                  <div class="row terms">
+                    @for (o of pr.outputs; track o) {
+                      <span class="chip">{{ o }}</span>
+                    }
+                  </div>
+                </section>
+              }
+            </div>
+          }
+
+          @if (p.changeNotes?.length) {
+            <section class="card" data-testid="section-changes">
+              <h3 class="section-title"><app-icon name="history" [size]="18" /> Change notes</h3>
+              <ul class="notes">
+                @for (c of p.changeNotes; track $index) {
+                  <li><span class="chip mono">{{ c.version }}</span> <span class="muted">{{ c.date }} · {{ c.author }}</span> {{ c.description }}</li>
                 }
               </ul>
-            }
-          }
-          @if (p.process?.steps; as steps) {
-            <h2>Steps</h2>
-            <ol>
-              @for (s of steps; track s.id) {
-                <li><b>{{ s.name }}</b> <span class="muted">({{ s.kind }})</span> {{ s.description }}</li>
-              }
-            </ol>
-          }
-          @if (p.changeNotes?.length) {
-            <h2>Change notes</h2>
-            <ul>
-              @for (c of p.changeNotes; track $index) {
-                <li><span class="mono">{{ c.version }}</span> {{ c.date }} {{ c.author }}: {{ c.description }}</li>
-              }
-            </ul>
+            </section>
           }
         </div>
       </mat-tab>
@@ -173,7 +533,7 @@
 
       <mat-tab label="History">
         <div class="tab">
-          <table class="plain" data-testid="history">
+          <table class="grid" data-testid="history">
             <tr><th>When</th><th>Who</th><th>Version</th><th>Action</th><th>Status</th><th>Note</th></tr>
             @for (e of history(); track e.sequence) {
               <tr>
@@ -219,5 +579,6 @@
         </div>
       </mat-tab>
     </mat-tab-group>
+    </div>
   }
 </div>

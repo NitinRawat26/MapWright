@@ -1,0 +1,43 @@
+.icon-badge.big {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  align-self: center;
+}
+
+.flip {
+  transform: rotate(180deg);
+}
+
+.page-head .meta {
+  margin-top: 6px;
+}
+
+.detect,
+.result {
+  margin-bottom: 16px;
+}
+
+.detect .card-head,
+.builder .card-head {
+  align-items: flex-start;
+}
+
+.note {
+  margin-top: 8px;
+}
+
+.result h3 {
+  margin: 16px 0 8px;
+  font-size: 14px;
+}
+
+.search {
+  margin-bottom: 12px;
+  width: 320px;
+  max-width: 100%;
+}
+
+.stat-card .bar {
+  width: 100%;
+}
