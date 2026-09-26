@@ -15,6 +15,12 @@ namespace MapWright.Tests;
 internal sealed class ApiFactory(IAiProvider? ai = null, string? webRoot = null, IReadOnlyDictionary<string, string>? settings = null)
     : WebApplicationFactory<ApiOptions>
 {
+    private static readonly string[] AiVariables =
+    [
+        AiProviders.VertexProjectVariable, AiProviders.VertexLocationVariable, AiProviders.VertexModelVariable,
+        AiProviders.OllamaUrlVariable, AiProviders.OllamaModelVariable, AiProviders.OllamaContextVariable, AiProviders.TimeoutVariable,
+    ];
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
@@ -25,6 +31,11 @@ internal sealed class ApiFactory(IAiProvider? ai = null, string? webRoot = null,
 
         builder.UseSetting("MapWright:DatabasePath", ":memory:");
         builder.UseSetting("MapWright:SeedPlaybooks", StarterPlaybooks.Directory);
+        foreach (var variable in AiVariables)
+        {
+            builder.UseSetting(variable, "");
+        }
+
         foreach (var (key, value) in settings ?? new Dictionary<string, string>())
         {
             builder.UseSetting(key, value);
