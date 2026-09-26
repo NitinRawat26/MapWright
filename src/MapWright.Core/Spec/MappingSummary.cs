@@ -10,6 +10,9 @@ public sealed record MappingSummary
     public required decimal RequiredCoveragePercent { get; init; }
     public required IReadOnlyDictionary<ConfidenceBand, int> ByConfidenceBand { get; init; }
     public required IReadOnlyDictionary<ReviewStatus, int> ByReviewStatus { get; init; }
+
+    /// <summary>Mapped rows by what produced them.</summary>
+    public IReadOnlyDictionary<MappingOrigin, int> ByOrigin { get; init; } = new Dictionary<MappingOrigin, int>();
     public required int OrphanSourceFields { get; init; }
     public required int Conflicts { get; init; }
     public required int Assumptions { get; init; }
@@ -41,6 +44,9 @@ public sealed record MappingSummary
             ByReviewStatus = Enum.GetValues<ReviewStatus>().ToDictionary(
                 status => status,
                 status => mappings.Count(m => m.Review.Status == status)),
+            ByOrigin = Enum.GetValues<MappingOrigin>().ToDictionary(
+                origin => origin,
+                origin => mapped.Count(m => OriginOf(m) == origin)),
             OrphanSourceFields = document.OrphanSourceFields.Count,
             Conflicts = document.Findings.Count(f => f.Kind == FindingKind.Conflict),
             Assumptions = document.Findings.Count(f => f.Kind == FindingKind.Assumption),
@@ -48,5 +54,21 @@ public sealed record MappingSummary
             ValidationFailed = results.Count(r => r.Outcome == ValidationOutcome.Fail),
             ValidationSkipped = results.Count(r => r.Outcome == ValidationOutcome.Skipped),
         };
+    }
+
+    /// <summary>What produced a row: AI evidence wins, then playbook, name match and reviewer; null for unmapped rows.</summary>
+    public static MappingOrigin? OriginOf(FieldMapping mapping)
+    {
+        if (mapping.Type == MappingType.Unmapped)
+        {
+            return null;
+        }
+
+        bool Has(EvidenceKind kind) => mapping.Evidence.Any(e => e.Kind == kind);
+        return Has(EvidenceKind.AiSuggestion) ? MappingOrigin.Ai
+            : Has(EvidenceKind.Playbook) ? MappingOrigin.Playbook
+            : Has(EvidenceKind.NameSimilarity) ? MappingOrigin.NameMatch
+            : Has(EvidenceKind.Reviewer) ? MappingOrigin.Reviewer
+            : MappingOrigin.Other;
     }
 }

@@ -52,6 +52,16 @@ public enum ConfidenceBand
     Low,
 }
 
+/// <summary>What produced a mapped row, judged from its evidence.</summary>
+public enum MappingOrigin
+{
+    Playbook,
+    NameMatch,
+    Ai,
+    Reviewer,
+    Other,
+}
+
 public enum EvidenceKind
 {
     Sample,

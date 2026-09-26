@@ -131,6 +131,12 @@ public sealed class MappingApiTests : IDisposable
 
         var summary = await (await client.GetAsync("/api/mappings/sales-alpha__uw-core/summary")).Node();
         Assert.Equal(document.Mappings.Count, summary["totalTargetFields"]!.GetValue<int>());
+        var listed = (await (await client.GetAsync("/api/mappings")).Node())!.AsArray().Single()!;
+        Assert.Equal("sales-alpha__uw-core", listed["id"]!.GetValue<string>());
+        Assert.Equal(summary.ToJsonString(), listed["summary"]!.ToJsonString());
+        var origins = MappingSummary.From(document).ByOrigin;
+        Assert.Equal(origins[MappingOrigin.Playbook], listed["summary"]!["byOrigin"]!["playbook"]!.GetValue<int>());
+        Assert.Equal(0, listed["summary"]!["byOrigin"]!["ai"]!.GetValue<int>());
 
         var xlsx = await client.GetAsync("/api/mappings/sales-alpha__uw-core/export/xlsx");
         Assert.Equal("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", xlsx.Content.Headers.ContentType?.MediaType);

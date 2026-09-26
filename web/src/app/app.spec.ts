@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { App } from './app';
 import { ApiKeyHeader } from './core/http';
 import { UserService } from './core/user';
+import { Router } from '@angular/router';
 import { apiProviders, http, respond, settle, text } from './testing';
 
 describe('App sign-in', () => {
@@ -62,5 +63,44 @@ describe('App sign-in', () => {
 
     expect(TestBed.inject(UserService).apiKey()).toBe('');
     expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="api-key"]')).not.toBeNull();
+  });
+
+  it('shows the AI status, the pending badge, the section and searches the stores', async () => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        ...apiProviders(),
+      ],
+    });
+    const router = TestBed.inject(Router);
+    router.resetConfig([{ path: '**', children: [] }]);
+    const fixture = TestBed.createComponent(App);
+    respond('/api/me', { method: 'header', signInRequired: false });
+    respond('/api/ai', { available: true, provider: 'ollama', maxConfidence: 70 });
+    await router.navigateByUrl('/mappings/a__b');
+    respond('/api/suggestions?status=pending', [{ id: 1 }, { id: 2 }]);
+    await settle(fixture);
+
+    const root = fixture.nativeElement as HTMLElement;
+    expect(text(root, 'ai-status')).toContain('AI ready');
+    expect(text(root, 'ai-status')).toContain('ollama · capped at 70%');
+    expect(text(root, 'pending-badge')).toBe('2');
+    expect(text(root, 'section')).toBe('Mappings');
+    expect(root.querySelector('[data-testid="nav-mappings"]')?.classList).toContain('on');
+
+    const search = root.querySelector<HTMLInputElement>('[data-testid="search"]')!;
+    search.focus();
+    respond('/api/profiles', [{ id: 'sales-alpha', system: 'SalesAlpha CRM', fieldCount: 36 }]);
+    respond('/api/mappings', [{ id: 'sales-alpha__uw-core', sourceSystem: 'SalesAlpha CRM', targetSystem: 'UW Core' }]);
+    respond('/api/playbooks', [{ id: 'domain/tax-id', version: '1.0.0', name: 'Tax ID', reference: 'domain/tax-id@1.0.0', status: 'published' }]);
+    search.value = 'alpha';
+    search.dispatchEvent(new Event('input'));
+    await settle(fixture);
+    const hits = [...document.querySelectorAll('[data-testid="search-hit"]')].map((h) => h.textContent?.replace(/\s+/g, ' ').trim());
+    expect(hits).toEqual(['SalesAlpha CRMsales-alpha · 36 fields', 'SalesAlpha CRM → UW Coresales-alpha__uw-core']);
+
+    const navigate = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    (document.querySelectorAll('[data-testid="search-hit"]')[1] as HTMLElement).click();
+    expect(navigate).toHaveBeenCalledWith('/mappings/sales-alpha__uw-core');
   });
 });

@@ -1,59 +1,166 @@
 <div class="page">
-  <h1>MapWright</h1>
-  <p class="muted">Profile two systems, apply the business playbooks and review the generated mapping.</p>
+  <div class="page-head">
+    <div>
+      <h1 data-testid="greeting">{{ greeting() }}</h1>
+      <div class="sub">Direct source → target mappings between your systems, without a canonical model.</div>
+      <div class="status">
+        @switch (healthy()) {
+          @case (true) { <span class="chip good" data-testid="health">API connected</span> }
+          @case (false) { <span class="chip bad" data-testid="health">API not reachable</span> }
+          @default { <span class="chip" data-testid="health">Checking API…</span> }
+        }
+        @if (ai(); as ai) {
+          @if (ai.available) {
+            <span class="chip ai" data-testid="ai">AI: {{ ai.provider }} (capped at {{ ai.maxConfidence }}%)</span>
+          } @else {
+            <span class="chip" data-testid="ai">AI not configured: playbooks only</span>
+          }
+        }
+      </div>
+    </div>
+    <div class="head-actions">
+      <a mat-stroked-button routerLink="/profiles"><app-icon name="upload_file" [size]="18" />Build profile</a>
+      <a mat-flat-button routerLink="/mappings" data-testid="new-mapping"><app-icon name="add" [size]="18" />New mapping</a>
+    </div>
+  </div>
 
-  <div class="row status">
-    @switch (healthy()) {
-      @case (true) { <span class="chip good" data-testid="health">API connected</span> }
-      @case (false) { <span class="chip bad" data-testid="health">API not reachable</span> }
-      @default { <span class="chip" data-testid="health">Checking API…</span> }
-    }
-    @if (ai(); as ai) {
-      @if (ai.available) {
-        <span class="chip good" data-testid="ai">AI: {{ ai.provider }} (capped at {{ ai.maxConfidence }}%)</span>
+  <div class="stats">
+    <a class="card stat" routerLink="/profiles">
+      <span class="ic" style="background: #e9ecff; color: #4f46e5"><app-icon name="database" [size]="22" /></span>
+      <span>
+        <span class="v" data-testid="profiles">{{ profiles()?.length ?? 0 }}</span>
+        <span class="l">System profiles</span>
+        <span class="d" style="color: #4f46e5">{{ (profiles()?.length ?? 0) < 2 ? 'build a source and a target' : 'ready to map' }}</span>
+      </span>
+    </a>
+    <a class="card stat" routerLink="/mappings">
+      <span class="ic" style="background: #e7f8f1; color: #059669"><app-icon name="account_tree" [size]="22" /></span>
+      <span>
+        <span class="v" data-testid="mappings">{{ mappings()?.length ?? 0 }}</span>
+        <span class="l">Mappings</span>
+        <span class="d" style="color: #059669" data-testid="in-review">{{ inReview() }} waiting for review</span>
+      </span>
+    </a>
+    <a class="card stat" routerLink="/playbooks">
+      <span class="ic" style="background: #fff4df; color: #d97706"><app-icon name="menu_book" [size]="22" /></span>
+      <span>
+        <span class="v" data-testid="playbooks">{{ count('published') }}</span>
+        <span class="l">Published playbooks</span>
+        <span class="d" style="color: #d97706">{{ count('draft') }} draft · {{ count('inReview') }} in review</span>
+      </span>
+    </a>
+    <a class="card stat" routerLink="/suggestions">
+      <span class="ic" style="background: #f1ebff; color: #7c3aed"><app-icon name="star_shine" [size]="22" /></span>
+      <span>
+        <span class="v" data-testid="pending">{{ pending()?.length ?? 0 }}</span>
+        <span class="l">AI suggestions</span>
+        <span class="d" style="color: #7c3aed">waiting for review</span>
+      </span>
+    </a>
+  </div>
+
+  <div class="split">
+    <div class="card flush">
+      <div class="card-head"><h2>Recent mappings</h2><a class="more" routerLink="/mappings">View all</a></div>
+      @if (recent().length) {
+        <table class="grid" data-testid="recent">
+          <tr><th>Source</th><th></th><th>Target</th><th>Coverage</th><th>Origin</th><th>Status</th><th>Updated</th></tr>
+          @for (m of recent(); track m.id) {
+            <tr class="link" (click)="open('/mappings/' + m.id)" [attr.data-mapping]="m.id">
+              <td><b>{{ m.sourceSystem }}</b></td>
+              <td class="arrow"><app-icon name="arrow_forward" [size]="18" /></td>
+              <td><b>{{ m.targetSystem }}</b></td>
+              <td>
+                @if (m.summary; as s) {
+                  <span class="bar"><i [style.width.%]="coverage(m)"></i></span><span class="muted small">{{ s.mappedTargetFields }}/{{ s.totalTargetFields }}</span>
+                }
+              </td>
+              <td>
+                @if (m.summary?.byOrigin?.ai) {
+                  <span class="chip ai" data-testid="ai-rows"><app-icon name="star_shine" [size]="14" />{{ m.summary?.byOrigin?.ai }} AI</span>
+                } @else {
+                  <span class="muted">—</span>
+                }
+              </td>
+              <td>
+                @if (needsReview(m)) {
+                  <span class="chip warn">In review</span>
+                } @else if (m.summary) {
+                  <span class="chip good">Reviewed</span>
+                }
+              </td>
+              <td class="muted small" [title]="m.updatedAt">{{ ago(m.updatedAt) }}</td>
+            </tr>
+          }
+        </table>
       } @else {
-        <span class="chip" data-testid="ai">AI not configured: playbooks only</span>
+        <div class="empty muted">No mappings yet. <a routerLink="/mappings">Generate the first one.</a></div>
       }
-    }
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>How targets were filled</h2><span class="more">{{ filled().total }} target fields</span></div>
+      <div class="donut-row">
+        <div class="ring" [style.background]="filled().ring">
+          <div><b data-testid="covered">{{ filled().covered }}%</b><span class="muted small">covered</span></div>
+        </div>
+        <div class="legend" data-testid="legend">
+          @for (p of filled().parts; track p.key) {
+            <div><span class="sw" [style.background]="p.color"></span>{{ p.label }}<b>{{ p.percent }}%</b></div>
+          }
+        </div>
+      </div>
+      @if (pending()?.length) {
+        <a class="tip" routerLink="/suggestions">
+          <app-icon name="lightbulb" [size]="18" />
+          Approve the {{ pending()?.length }} waiting AI suggestions; the ones added to a playbook are matched without AI next time.
+        </a>
+      }
+    </div>
   </div>
 
-  <div class="cards">
-    <mat-card appearance="outlined" routerLink="/playbooks">
-      <mat-card-header><mat-card-title>Playbooks</mat-card-title></mat-card-header>
-      <mat-card-content>
-        <div class="big" data-testid="playbooks">{{ count('published') }}</div>
-        <div class="muted">published · {{ count('draft') }} draft · {{ count('inReview') }} in review</div>
-      </mat-card-content>
-    </mat-card>
-    <mat-card appearance="outlined" routerLink="/profiles">
-      <mat-card-header><mat-card-title>System profiles</mat-card-title></mat-card-header>
-      <mat-card-content>
-        <div class="big" data-testid="profiles">{{ profiles()?.length ?? 0 }}</div>
-        <div class="muted">systems profiled</div>
-      </mat-card-content>
-    </mat-card>
-    <mat-card appearance="outlined" routerLink="/mappings">
-      <mat-card-header><mat-card-title>Mappings</mat-card-title></mat-card-header>
-      <mat-card-content>
-        <div class="big" data-testid="mappings">{{ mappings()?.length ?? 0 }}</div>
-        <div class="muted">generated mappings</div>
-      </mat-card-content>
-    </mat-card>
-    <mat-card appearance="outlined" routerLink="/suggestions">
-      <mat-card-header><mat-card-title>AI suggestions</mat-card-title></mat-card-header>
-      <mat-card-content>
-        <div class="big" data-testid="pending">{{ pending()?.length ?? 0 }}</div>
-        <div class="muted">waiting for review</div>
-      </mat-card-content>
-    </mat-card>
+  <div class="thirds">
+    <div class="card">
+      <div class="card-head"><app-icon name="bolt" style="color: #4f46e5" /><h2>Quick start</h2></div>
+      <ol class="list">
+        @for (step of steps(); track step.text; let i = $index) {
+          <li>
+            <a [routerLink]="step.link" data-testid="step" [class.done]="step.done">
+              <span class="chip" [class.good]="step.done">
+                @if (step.done) { <app-icon name="check" [size]="14" /> } @else { {{ i + 1 }} }
+              </span>
+              {{ step.text }}
+            </a>
+          </li>
+        }
+      </ol>
+    </div>
+    <div class="card">
+      <div class="card-head"><app-icon name="warning" style="color: #d97706" /><h2>Needs attention</h2></div>
+      <ul class="list">
+        @for (item of attention(); track item.text) {
+          <li>
+            <a [routerLink]="item.link" data-testid="attention"><span class="chip" [class]="item.tone">{{ item.count }}</span>{{ item.text }}</a>
+          </li>
+        } @empty {
+          <li class="muted" data-testid="attention-none">Nothing needs attention.</li>
+        }
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-head"><app-icon name="history" style="color: #059669" /><h2>Recent changes</h2></div>
+      <ul class="list">
+        @for (c of changes(); track c.link + c.at) {
+          <li>
+            <a [routerLink]="c.link" data-testid="change">
+              <app-icon [name]="c.icon" [size]="18" class="muted" />
+              <span><b>{{ c.who }}</b> {{ c.text }} <span class="muted small">· {{ ago(c.at) }}</span></span>
+            </a>
+          </li>
+        } @empty {
+          <li class="muted">Nothing saved yet.</li>
+        }
+      </ul>
+    </div>
   </div>
-
-  <h2>How it works</h2>
-  <ol class="steps">
-    <li><b>Profiles:</b> upload samples, schemas or field specs for each system.</li>
-    <li><b>Mapping:</b> pick a source and a target; published playbooks decide each field, AI helps only if you ask.</li>
-    <li><b>Replay:</b> run real samples through the mapping and check the target payloads.</li>
-    <li><b>Review:</b> approve, reject or override rows, then export to Excel, CSV or HTML.</li>
-    <li><b>Playbooks:</b> improve the business knowledge in drafts; publishing needs passing tests and a second reviewer.</li>
-  </ol>
 </div>
