@@ -9,9 +9,9 @@ public sealed record ApproveSuggestionRequest(string? Concept = null, string? Co
 
 public sealed record RejectSuggestionRequest(string? Comment = null);
 
-/// <param name="PlaybookId">The domain playbook whose draft now carries the field's name as a vocabulary term (or new attribute).</param>
+/// <param name="PlaybookId">The domain playbook whose draft now carries the field's name as a vocabulary term (or new attribute); none when a mapping suggestion only approved its row.</param>
 /// <param name="Created">The approval created a new draft domain playbook.</param>
-public sealed record ApprovedSuggestion(Suggestion Suggestion, string PlaybookId, string Version, bool Created);
+public sealed record ApprovedSuggestion(Suggestion Suggestion, string? PlaybookId, string? Version, bool Created);
 
 /// <summary>The AI suggestions inbox: review what AI said about unrecognised fields and turn approvals into draft playbook changes.</summary>
 public static class SuggestionEndpoints
@@ -35,14 +35,14 @@ public static class SuggestionEndpoints
                 long id, ApproveSuggestionRequest? body, SuggestionStore store, [FromHeader(Name = ApiErrors.UserHeader)] string? user) =>
             {
                 var (suggestion, draft, created) = store.Approve(id, ApiErrors.Actor(user), body?.Concept, body?.Comment, body?.Create ?? false);
-                return new ApprovedSuggestion(suggestion, draft.Id, draft.Version, created);
+                return new ApprovedSuggestion(suggestion, draft?.Id, draft?.Version, created);
             })
-            .WithSummary("Approve: add the field's name as a vocabulary term to a draft of the concept's domain playbook; with create, draft a new concept or attribute.");
+            .WithSummary("Approve: add the field's name as a vocabulary term to a draft of the concept's domain playbook; with create, draft a new concept or attribute. A suggestion from a mapping also approves its row, and without a concept only does that.");
 
         group.MapPost("/{id:long}/reject", (
                 long id, RejectSuggestionRequest? body, SuggestionStore store, [FromHeader(Name = ApiErrors.UserHeader)] string? user) =>
                 store.Reject(id, ApiErrors.Actor(user), body?.Comment))
-            .WithSummary("Reject a suggestion; nothing changes.");
+            .WithSummary("Reject a suggestion; no playbook changes. A suggestion from a mapping also rejects its row.");
     }
 
     private static SuggestionStatus? ParseStatus(string? status) =>

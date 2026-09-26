@@ -41,6 +41,30 @@ describe('SuggestionList', () => {
     expect([...root.querySelectorAll('[data-suggestion]')].map((s) => s.getAttribute('data-suggestion'))).toEqual(['2']);
   });
 
+  it('shows the mapping row an AI pairing fills and approves only the row without a concept', async () => {
+    const fixture = TestBed.createComponent(SuggestionList);
+    fixture.detectChanges();
+    await settle(fixture);
+    const base = suggestion(7);
+    const pairing = { mappingId: 'sales-alpha__uw-core', rowId: 'M021', targetSystem: 'UW Core', target: '/Request/EstablishedDate', targetField: 'EstablishedDate', sources: ['$.account.f7'] };
+    const paired = { ...base, content: { ...base.content, businessConcept: undefined, domainPlaybook: undefined, mapping: pairing } };
+    respond('/api/suggestions?status=pending', [paired]);
+    await settle(fixture);
+    const root = fixture.nativeElement as HTMLElement;
+    expect(text(root, 'pairing')).toContain('Source of /Request/EstablishedDate in UW Core');
+    expect(root.querySelector('[data-testid="pairing"] a')?.getAttribute('href')).toBe('/mappings/sales-alpha__uw-core');
+
+    const approveButton = root.querySelector('[data-suggestion="7"] [data-testid="approve"]') as HTMLButtonElement;
+    expect(approveButton.disabled).toBe(false);
+    approveButton.click();
+    const approve = http().expectOne('/api/suggestions/7/approve');
+    expect(approve.request.body).toEqual({ concept: undefined, comment: undefined, create: undefined });
+    approve.flush({ suggestion: { ...paired, status: 'approved' }, created: false });
+    await settle(fixture);
+    expect(root.querySelectorAll('[data-suggestion]').length).toBe(0);
+    expect(document.body.textContent).toContain('Approved row M021 of sales-alpha__uw-core.');
+  });
+
   it('ticks create for a proposed concept and sends it', async () => {
     const fixture = TestBed.createComponent(SuggestionList);
     fixture.detectChanges();

@@ -14,12 +14,46 @@
 
     @if (summary(); as s) {
       <div class="cards" data-testid="summary">
-        <div class="card"><div class="muted">Target fields mapped</div><div class="value">{{ s.mappedTargetFields }} / {{ s.totalTargetFields }}</div></div>
-        <div class="card"><div class="muted">Required coverage</div><div class="value">{{ s.requiredCoveragePercent }}%</div><div class="muted">{{ s.requiredTargetFieldsMapped }} of {{ s.requiredTargetFields }}</div></div>
-        <div class="card"><div class="muted">Confidence</div><div class="value">{{ s.byConfidenceBand.high }} · {{ s.byConfidenceBand.medium }} · {{ s.byConfidenceBand.low }}</div><div class="muted">high · medium · low</div></div>
-        <div class="card"><div class="muted">Needs review</div><div class="value" data-testid="needs-review">{{ s.byReviewStatus.needsReview }}</div><div class="muted">{{ s.byReviewStatus.approved + s.byReviewStatus.overridden }} approved, {{ s.byReviewStatus.rejected }} rejected</div></div>
-        <div class="card"><div class="muted">Findings</div><div class="value">{{ s.conflicts + s.assumptions }}</div><div class="muted">{{ s.conflicts }} conflicts, {{ s.assumptions }} assumptions</div></div>
-        <div class="card"><div class="muted">Unused source fields</div><div class="value">{{ s.orphanSourceFields }}</div></div>
+        <div class="card">
+          <div class="muted">Target fields mapped</div>
+          <div class="value"><button type="button" class="stat" [class.active]="filter() === 'mapped'" (click)="show('mapped')" title="Show the mapped rows" data-testid="card-mapped">{{ s.mappedTargetFields }}</button> / <button type="button" class="stat" [class.active]="filter() === 'all'" (click)="show('all')" title="Show all rows" data-testid="card-all">{{ s.totalTargetFields }}</button></div>
+          <div class="muted"><button type="button" class="stat" [class.active]="filter() === 'unmapped'" (click)="show('unmapped')" data-testid="card-unmapped">{{ s.unmappedTargetFields }} unmapped</button></div>
+        </div>
+        <div class="card">
+          <div class="muted">Required coverage</div>
+          <div class="value"><button type="button" class="stat" [class.active]="filter() === 'required'" (click)="show('required')" title="Show the required target fields" data-testid="card-required">{{ s.requiredCoveragePercent }}%</button></div>
+          <div class="muted">{{ s.requiredTargetFieldsMapped }} of {{ s.requiredTargetFields }}
+            @if (s.requiredTargetFields > s.requiredTargetFieldsMapped) {
+              · <button type="button" class="stat" [class.active]="filter() === 'requiredUnmapped'" (click)="show('requiredUnmapped')" data-testid="card-required-unmapped">{{ s.requiredTargetFields - s.requiredTargetFieldsMapped }} missing</button>
+            }
+          </div>
+        </div>
+        <div class="card">
+          <div class="muted">Confidence</div>
+          <div class="value">
+            <button type="button" class="stat" [class.active]="filter() === 'high'" (click)="show('high')" title="Show high-confidence rows" data-testid="card-high">{{ s.byConfidenceBand.high }}</button> ·
+            <button type="button" class="stat" [class.active]="filter() === 'medium'" (click)="show('medium')" title="Show medium-confidence rows" data-testid="card-medium">{{ s.byConfidenceBand.medium }}</button> ·
+            <button type="button" class="stat" [class.active]="filter() === 'low'" (click)="show('low')" title="Show low-confidence rows" data-testid="card-low">{{ s.byConfidenceBand.low }}</button>
+          </div>
+          <div class="muted">high · medium · low</div>
+        </div>
+        <div class="card">
+          <div class="muted">Needs review</div>
+          <div class="value"><button type="button" class="stat" [class.active]="filter() === 'open'" (click)="show('open')" title="Show the rows that need review" data-testid="needs-review">{{ s.byReviewStatus.needsReview }}</button></div>
+          <div class="muted">
+            <button type="button" class="stat" [class.active]="filter() === 'approved'" (click)="show('approved')" data-testid="card-approved">{{ s.byReviewStatus.approved + s.byReviewStatus.overridden }} approved</button>,
+            <button type="button" class="stat" [class.active]="filter() === 'rejected'" (click)="show('rejected')" data-testid="card-rejected">{{ s.byReviewStatus.rejected }} rejected</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="muted">Findings</div>
+          <div class="value"><button type="button" class="stat" (click)="tab.set(1)" title="Open the findings" data-testid="card-findings">{{ s.conflicts + s.assumptions }}</button></div>
+          <div class="muted">{{ s.conflicts }} conflicts, {{ s.assumptions }} assumptions</div>
+        </div>
+        <div class="card">
+          <div class="muted">Unused source fields</div>
+          <div class="value"><button type="button" class="stat" (click)="tab.set(2)" title="Open the unused source fields" data-testid="card-orphans">{{ s.orphanSourceFields }}</button></div>
+        </div>
       </div>
     }
 
@@ -28,6 +62,9 @@
         <div>
           AI ({{ ai.provider }}, capped at {{ ai.maxConfidence }}%) suggested sources for {{ ai.suggestedRows?.length ?? 0 }} row(s);
           {{ ai.unmatched?.length ?? 0 }} target field(s) were still unmatched.
+          @if (ai.suggestedRows?.length) {
+            Review them here or in <a routerLink="/suggestions" data-testid="ai-inbox">AI suggestions</a>.
+          }
         </div>
         @if (ai.unmatched?.length) {
           <div class="muted">Still unmatched: <span class="mono" data-testid="ai-unmatched">{{ ai.unmatched?.join(', ') }}</span></div>
@@ -38,7 +75,7 @@
       </div>
     }
 
-    <mat-tab-group animationDuration="0ms" (selectedIndexChange)="$event === 3 && loadReviews()">
+    <mat-tab-group animationDuration="0ms" [selectedIndex]="tab()" (selectedIndexChange)="tab.set($event); $event === 4 && loadReviews()">
       <mat-tab label="Rows">
         <div class="tab">
           <div class="row">
@@ -53,7 +90,11 @@
               <mat-label>Search</mat-label>
               <input matInput [ngModel]="search()" (ngModelChange)="search.set($event)" />
             </mat-form-field>
-            <span class="muted">{{ rows().length }} row(s)</span>
+            <span class="muted" data-testid="row-count">{{ rows().length }} row(s)</span>
+            @if (filterLabels[filter()]; as label) {
+              <span class="chip" data-testid="card-filter">{{ label }}</span>
+              <button mat-button type="button" (click)="show('all')" data-testid="clear-filter">Show all</button>
+            }
           </div>
           <table class="plain wide" data-testid="rows">
             <tr><th>ID</th><th>Target</th><th>Source</th><th>Transformation</th><th>Confidence</th><th>Review</th></tr>

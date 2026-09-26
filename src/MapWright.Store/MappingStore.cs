@@ -98,6 +98,15 @@ public sealed class MappingStore(MapWrightDatabase database)
     {
         using var connection = database.Open();
         using var transaction = connection.BeginTransaction();
+        var decided = Decide(connection, transaction, mappingId, rowId, decision, reviewer, comment, replacement);
+        transaction.Commit();
+        return decided;
+    }
+
+    internal ReviewDecision Decide(
+        SqliteConnection connection, SqliteTransaction transaction, string mappingId, string rowId, ReviewDecisionKind decision, string reviewer, string? comment,
+        FieldMapping? replacement = null)
+    {
         var document = Find(connection, transaction, mappingId) ?? throw StoreException.NotFound($"Mapping '{mappingId}'");
         var index = document.Mappings.ToList().FindIndex(m => m.Id == rowId);
         if (index < 0)
@@ -180,7 +189,6 @@ public sealed class MappingStore(MapWrightDatabase database)
         command.Parameters.AddWithValue("$json", JsonSerializer.Serialize(row, MapWrightJson.Options));
         command.Parameters.AddWithValue("$now", now);
         var sequence = (long)command.ExecuteScalar()!;
-        transaction.Commit();
         return new(sequence, mappingId, rowId, decision, current.Review.Status, reviewer, comment, row, MapWrightDatabase.ParseTime(now));
     }
 
@@ -226,7 +234,7 @@ public sealed class MappingStore(MapWrightDatabase database)
         }
     }
 
-    private static MappingDocument? Find(SqliteConnection connection, SqliteTransaction? transaction, string id)
+    internal static MappingDocument? Find(SqliteConnection connection, SqliteTransaction? transaction, string id)
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;

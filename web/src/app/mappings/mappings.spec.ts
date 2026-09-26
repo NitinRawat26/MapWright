@@ -71,6 +71,77 @@ describe('Mappings', () => {
     expect(navigate).toHaveBeenCalledWith(['/mappings', 'a__b']);
   });
 
+  it('shows a loader while a mapping is generated, and says when it waits for AI', async () => {
+    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const fixture = TestBed.createComponent(MappingList);
+    fixture.detectChanges();
+    respond('/api/mappings', []);
+    respond('/api/ai', { available: true, provider: 'ollama', maxConfidence: 70 });
+    respond('/api/profiles', []);
+    await settle(fixture);
+    const component = fixture.componentInstance as unknown as { patch(change: object): void };
+    component.patch({ source: 'a', target: 'b', useAi: true });
+    await settle(fixture);
+    const root = fixture.nativeElement as HTMLElement;
+    const button = root.querySelector('[data-testid="generate"]') as HTMLButtonElement;
+    expect(root.querySelector('[data-testid="generating"]')).toBeNull();
+
+    button.click();
+    await settle(fixture);
+    expect(button.disabled).toBe(true);
+    expect(button.textContent).toContain('Generating…');
+    expect(root.querySelector('[data-testid="generating"] mat-progress-bar')).not.toBeNull();
+    expect(text(root, 'generating')).toContain('waiting for ollama');
+
+    http().expectOne({ url: '/api/mappings', method: 'POST' }).flush({ title: 'Conflict', status: 409 }, { status: 409, statusText: 'Conflict' });
+    await settle(fixture);
+    expect(root.querySelector('[data-testid="generating"]')).toBeNull();
+    expect(button.textContent?.trim()).toBe('Generate mapping');
+
+    component.patch({ useAi: false });
+    await settle(fixture);
+    button.click();
+    await settle(fixture);
+    expect(text(root, 'generating')).not.toContain('waiting for');
+    http().expectOne({ url: '/api/mappings', method: 'POST' }).flush(mapping);
+  });
+
+  it('filters the rows by the summary number clicked', async () => {
+    const { fixture, root } = await open();
+    const shown = () => [...root.querySelectorAll('tr[data-row]')].map((r) => r.getAttribute('data-row'));
+    const click = async (id: string) => {
+      (root.querySelector(`[data-testid="${id}"]`) as HTMLButtonElement).click();
+      await settle(fixture);
+    };
+
+    await click('card-medium');
+    expect(shown()).toEqual(['M001', 'M002']);
+    expect(text(root, 'card-filter')).toBe('Medium confidence');
+    expect(root.querySelector('[data-testid="card-medium"]')?.classList).toContain('active');
+    await click('card-medium');
+    expect(shown()).toEqual(['M001', 'M002', 'M003']);
+    expect(root.querySelector('[data-testid="card-filter"]')).toBeNull();
+
+    await click('card-high');
+    expect(shown()).toEqual([]);
+    await click('needs-review');
+    expect(shown()).toEqual(['M001', 'M003']);
+    await click('card-mapped');
+    expect(shown()).toEqual(['M001', 'M002']);
+    await click('card-unmapped');
+    expect(shown()).toEqual(['M003']);
+    await click('card-required-unmapped');
+    expect(shown()).toEqual(['M003']);
+    await click('clear-filter');
+    expect(shown()).toEqual(['M001', 'M002', 'M003']);
+
+    await click('card-orphans');
+    expect(root.querySelector('.mdc-tab--active')?.textContent).toContain('Unused source fields');
+    await click('card-approved');
+    expect(root.querySelector('.mdc-tab--active')?.textContent).toContain('Rows');
+    expect(shown()).toEqual([]);
+  });
+
   it('shows the summary, filters rows and links the exports', async () => {
     const { fixture, root } = await open();
     expect(text(root, 'needs-review')).toBe('2');
@@ -98,6 +169,7 @@ describe('Mappings', () => {
     expect(text(root, 'ai-pass')).toContain('suggested sources for 1 row(s); 1 target field(s) were still unmatched');
     expect(text(root, 'ai-unmatched')).toBe('/Request/M003');
     expect(text(root, 'ai-warning')).toBe("fake: ignored a pairing for '/Request/X'.");
+    expect(root.querySelector('[data-testid="ai-inbox"]')?.getAttribute('href')).toBe('/suggestions');
   });
 
   it('tags the rows AI suggested and filters to them', async () => {

@@ -158,7 +158,8 @@ public sealed partial class MapWrightDatabase : IDisposable
                 decided_at TEXT,
                 decided_by TEXT,
                 comment TEXT,
-                playbook_ref TEXT
+                playbook_ref TEXT,
+                mapping_id TEXT
             );
             CREATE INDEX IF NOT EXISTS ix_ai_suggestions_status ON ai_suggestions(status);
             CREATE TABLE IF NOT EXISTS detections (
@@ -179,6 +180,16 @@ public sealed partial class MapWrightDatabase : IDisposable
             command.CommandText = "ALTER TABLE playbook_versions ADD COLUMN yaml TEXT";
             command.ExecuteNonQuery();
         }
+
+        command.CommandText = "SELECT COUNT(*) FROM pragma_table_info('ai_suggestions') WHERE name = 'mapping_id'";
+        if ((long)command.ExecuteScalar()! == 0)
+        {
+            command.CommandText = "ALTER TABLE ai_suggestions ADD COLUMN mapping_id TEXT";
+            command.ExecuteNonQuery();
+        }
+
+        command.CommandText = "CREATE INDEX IF NOT EXISTS ix_ai_suggestions_mapping ON ai_suggestions(mapping_id)";
+        command.ExecuteNonQuery();
 
         KeepEventsOfDeletedVersions(connection);
         MarkAbandonedDrafts(connection);

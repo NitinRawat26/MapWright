@@ -209,6 +209,8 @@ export interface Suggestion {
     question?: string;
     provider: string;
     model: string;
+    /** Set when a mapping's AI pass suggested this field as the source of a row; approving or rejecting also reviews that row. */
+    mapping?: { mappingId: string; rowId: string; targetSystem: string; target: string; targetField: string; sources: string[] };
   };
   createdAt: string;
   createdBy: string;
@@ -360,8 +362,9 @@ export interface ReplayResponse {
 
 export interface ApprovedSuggestion {
   suggestion: Suggestion;
-  playbookId: string;
-  version: string;
+  /** None when a mapping suggestion was approved without a concept: only its row was approved. */
+  playbookId?: string;
+  version?: string;
   created?: boolean;
 }
 

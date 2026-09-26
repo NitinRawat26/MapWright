@@ -41,7 +41,7 @@ public static class MappingEndpoints
             .WithSummary("List stored mappings.");
 
         group.MapPost("/", async (
-                GenerateMappingRequest body, MappingStore mappings, ProfileStore profiles, PlaybookStore playbooks, AiAccess ai,
+                GenerateMappingRequest body, MappingStore mappings, ProfileStore profiles, PlaybookStore playbooks, SuggestionStore suggestions, AiAccess ai,
                 MapWrightDatabase database, HttpContext context, [FromHeader(Name = ApiErrors.UserHeader)] string? user) =>
             {
                 var actor = ApiErrors.Actor(user);
@@ -68,11 +68,12 @@ public static class MappingEndpoints
                 }
 
                 mappings.Save(document, actor);
+                suggestions.ReplaceForMapping(id, body.Source, source.System, AiPairings(document), actor);
                 context.Response.Headers.Location = $"/api/mappings/{id}";
                 return Results.Text(MappingSpecSerializer.Serialize(document), "application/json", statusCode: StatusCodes.Status201Created);
             })
             .Produces<MappingDocument>(StatusCodes.Status201Created)
-            .WithSummary("Generate a mapping between two stored profiles with the published playbooks; with useAi, AI suggests sources for the unmapped targets (capped, always needing review).");
+            .WithSummary("Generate a mapping between two stored profiles with the published playbooks; with useAi, AI suggests sources for the unmapped targets (capped, always needing review) and files each in the suggestions inbox.");
 
         group.MapGet("/{id}", (string id, MappingStore store) => Json(store.Get(id)))
             .Produces<MappingDocument>()
@@ -95,13 +96,14 @@ public static class MappingEndpoints
             .Produces<MappingDocument>()
             .WithSummary("Store a mapping spec JSON (e.g. one generated with the CLI).");
 
-        group.MapDelete("/{id}", (string id, MappingStore store) =>
+        group.MapDelete("/{id}", (string id, MappingStore store, SuggestionStore suggestions) =>
             {
                 store.Get(id);
                 store.Delete(id);
+                suggestions.DiscardPending(id);
                 return Results.NoContent();
             })
-            .WithSummary("Delete a mapping and its review decisions.");
+            .WithSummary("Delete a mapping, its review decisions and its pending AI suggestions.");
 
         group.MapGet("/{id}/summary", (string id, MappingStore store) => MappingSummary.From(store.Get(id)))
             .WithSummary("Coverage, confidence bands, review status and validation counts.");
@@ -183,4 +185,33 @@ public static class MappingEndpoints
 
     private static IResult Json(MappingDocument document) =>
         Results.Text(MappingSpecSerializer.Serialize(document), "application/json");
+
+    /// <summary>The rows an AI pass filled in that still need review, as inbox suggestions about their first source field.</summary>
+    private static IEnumerable<SuggestionContent> AiPairings(MappingDocument document) =>
+        from row in document.Mappings
+        let ai = row.Evidence.FirstOrDefault(e => e.Kind == EvidenceKind.AiSuggestion)
+        where ai is not null && row.Sources.Count > 0 && row.Review.Status == ReviewStatus.NeedsReview
+        let provider = ai.Reference.Split('/', 2)
+        select new SuggestionContent
+        {
+            Path = row.Sources[0].Path,
+            FieldName = row.Sources[0].Name,
+            BusinessConcept = row.BusinessConcept,
+            DomainPlaybook = row.DomainPlaybook,
+            Meaning = $"Source of {document.Target.Name} {row.Target.Path}.",
+            ConfidencePercent = row.ConfidencePercent,
+            Reasoning = ai.Detail ?? row.Reasoning,
+            Question = row.Review.OpenQuestion,
+            Provider = provider[0],
+            Model = provider.Length > 1 ? provider[1] : "",
+            Mapping = new()
+            {
+                MappingId = document.Id,
+                RowId = row.Id,
+                TargetSystem = document.Target.Name,
+                Target = row.Target.Path,
+                TargetField = row.Target.Name,
+                Sources = [.. row.Sources.Select(f => f.Path)],
+            },
+        };
 }

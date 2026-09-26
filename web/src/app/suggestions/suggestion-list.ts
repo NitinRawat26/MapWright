@@ -75,9 +75,13 @@ export class SuggestionList {
       .subscribe({
         next: (result) => {
           this.replace(result.suggestion);
-          const message = result.created
-            ? `Drafted new playbook ${result.playbookId}@${result.version} with '${s.content.fieldName}'.`
-            : `Added '${s.content.fieldName}' to draft ${result.playbookId}@${result.version}.`;
+          const pairing = s.content.mapping;
+          const row = pairing ? `row ${pairing.rowId} of ${pairing.mappingId}` : '';
+          const message = !result.playbookId
+            ? `Approved ${row}.`
+            : (result.created
+                ? `Drafted new playbook ${result.playbookId}@${result.version} with '${s.content.fieldName}'.`
+                : `Added '${s.content.fieldName}' to draft ${result.playbookId}@${result.version}.`) + (row ? ` Approved ${row}.` : '');
           this.snackBar.open(message, undefined, { duration: 5000 });
         },
         error: () => undefined,

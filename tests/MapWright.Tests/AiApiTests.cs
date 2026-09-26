@@ -188,6 +188,70 @@ public sealed class AiApiTests
     }
 
     [Fact]
+    public async Task Ai_pairings_are_filed_in_the_inbox_and_review_their_rows()
+    {
+        using var api = new ApiFactory(Fake());
+        var ana = await WithProfiles(api);
+        var ben = api.As("ben");
+        const string target = "/UnderwritingRequest/Merchant/EstablishedDate";
+
+        async Task<(string Row, long Suggestion)> Generate(bool replace)
+        {
+            var created = await ana.Post("/api/mappings", new { source = "sales-alpha", target = "uw-core", useAi = true, replace });
+            Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+            var row = MappingSpecSerializer.Deserialize(await created.Content.ReadAsStringAsync()).Mappings.Single(m => m.Target.Path == target).Id;
+            var pending = (await (await ana.GetAsync("/api/suggestions?status=pending")).Node()).AsArray();
+            var filed = Assert.Single(pending)!;
+            Assert.Equal(("sales-alpha", "$.account.incorporationDate", "incorporationDate"), (filed["profileId"].Text(), filed["content"]!["path"].Text(), filed["content"]!["fieldName"].Text()));
+            var pairing = filed["content"]!["mapping"]!;
+            Assert.Equal(("sales-alpha__uw-core", row, target, "UW Core"), (pairing["mappingId"].Text(), pairing["rowId"].Text(), pairing["target"].Text(), pairing["targetSystem"].Text()));
+            Assert.Equal(["$.account.incorporationDate"], pairing["sources"]!.AsArray().Select(p => p.Text()));
+            return (row, filed["id"]!.GetValue<long>());
+        }
+
+        async Task<string> Status(string row) =>
+            MappingSpecSerializer.Deserialize(await (await ana.GetAsync("/api/mappings/sales-alpha__uw-core")).Content.ReadAsStringAsync())
+                .Mappings.Single(m => m.Id == row).Review.Status.ToString();
+
+        var (first, firstId) = await Generate(false);
+        var (row, id) = await Generate(true);
+        Assert.NotEqual(firstId, id);
+        Assert.Equal(HttpStatusCode.NotFound, (await ana.GetAsync($"/api/suggestions/{firstId}")).StatusCode);
+        Assert.Equal(first, row);
+
+        var approved = await (await ben.Post($"/api/suggestions/{id}/approve", new { comment = "Same date." })).Node();
+        Assert.Equal(("approved", null, null), (approved["suggestion"]!["status"].Text(), approved["playbookId"]?.ToString(), approved["suggestion"]!["playbook"]?.ToString()));
+        Assert.Equal(nameof(ReviewStatus.Approved), await Status(row));
+        var decision = Assert.Single((await (await ana.GetAsync("/api/mappings/sales-alpha__uw-core/reviews")).Node()).AsArray())!;
+        Assert.Equal(("approve", "ben", "Same date."), (decision["decision"].Text(), decision["reviewer"].Text(), decision["comment"].Text()));
+
+        (row, id) = await Generate(true);
+        Assert.Equal("approved", (await (await ana.GetAsync("/api/suggestions?status=approved")).Node()).AsArray().Single()!["status"].Text());
+        Assert.Equal(HttpStatusCode.OK, (await ben.Post($"/api/mappings/sales-alpha__uw-core/rows/{row}/review", new { decision = "approve" })).StatusCode);
+        Assert.Equal("rejected", (await (await ben.Post($"/api/suggestions/{id}/reject", new { comment = "Checked on the mapping page." })).Node())["status"].Text());
+        Assert.Equal(nameof(ReviewStatus.Approved), await Status(row));
+
+        (row, id) = await Generate(true);
+        Assert.Equal("rejected", (await (await ben.Post($"/api/suggestions/{id}/reject", new { })).Node())["status"].Text());
+        Assert.Equal(nameof(ReviewStatus.Rejected), await Status(row));
+
+        await Generate(true);
+        Assert.Equal(HttpStatusCode.Created, (await ana.Post("/api/mappings", new { source = "sales-alpha", target = "uw-core", replace = true })).StatusCode);
+        Assert.Empty((await (await ana.GetAsync("/api/suggestions?status=pending")).Node()).AsArray());
+        await Generate(true);
+        Assert.Equal(HttpStatusCode.NoContent, (await ana.DeleteAsync("/api/mappings/sales-alpha__uw-core")).StatusCode);
+        Assert.Empty((await (await ana.GetAsync("/api/suggestions?status=pending")).Node()).AsArray());
+        Assert.Equal(3, (await (await ana.GetAsync("/api/suggestions")).Node()).AsArray().Count);
+
+        (row, id) = await Generate(false);
+        var taught = await (await ben.Post($"/api/suggestions/{id}/approve", new { concept = "Merchant.EstablishedDate", create = true })).Node();
+        Assert.Equal(("domain/merchant", "domain/merchant@0.1.0"), (taught["playbookId"].Text(), taught["suggestion"]!["playbook"].Text()));
+        Assert.Equal(nameof(ReviewStatus.Approved), await Status(row));
+        var draft = await (await ben.GetAsync("/api/playbooks/domain/merchant/0.1.0")).Node();
+        Assert.Contains(draft["domain"]!["vocabulary"]!.AsArray(), v => v!["term"].Text() == "incorporation date" && v["appliesTo"].Text() == "EstablishedDate");
+    }
+
+    [Fact]
     public async Task A_failing_provider_saves_nothing()
     {
         using var api = new ApiFactory(FakeProvider.Failing("fake"));

@@ -29,6 +29,33 @@ export const reviewClass: Record<ReviewStatus | string, string> = {
   overridden: 'good',
 };
 
+export type RowFilter =
+  | 'all'
+  | 'open'
+  | 'unmapped'
+  | 'decided'
+  | 'ai'
+  | 'mapped'
+  | 'required'
+  | 'requiredUnmapped'
+  | 'high'
+  | 'medium'
+  | 'low'
+  | 'approved'
+  | 'rejected';
+
+/** Names of the filters only the summary cards set; the others have a toggle button. */
+const cardFilterLabels: Partial<Record<RowFilter, string>> = {
+  mapped: 'Mapped',
+  required: 'Required',
+  requiredUnmapped: 'Required, not mapped',
+  high: 'High confidence',
+  medium: 'Medium confidence',
+  low: 'Low confidence',
+  approved: 'Approved',
+  rejected: 'Rejected',
+};
+
 @Component({
   selector: 'app-mapping-detail',
   imports: [DatePipe, FormsModule, UpperCasePipe, MatButtonModule, MatButtonToggleModule, MatFormFieldModule, MatInputModule, MatTabsModule, Replay, RouterLink],
@@ -46,7 +73,9 @@ export class MappingDetail {
   protected readonly mapping = signal<MappingDocument | null>(null);
   protected readonly summary = signal<MappingSummary | null>(null);
   protected readonly reviews = signal<ReviewDecision[]>([]);
-  protected readonly filter = signal<'all' | 'open' | 'unmapped' | 'decided' | 'ai'>('all');
+  protected readonly filterLabels = cardFilterLabels;
+  protected readonly filter = signal<RowFilter>('all');
+  protected readonly tab = signal(0);
   protected readonly search = signal('');
   protected readonly selected = signal<string | null>(null);
   protected readonly comment = signal('');
@@ -55,17 +84,50 @@ export class MappingDetail {
 
   protected readonly rows = computed(() => {
     const text = this.search().trim().toLowerCase();
-    return (this.mapping()?.mappings ?? []).filter((row) => {
-      const status = row.review.status;
-      const shown =
-        this.filter() === 'all' ||
-        (this.filter() === 'open' && status === 'needsReview') ||
-        (this.filter() === 'unmapped' && row.type === 'unmapped') ||
-        (this.filter() === 'decided' && (status === 'approved' || status === 'rejected' || status === 'overridden')) ||
-        (this.filter() === 'ai' && this.aiProvider(row) !== null);
+    const mapping = this.mapping();
+    return (mapping?.mappings ?? []).filter((row) => {
+      const shown = this.matches(row, this.filter(), mapping!.confidencePolicy);
       return shown && (!text || [row.id, row.target.path, ...row.sources.map((s) => s.path), row.businessConcept ?? ''].some((v) => v.toLowerCase().includes(text)));
     });
   });
+
+  /** Shows only the rows behind a summary number; clicking the active one again shows all rows. */
+  protected show(filter: RowFilter): void {
+    this.filter.set(this.filter() === filter ? 'all' : filter);
+    this.tab.set(0);
+  }
+
+  private matches(row: FieldMapping, filter: RowFilter, policy: MappingDocument['confidencePolicy']): boolean {
+    const status = row.review.status;
+    const mapped = row.type !== 'unmapped';
+    const band = row.confidencePercent >= policy.highThreshold ? 'high' : row.confidencePercent >= policy.mediumThreshold ? 'medium' : 'low';
+    switch (filter) {
+      case 'all':
+        return true;
+      case 'open':
+        return status === 'needsReview';
+      case 'unmapped':
+        return !mapped;
+      case 'decided':
+        return status === 'approved' || status === 'rejected' || status === 'overridden';
+      case 'ai':
+        return this.aiProvider(row) !== null;
+      case 'mapped':
+        return mapped;
+      case 'required':
+        return !!row.target.required;
+      case 'requiredUnmapped':
+        return !!row.target.required && !mapped;
+      case 'high':
+      case 'medium':
+      case 'low':
+        return mapped && band === filter;
+      case 'approved':
+        return status === 'approved' || status === 'overridden';
+      case 'rejected':
+        return status === 'rejected';
+    }
+  }
 
   protected aiProvider(row: FieldMapping): string | null {
     return row.evidence?.find((e) => e.kind === 'aiSuggestion')?.reference ?? null;
