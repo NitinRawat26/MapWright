@@ -58,10 +58,25 @@
       }
     </div>
     <div class="row">
-      <button mat-flat-button type="button" [disabled]="!user.name() || !request().source || !request().target || busy()" (click)="generate()" data-testid="generate">Generate mapping</button>
+      <button mat-flat-button type="button" [disabled]="!user.name() || !request().source || !request().target || !!busy()" (click)="generate()" data-testid="generate">
+        @if (busy()) {
+          <mat-spinner diameter="18" class="button-spinner" />
+          Generating…
+        } @else {
+          Generate mapping
+        }
+      </button>
       @if (!user.name()) {
         <span class="muted">Enter your name in the toolbar first.</span>
       }
     </div>
+    @if (busy()) {
+      <div class="generating" data-testid="generating" role="status">
+        <mat-progress-bar mode="indeterminate" />
+        <span class="muted">
+          Generating {{ request().source }} → {{ request().target }}@if (busy() === 'ai') {; waiting for {{ ai()?.provider }} to suggest sources for the unmapped target fields, which can take a minute or two}.
+        </span>
+      </div>
+    }
   </div>
 </div>

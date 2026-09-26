@@ -104,10 +104,43 @@ public sealed class StoreTests : IDisposable
 
         Run("DROP TRIGGER fail_decisions;");
         var (approved, draft, created) = suggestions.Approve(ids[0], "ben", null, null);
-        Assert.Equal((SuggestionStatus.Approved, draft.Reference, false), (approved.Status, approved.Playbook, created));
+        Assert.Equal((SuggestionStatus.Approved, draft!.Reference, false), (approved.Status, approved.Playbook, created));
         Assert.Equal(PlaybookStatus.Draft, store.Get(owner.Id, draft.Version).Status);
         var (newConcept, merchant, isNew) = suggestions.Approve(ids[1], "ben", null, null, create: true);
-        Assert.Equal((SuggestionStatus.Approved, "domain/merchant@0.1.0", true), (newConcept.Status, merchant.Reference, isNew));
+        Assert.Equal((SuggestionStatus.Approved, "domain/merchant@0.1.0", true), (newConcept.Status, merchant!.Reference, isNew));
+    }
+
+    [Fact]
+    public void Older_suggestion_tables_get_a_mapping_column()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"mapwright-{Guid.NewGuid():N}.db");
+        try
+        {
+            using (var connection = new SqliteConnection($"Data Source={path};Pooling=False"))
+            {
+                connection.Open();
+                using var command = connection.CreateCommand();
+                command.CommandText = """
+                    CREATE TABLE ai_suggestions (
+                        seq INTEGER PRIMARY KEY AUTOINCREMENT, profile_id TEXT NOT NULL, system TEXT NOT NULL, path TEXT NOT NULL,
+                        status TEXT NOT NULL, json TEXT NOT NULL, created_at TEXT NOT NULL, created_by TEXT NOT NULL,
+                        decided_at TEXT, decided_by TEXT, comment TEXT, playbook_ref TEXT);
+                    """;
+                command.ExecuteNonQuery();
+            }
+
+            using var database = new MapWrightDatabase(new() { DatabasePath = path }, _time);
+            var suggestions = new SuggestionStore(database, new PlaybookStore(database));
+            var old = suggestions.Add("sales-alpha", "SalesAlpha CRM", [Suggested("$.account.legalName", concept: "LegalEntity")], "ana").Single();
+            var filed = suggestions.ReplaceForMapping("a__b", "sales-alpha", "SalesAlpha CRM", [Suggested("$.account.mcc", concept: "LegalEntity")], "ana").Single();
+            suggestions.DiscardPending("a__b");
+            Assert.Equal([old.Id], suggestions.List().Select(s => s.Id));
+            Assert.NotEqual(old.Id, filed.Id);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 
     [Fact]

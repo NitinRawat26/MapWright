@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using MapWright.Core;
 using MapWright.Core.Playbooks;
+using MapWright.Core.Spec;
 using Microsoft.Data.Sqlite;
 
 namespace MapWright.Store;
@@ -27,6 +28,20 @@ public sealed record SuggestionContent
     public string? Question { get; init; }
     public required string Provider { get; init; }
     public required string Model { get; init; }
+
+    /// <summary>Set when the AI suggested this field as the source of a mapping row; <see cref="Path"/> is then the row's first source.</summary>
+    public MappingPairing? Mapping { get; init; }
+}
+
+/// <summary>The mapping row an AI pairing filled in.</summary>
+public sealed record MappingPairing
+{
+    public required string MappingId { get; init; }
+    public required string RowId { get; init; }
+    public required string TargetSystem { get; init; }
+    public required string Target { get; init; }
+    public required string TargetField { get; init; }
+    public IReadOnlyList<string> Sources { get; init; } = [];
 }
 
 /// <param name="Playbook">The draft playbook version the approval changed.</param>
@@ -47,37 +62,74 @@ public sealed record Suggestion(
 /// The AI suggestions inbox. Approving a suggestion adds the field's name as a vocabulary term to a draft of the
 /// domain playbook that defines the concept; the draft still goes through review and publishing like any other edit.
 /// The draft change and the decision are saved in one transaction, so either both are stored or neither is.
+/// Suggestions from a mapping's AI pass also review the mapping row they filled in, in the same transaction.
 /// </summary>
 public sealed partial class SuggestionStore(MapWrightDatabase database, PlaybookStore playbooks)
 {
     private const string Columns = "seq, profile_id, system, json, status, created_by, created_at, decided_by, decided_at, comment, playbook_ref";
 
+    private readonly MappingStore _mappings = new(database);
+
     public IReadOnlyList<Suggestion> Add(string profileId, string system, IEnumerable<SuggestionContent> suggestions, string actor)
     {
         using var connection = database.Open();
         using var transaction = connection.BeginTransaction();
-        var ids = new List<long>();
-        foreach (var suggestion in suggestions)
-        {
-            using var command = connection.CreateCommand();
-            command.Transaction = transaction;
-            command.CommandText = """
-                INSERT INTO ai_suggestions (profile_id, system, path, status, json, created_at, created_by)
-                VALUES ($profile, $system, $path, $status, $json, $now, $actor);
-                SELECT last_insert_rowid();
-                """;
-            command.Parameters.AddWithValue("$profile", profileId);
-            command.Parameters.AddWithValue("$system", system);
-            command.Parameters.AddWithValue("$path", suggestion.Path);
-            command.Parameters.AddWithValue("$status", nameof(SuggestionStatus.Pending));
-            command.Parameters.AddWithValue("$json", JsonSerializer.Serialize(suggestion, MapWrightJson.Options));
-            command.Parameters.AddWithValue("$now", database.Now());
-            command.Parameters.AddWithValue("$actor", actor);
-            ids.Add((long)command.ExecuteScalar()!);
-        }
-
+        List<long> ids = [.. suggestions.Select(s => Insert(connection, transaction, profileId, system, s, actor))];
         transaction.Commit();
         return [.. ids.Select(Get)];
+    }
+
+    /// <summary>
+    /// Files the AI pairings of a (re)generated mapping, replacing its still-pending ones: those rows no longer
+    /// exist in that form. Decided suggestions are kept.
+    /// </summary>
+    public IReadOnlyList<Suggestion> ReplaceForMapping(string mappingId, string profileId, string system, IEnumerable<SuggestionContent> suggestions, string actor)
+    {
+        using var connection = database.Open();
+        using var transaction = connection.BeginTransaction();
+        DeletePending(connection, transaction, mappingId);
+        List<long> ids = [.. suggestions.Select(s => Insert(connection, transaction, profileId, system, s, actor, mappingId))];
+        transaction.Commit();
+        return [.. ids.Select(Get)];
+    }
+
+    /// <summary>Removes a mapping's pending suggestions, e.g. when the mapping is deleted.</summary>
+    public void DiscardPending(string mappingId)
+    {
+        using var connection = database.Open();
+        using var transaction = connection.BeginTransaction();
+        DeletePending(connection, transaction, mappingId);
+        transaction.Commit();
+    }
+
+    private static void DeletePending(SqliteConnection connection, SqliteTransaction transaction, string mappingId)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "DELETE FROM ai_suggestions WHERE mapping_id = $mapping AND status = 'Pending'";
+        command.Parameters.AddWithValue("$mapping", mappingId);
+        command.ExecuteNonQuery();
+    }
+
+    private long Insert(
+        SqliteConnection connection, SqliteTransaction transaction, string profileId, string system, SuggestionContent suggestion, string actor, string? mappingId = null)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            INSERT INTO ai_suggestions (profile_id, system, path, status, json, created_at, created_by, mapping_id)
+            VALUES ($profile, $system, $path, $status, $json, $now, $actor, $mapping);
+            SELECT last_insert_rowid();
+            """;
+        command.Parameters.AddWithValue("$profile", profileId);
+        command.Parameters.AddWithValue("$system", system);
+        command.Parameters.AddWithValue("$path", suggestion.Path);
+        command.Parameters.AddWithValue("$status", nameof(SuggestionStatus.Pending));
+        command.Parameters.AddWithValue("$json", JsonSerializer.Serialize(suggestion, MapWrightJson.Options));
+        command.Parameters.AddWithValue("$now", database.Now());
+        command.Parameters.AddWithValue("$actor", actor);
+        command.Parameters.AddWithValue("$mapping", (object?)mappingId ?? DBNull.Value);
+        return (long)command.ExecuteScalar()!;
     }
 
     public IReadOnlyList<Suggestion> List(SuggestionStatus? status = null, string? profileId = null)
@@ -111,7 +163,9 @@ public sealed partial class SuggestionStore(MapWrightDatabase database, Playbook
     {
         using var connection = database.Open();
         using var transaction = connection.BeginTransaction();
-        RequirePending(Find(connection, transaction, id) ?? throw StoreException.NotFound($"Suggestion {id}"));
+        var suggestion = Find(connection, transaction, id) ?? throw StoreException.NotFound($"Suggestion {id}");
+        RequirePending(suggestion);
+        ReviewRow(connection, transaction, suggestion, ReviewDecisionKind.Reject, reviewer, comment);
         Decide(connection, transaction, id, SuggestionStatus.Rejected, reviewer, comment, null);
         transaction.Commit();
         return Find(connection, null, id)!;
@@ -125,7 +179,8 @@ public sealed partial class SuggestionStore(MapWrightDatabase database, Playbook
     /// Draft what no published playbook has yet: a new domain playbook for an unknown concept, or a new attribute
     /// on the concept's playbook. The draft still goes through review and publishing.
     /// </param>
-    public (Suggestion Suggestion, Playbook Draft, bool Created) Approve(long id, string reviewer, string? concept, string? comment, bool create = false)
+    /// <returns>No draft when a mapping suggestion is approved without a concept: only its mapping row is approved.</returns>
+    public (Suggestion Suggestion, Playbook? Draft, bool Created) Approve(long id, string reviewer, string? concept, string? comment, bool create = false)
     {
         using var connection = database.Open();
         using var transaction = connection.BeginTransaction();
@@ -134,6 +189,11 @@ public sealed partial class SuggestionStore(MapWrightDatabase database, Playbook
         var content = suggestion.Content;
         var chosen = !string.IsNullOrWhiteSpace(concept) ? concept.Trim()
             : content.BusinessConcept ?? (create && !string.IsNullOrWhiteSpace(content.ProposedConcept) ? content.ProposedConcept.Trim() : null);
+        if (chosen is null && content.Mapping is not null)
+        {
+            return Approved(connection, transaction, suggestion, reviewer, comment, null, false);
+        }
+
         if (chosen is null)
         {
             throw new StoreException(
@@ -159,7 +219,7 @@ public sealed partial class SuggestionStore(MapWrightDatabase database, Playbook
 
             var (created, isNew) = DraftConcept(
                 connection, transaction, suggestion, Pascal(parts[0]), Pascal(parts.Length == 2 ? parts[1] : content.FieldName), term, reviewer);
-            return Approved(connection, transaction, id, reviewer, comment, created, isNew);
+            return Approved(connection, transaction, suggestion, reviewer, comment, created, isNew);
         }
 
         if (parts.Length == 2)
@@ -182,7 +242,7 @@ public sealed partial class SuggestionStore(MapWrightDatabase database, Playbook
                 var open = OpenDraft(connection, transaction, candidates[0], reviewer, id);
                 var extended = playbooks.UpdateDraft(
                     connection, transaction, open.Id, open.Version, WithAttribute(open, Pascal(parts[1]), term, suggestion, reviewer), reviewer);
-                return Approved(connection, transaction, id, reviewer, comment, extended, false);
+                return Approved(connection, transaction, suggestion, reviewer, comment, extended, false);
             }
 
             candidates = owners;
@@ -218,15 +278,36 @@ public sealed partial class SuggestionStore(MapWrightDatabase database, Playbook
             },
         };
         var saved = playbooks.UpdateDraft(connection, transaction, edited.Id, edited.Version, edited, reviewer);
-        return Approved(connection, transaction, id, reviewer, comment, saved, false);
+        return Approved(connection, transaction, suggestion, reviewer, comment, saved, false);
     }
 
-    private (Suggestion Suggestion, Playbook Draft, bool Created) Approved(
-        SqliteConnection connection, SqliteTransaction transaction, long id, string reviewer, string? comment, Playbook draft, bool created)
+    private (Suggestion Suggestion, Playbook? Draft, bool Created) Approved(
+        SqliteConnection connection, SqliteTransaction transaction, Suggestion suggestion, string reviewer, string? comment, Playbook? draft, bool created)
     {
-        Decide(connection, transaction, id, SuggestionStatus.Approved, reviewer, comment, draft.Reference);
+        ReviewRow(connection, transaction, suggestion, ReviewDecisionKind.Approve, reviewer, comment);
+        Decide(connection, transaction, suggestion.Id, SuggestionStatus.Approved, reviewer, comment, draft?.Reference);
         transaction.Commit();
-        return (Find(connection, null, id)!, draft, created);
+        return (Find(connection, null, suggestion.Id)!, draft, created);
+    }
+
+    /// <summary>
+    /// Approves or rejects the mapping row a mapping suggestion filled in, if the row is still that AI pairing and
+    /// still needs review; a row regenerated, overridden or already decided on the mapping page is left alone.
+    /// </summary>
+    private void ReviewRow(SqliteConnection connection, SqliteTransaction transaction, Suggestion suggestion, ReviewDecisionKind decision, string reviewer, string? comment)
+    {
+        if (suggestion.Content.Mapping is not { } pairing
+            || MappingStore.Find(connection, transaction, pairing.MappingId) is not { } mapping
+            || mapping.Mappings.FirstOrDefault(m => m.Id == pairing.RowId) is not { } row
+            || row.Target.Path != pairing.Target
+            || !row.Sources.Select(f => f.Path).SequenceEqual(pairing.Sources, StringComparer.Ordinal)
+            || !row.Evidence.Any(e => e.Kind == EvidenceKind.AiSuggestion)
+            || row.Review.Status != ReviewStatus.NeedsReview)
+        {
+            return;
+        }
+
+        _mappings.Decide(connection, transaction, pairing.MappingId, pairing.RowId, decision, reviewer, comment ?? $"From AI suggestion {suggestion.Id}.");
     }
 
     private static VocabularyTerm Term(string term, string? attribute, Suggestion suggestion, string reviewer) => new()

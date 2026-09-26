@@ -62,3 +62,20 @@ tr.selected {
 .warn-text {
   color: var(--mat-sys-error, #b3261e);
 }
+
+button.stat {
+  border: 0;
+  padding: 0 2px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  border-radius: 4px;
+  border-bottom: 2px dotted currentColor;
+}
+
+button.stat:hover,
+button.stat.active {
+  color: var(--mat-sys-primary);
+  background: var(--mat-sys-primary-container);
+}

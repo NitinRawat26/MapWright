@@ -6,6 +6,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { Router, RouterLink } from '@angular/router';
 import { catchError, finalize, of } from 'rxjs';
@@ -15,8 +17,20 @@ import { UserService } from '../core/user';
 
 @Component({
   selector: 'app-mapping-list',
-  imports: [DatePipe, FormsModule, MatButtonModule, MatCheckboxModule, MatFormFieldModule, MatInputModule, MatSelectModule, RouterLink],
+  imports: [
+    DatePipe,
+    FormsModule,
+    MatButtonModule,
+    MatCheckboxModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatProgressBarModule,
+    MatProgressSpinnerModule,
+    MatSelectModule,
+    RouterLink,
+  ],
   templateUrl: './mapping-list.html',
+  styleUrl: './mapping-list.scss',
 })
 export class MappingList {
   private readonly api = inject(Api);
@@ -28,7 +42,8 @@ export class MappingList {
 
   protected readonly mappings = signal<MappingListItem[]>([]);
   protected readonly profiles = signal<ProfileSummary[]>([]);
-  protected readonly busy = signal(false);
+  /** What a running generation is waiting for; empty when none is running. */
+  protected readonly busy = signal<'' | 'playbooks' | 'ai'>('');
   protected readonly ai = toSignal(this.api.ai().pipe(catchError(() => of(null))), { initialValue: null });
   protected readonly request = signal({ source: '', target: '', title: '', id: '', replace: false, useAi: false });
 
@@ -44,10 +59,10 @@ export class MappingList {
 
   protected generate(): void {
     const r = this.request();
-    this.busy.set(true);
+    this.busy.set(r.useAi && this.ai()?.available ? 'ai' : 'playbooks');
     this.api
       .generateMapping({ source: r.source, target: r.target, title: r.title.trim() || undefined, id: r.id.trim() || undefined, replace: r.replace, useAi: r.useAi })
-      .pipe(finalize(() => this.busy.set(false)))
+      .pipe(finalize(() => this.busy.set('')))
       .subscribe({ next: (mapping) => void this.router.navigate(['/mappings', mapping.id]), error: () => undefined });
   }
 
@@ -56,7 +71,7 @@ export class MappingList {
   }
 
   protected drop(mapping: MappingListItem): void {
-    if (confirm(`Delete mapping ${mapping.id} and all its review decisions?`)) {
+    if (confirm(`Delete mapping ${mapping.id}, all its review decisions and its pending AI suggestions?`)) {
       this.api.deleteMapping(mapping.id).subscribe(() => this.load());
     }
   }
