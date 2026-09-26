@@ -54,11 +54,25 @@ public sealed record MappingReport(
             Item("Required Target Coverage", $"{Display.Percent(s.RequiredCoveragePercent)} ({s.RequiredTargetFieldsMapped} of {s.RequiredTargetFields})"),
             Item("High / Medium / Low Confidence",
                 $"{s.ByConfidenceBand[ConfidenceBand.High]} / {s.ByConfidenceBand[ConfidenceBand.Medium]} / {s.ByConfidenceBand[ConfidenceBand.Low]}"),
+            Item("AI-Suggested Rows", AiRows(d)),
             Item("Review Status", string.Join(", ", s.ByReviewStatus.Where(kv => kv.Value > 0).Select(kv => $"{Display.Of(kv.Key)}: {kv.Value}"))),
             Item("Orphan Source Fields", s.OrphanSourceFields.ToString()),
             Item("Conflicts / Assumptions", $"{s.Conflicts} / {s.Assumptions}"),
             Item("Validation (pass / fail / skipped)", $"{s.ValidationPassed} / {s.ValidationFailed} / {s.ValidationSkipped}"),
         ];
+    }
+
+    private static string AiRows(MappingDocument d)
+    {
+        var rows = d.Mappings.Where(m => Display.AiEvidence(m) is not null).ToList();
+        if (rows.Count == 0)
+        {
+            return "None";
+        }
+
+        var providers = Display.Join(rows.Select(m => Display.AiEvidence(m)!.Reference).Distinct(StringComparer.Ordinal), ", ");
+        var cap = d.AiPass is { } pass ? $", confidence capped at {pass.MaxConfidence}%" : "";
+        return $"{rows.Count} ({Display.Join(rows.Select(m => m.Id), ", ")}) by {providers}{cap}; check them before relying on them";
     }
 
     private static ReportTable BuildGaps(MappingDocument d)

@@ -26,11 +26,15 @@ from it, so documents never drift from what the tool executes.
 | Source / Target | Field Name, Field Path (JSONPath / XPath), Datatype, Format / Length, Required, Cardinality, Allowed Values, Sample Value (masked), Description |
 | Semantics | Business Concept, Domain Playbook |
 | Transformation | Transformation Type, Rule (human-readable), Expression (machine-executable), Condition, Default Value |
-| Confidence | Confidence %, Confidence Band (High / Medium / Low), Reasoning, Evidence Sources |
+| Confidence | Mapped By (Playbook, Name match, Reviewer, or AI with the provider/model), Confidence %, Confidence Band (High / Medium / Low), Reasoning, Evidence Sources |
 | Risk | Data Loss Risk, PII / Sensitivity, Target Validation Rules |
 | Review | Review Status, Reviewer, Review Date, Reviewer Comments, Open Question |
 
 Confidence bands come from the spec's `confidencePolicy` (default High ≥ 85%, Medium ≥ 60%).
+
+Rows the AI suggested say `AI (<provider>/<model>)` under Mapped By, highlighted in purple in the Excel, HTML and PDF
+reports, and the summary lists them under AI-Suggested Rows. The mapping page marks them with an **AI** tag and can
+filter to them.
 
 ### Spec validation
 

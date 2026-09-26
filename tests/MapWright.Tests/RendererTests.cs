@@ -107,6 +107,53 @@ public class RendererTests
     }
 
     [Fact]
+    public void Ai_suggested_rows_are_labelled_in_every_report()
+    {
+        var ai = TestSpecs.OneToOne("M1", "$.leadSource", "/B/Channel") with
+        {
+            ConfidencePercent = 70,
+            Evidence = [new() { Kind = EvidenceKind.AiSuggestion, Reference = "ollama/qwen3", Detail = "Lead source is the channel." }],
+        };
+        var rule = TestSpecs.OneToOne("M2", "$.name", "/B/Name") with
+        {
+            Evidence = [new() { Kind = EvidenceKind.Playbook, Reference = "domain/entity-type@1.0.0" }],
+        };
+        var document = TestSpecs.Minimal(ai, rule) with
+        {
+            AiPass = new() { Provider = "ollama/qwen3", MaxConfidence = 70, SuggestedRows = ["M1"] },
+        };
+        var report = MappingReport.Build(document);
+
+        var origin = report.Mapping.IndexOf(MappingSheet.OriginHeader);
+        Assert.Equal(["AI (ollama/qwen3)", "Playbook"], report.Mapping.Rows.Select(r => r.Cells[origin]));
+        Assert.Equal([MappingSheet.AiOrigin, ""], report.Mapping.Rows.Select(r => r.Tag(MappingSheet.OriginTag)));
+        Assert.Contains(report.SummaryItems, i => i.Key == "AI-Suggested Rows"
+            && i.Value == "1 (M1) by ollama/qwen3, confidence capped at 70%; check them before relying on them");
+
+        Assert.Contains(",AI (ollama/qwen3),70,", RenderText(new CsvMappingRenderer(), report));
+        Assert.Contains("<td class=\"origin-ai\">AI (ollama/qwen3)</td>", RenderText(new HtmlMappingRenderer(), report));
+
+        using var stream = new MemoryStream();
+        new ExcelMappingRenderer().Render(report, stream);
+        stream.Position = 0;
+        using var workbook = new XLWorkbook(stream);
+        var cell = workbook.Worksheet("Mapping").Cell(3, origin + 1);
+        Assert.Equal("AI (ollama/qwen3)", cell.GetString());
+        Assert.Equal(XLColor.FromHtml("#E1BEE7"), cell.Style.Fill.BackgroundColor);
+
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(PdfMappingRenderer.RenderToBytes(report));
+        var text = string.Concat(pdf.GetPages().Select(p => p.Text));
+        Assert.Contains("Mapped By", text);
+        Assert.Contains("AI(ollama/qwen3)", text.Replace(" ", "", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Rows_without_ai_say_none_in_the_summary()
+    {
+        Assert.Contains(SampleReport.SummaryItems, i => i.Key == "AI-Suggested Rows" && i.Value == "None");
+    }
+
+    [Fact]
     public void Html_encodes_spec_content()
     {
         var mapping = TestSpecs.OneToOne("M1", "$.a", "/B/A") with { Reasoning = "<script>alert(1)</script>" };

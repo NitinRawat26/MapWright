@@ -52,6 +52,30 @@ public static partial class Display
     public static string Of(FieldMapping mapping, ConfidencePolicy policy) =>
         mapping.Type == MappingType.Unmapped ? "" : Humanize(policy.BandFor(mapping.ConfidencePercent));
 
+    /// <summary>The AI evidence of a row the AI suggested, or null for rows found by playbooks, names or reviewers.</summary>
+    public static Evidence? AiEvidence(FieldMapping mapping) =>
+        mapping.Evidence.FirstOrDefault(e => e.Kind == EvidenceKind.AiSuggestion);
+
+    /// <summary>What produced the row: "AI (provider/model)", "Playbook", "Name match" or "Reviewer"; empty for unmapped rows.</summary>
+    public static string Origin(FieldMapping mapping)
+    {
+        if (mapping.Type == MappingType.Unmapped)
+        {
+            return "";
+        }
+
+        if (AiEvidence(mapping) is { } ai)
+        {
+            return $"AI ({ai.Reference})";
+        }
+
+        bool Has(EvidenceKind kind) => mapping.Evidence.Any(e => e.Kind == kind);
+        return Has(EvidenceKind.Playbook) ? "Playbook"
+            : Has(EvidenceKind.NameSimilarity) ? "Name match"
+            : Has(EvidenceKind.Reviewer) ? "Reviewer"
+            : "";
+    }
+
     public static string YesNo(bool value) => value ? "Yes" : "No";
 
     public static string Join(IEnumerable<string?> values, string separator = MultiValueSeparator) =>

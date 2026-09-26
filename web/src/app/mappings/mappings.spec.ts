@@ -100,6 +100,24 @@ describe('Mappings', () => {
     expect(text(root, 'ai-warning')).toBe("fake: ignored a pairing for '/Request/X'.");
   });
 
+  it('tags the rows AI suggested and filters to them', async () => {
+    const fixture = TestBed.createComponent(MappingDetail);
+    fixture.componentRef.setInput('id', 'a__b');
+    fixture.detectChanges();
+    const ai = { ...row('M002', 'needsReview'), evidence: [{ kind: 'aiSuggestion', reference: 'ollama/qwen3', detail: 'Same meaning.' }] };
+    respond('/api/mappings/a__b', { ...mapping, mappings: [mapping.mappings[0], ai, mapping.mappings[2]] });
+    respond('/api/mappings/a__b/summary', summary(2, 0));
+    await settle(fixture);
+    const root = fixture.nativeElement as HTMLElement;
+
+    expect(root.querySelector('tr[data-row="M002"] [data-testid="ai-row"]')?.getAttribute('title')).toContain('ollama/qwen3');
+    expect(root.querySelectorAll('[data-testid="ai-row"]').length).toBe(1);
+
+    (root.querySelectorAll('[data-testid="filter"] button')[4] as HTMLButtonElement).click();
+    await settle(fixture);
+    expect([...root.querySelectorAll('tr[data-row]')].map((r) => r.getAttribute('data-row'))).toEqual(['M002']);
+  });
+
   it('shows no AI panel without an AI pass', async () => {
     const { root } = await open();
     expect(root.querySelector('[data-testid="ai-pass"]')).toBeNull();

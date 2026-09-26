@@ -36,6 +36,7 @@ public sealed class HtmlMappingRenderer : IMappingRenderer
         .g-semantics { background:#6a1b9a !important; } .g-transformation { background:#ef6c00 !important; } .g-confidence { background:#00838f !important; }
         .g-risk { background:#c62828 !important; } .g-review { background:#4e342e !important; }
         .band-High { background:#c8e6c9; } .band-Medium { background:#ffe0b2; } .band-Low { background:#ffcdd2; } .band-unmapped { background:#e0e0e0; }
+        .origin-ai { background:#e1bee7; font-weight:600; }
         .outcome-Pass { background:#c8e6c9; } .outcome-Fail { background:#ffcdd2; } .outcome-Skipped { background:#e0e0e0; }
         .empty { color:var(--muted); font-style:italic; }
         @media print { body { background:#fff; } .scroll { overflow:visible; } thead th { position:static; } }
@@ -65,6 +66,7 @@ public sealed class HtmlMappingRenderer : IMappingRenderer
         Card(html, $"{s.MappedTargetFields}/{s.TotalTargetFields}", "Target fields mapped");
         Card(html, $"{s.ByConfidenceBand[Core.Spec.ConfidenceBand.Low]}", "Low-confidence mappings");
         Card(html, $"{s.ByReviewStatus[Core.Spec.ReviewStatus.NeedsReview]}", "Awaiting review");
+        Card(html, $"{d.Mappings.Count(m => Display.AiEvidence(m) is not null)}", "Suggested by AI");
         Card(html, $"{s.UnmappedTargetFields + s.OrphanSourceFields}", "Gaps");
         Card(html, $"{s.ValidationFailed}", "Validation failures");
         html.Append("</div>\n<dl>");
@@ -75,13 +77,18 @@ public sealed class HtmlMappingRenderer : IMappingRenderer
 
         html.Append("</dl></section>\n");
 
-        AppendTable(html, "mapping", report.Mapping, row => $"band-{row.Tag(MappingSheet.BandTag)}",
-            [report.Mapping.IndexOf(MappingSheet.ConfidenceHeader), report.Mapping.IndexOf(MappingSheet.BandHeader)]);
+        var confidence = report.Mapping.IndexOf(MappingSheet.ConfidenceHeader);
+        var band = report.Mapping.IndexOf(MappingSheet.BandHeader);
+        var origin = report.Mapping.IndexOf(MappingSheet.OriginHeader);
+        AppendTable(html, "mapping", report.Mapping, (row, column) =>
+            column == confidence || column == band ? $"band-{row.Tag(MappingSheet.BandTag)}"
+            : column == origin && row.Tag(MappingSheet.OriginTag) is { Length: > 0 } tag ? $"origin-{tag}"
+            : null);
         AppendTable(html, "gaps", report.Gaps);
         AppendTable(html, "value-maps", report.ValueMaps);
         AppendTable(html, "findings", report.Findings);
-        AppendTable(html, "validation", report.Validation, row => $"outcome-{row.Tag("outcome")}",
-            [report.Validation.IndexOf("Outcome")]);
+        var outcome = report.Validation.IndexOf("Outcome");
+        AppendTable(html, "validation", report.Validation, (row, column) => column == outcome ? $"outcome-{row.Tag("outcome")}" : null);
         AppendTable(html, "change-log", report.ChangeLog);
 
         html.Append("</main>\n</body>\n</html>\n");
@@ -92,7 +99,7 @@ public sealed class HtmlMappingRenderer : IMappingRenderer
         html.Append("<div class=\"card\"><b>").Append(E(value)).Append("</b><span>").Append(E(label)).Append("</span></div>");
 
     private static void AppendTable(
-        StringBuilder html, string id, ReportTable table, Func<ReportRow, string>? cellClass = null, int[]? classedColumns = null)
+        StringBuilder html, string id, ReportTable table, Func<ReportRow, int, string?>? cellClass = null)
     {
         html.Append("<section id=\"").Append(id).Append("\"><h2>").Append(E(table.Title)).Append("</h2>\n");
         if (table.Rows.Count == 0)
@@ -126,9 +133,7 @@ public sealed class HtmlMappingRenderer : IMappingRenderer
             html.Append("<tr>");
             for (var c = 0; c < row.Cells.Count; c++)
             {
-                html.Append(cellClass is not null && classedColumns is not null && classedColumns.Contains(c)
-                    ? $"<td class=\"{E(cellClass(row))}\">"
-                    : "<td>");
+                html.Append(cellClass?.Invoke(row, c) is { } css ? $"<td class=\"{E(css)}\">" : "<td>");
                 html.Append(E(row.Cells[c])).Append("</td>");
             }
 

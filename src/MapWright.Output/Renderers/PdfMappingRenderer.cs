@@ -17,7 +17,7 @@ public sealed partial class PdfMappingRenderer : IMappingRenderer
     /// <summary>Mapping columns shown in the PDF. The full sheet does not fit a page; the Excel workbook has every column.</summary>
     public static IReadOnlyList<string> MappingColumns { get; } =
     [
-        "Mapping ID", "Mapping Type", "Source Field Path", "Target Field Path", "Target Required", "Transformation Type",
+        "Mapping ID", "Mapping Type", MappingSheet.OriginHeader, "Source Field Path", "Target Field Path", "Target Required", "Transformation Type",
         "Transformation Rule", MappingSheet.ConfidenceHeader, MappingSheet.BandHeader, "PII / Sensitivity", MappingSheet.StatusHeader,
     ];
 
@@ -99,6 +99,7 @@ public sealed partial class PdfMappingRenderer : IMappingRenderer
             ["Medium"] = (0xff, 0xe0, 0xb2),
             ["Low"] = (0xff, 0xcd, 0xd2),
             ["unmapped"] = (0xe0, 0xe0, 0xe0),
+            [MappingSheet.AiOrigin] = (0xe1, 0xbe, 0xe7),
             ["Pass"] = (0xc8, 0xe6, 0xc9),
             ["Fail"] = (0xff, 0xcd, 0xd2),
             ["Skipped"] = (0xe0, 0xe0, 0xe0),
@@ -156,7 +157,11 @@ public sealed partial class PdfMappingRenderer : IMappingRenderer
                 [.. mapping.Rows.Select(r => new ReportRow([.. columns.Select(i => r.Cells[i])], r.Tags))]);
             var confidence = main.IndexOf(MappingSheet.ConfidenceHeader);
             var band = main.IndexOf(MappingSheet.BandHeader);
-            Table(main, (row, column) => column == confidence || column == band ? row.Tag(MappingSheet.BandTag) : null);
+            var origin = main.IndexOf(MappingSheet.OriginHeader);
+            Table(main, (row, column) =>
+                column == confidence || column == band ? row.Tag(MappingSheet.BandTag)
+                : column == origin ? row.Tag(MappingSheet.OriginTag)
+                : null);
 
             foreach (var table in report.SupportingTables)
             {

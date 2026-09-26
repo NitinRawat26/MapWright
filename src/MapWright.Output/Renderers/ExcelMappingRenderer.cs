@@ -31,6 +31,11 @@ public sealed class ExcelMappingRenderer : IMappingRenderer
         ["unmapped"] = XLColor.FromHtml("#E0E0E0"),
     };
 
+    private static readonly Dictionary<string, XLColor> OriginColors = new()
+    {
+        [MappingSheet.AiOrigin] = XLColor.FromHtml("#E1BEE7"),
+    };
+
     private static readonly Dictionary<string, XLColor> OutcomeColors = new()
     {
         [nameof(ValidationOutcome.Pass)] = XLColor.FromHtml("#C8E6C9"),
@@ -98,6 +103,7 @@ public sealed class ExcelMappingRenderer : IMappingRenderer
         sheet.SheetView.Freeze(2, 2);
         ColorByTag(sheet, table, firstDataRow: 3, MappingSheet.BandTag, table.IndexOf(MappingSheet.BandHeader), BandColors);
         ColorByTag(sheet, table, firstDataRow: 3, MappingSheet.BandTag, table.IndexOf(MappingSheet.ConfidenceHeader), BandColors);
+        ColorByTag(sheet, table, firstDataRow: 3, MappingSheet.OriginTag, table.IndexOf(MappingSheet.OriginHeader), OriginColors);
     }
 
     private static void WriteTable(IXLWorksheet sheet, ReportTable table, int firstRow)

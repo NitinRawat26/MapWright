@@ -125,6 +125,7 @@ public sealed class AiProviderTests
         Assert.Null(handler.Request.Headers.Authorization);
         var body = handler.Body!;
         Assert.False(body["stream"]!.GetValue<bool>());
+        Assert.False(body["think"]!.GetValue<bool>());
         Assert.Equal("object", body["format"]!["type"]!.GetValue<string>());
         Assert.Equal(["system", "user"], body["messages"]!.AsArray().Select(m => m!["role"]!.GetValue<string>()));
         Assert.Equal(OllamaOptions.DefaultContextTokens, body["options"]!["num_ctx"]!.GetValue<int>());

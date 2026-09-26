@@ -46,7 +46,7 @@ export class MappingDetail {
   protected readonly mapping = signal<MappingDocument | null>(null);
   protected readonly summary = signal<MappingSummary | null>(null);
   protected readonly reviews = signal<ReviewDecision[]>([]);
-  protected readonly filter = signal<'all' | 'open' | 'unmapped' | 'decided'>('all');
+  protected readonly filter = signal<'all' | 'open' | 'unmapped' | 'decided' | 'ai'>('all');
   protected readonly search = signal('');
   protected readonly selected = signal<string | null>(null);
   protected readonly comment = signal('');
@@ -61,10 +61,15 @@ export class MappingDetail {
         this.filter() === 'all' ||
         (this.filter() === 'open' && status === 'needsReview') ||
         (this.filter() === 'unmapped' && row.type === 'unmapped') ||
-        (this.filter() === 'decided' && (status === 'approved' || status === 'rejected' || status === 'overridden'));
+        (this.filter() === 'decided' && (status === 'approved' || status === 'rejected' || status === 'overridden')) ||
+        (this.filter() === 'ai' && this.aiProvider(row) !== null);
       return shown && (!text || [row.id, row.target.path, ...row.sources.map((s) => s.path), row.businessConcept ?? ''].some((v) => v.toLowerCase().includes(text)));
     });
   });
+
+  protected aiProvider(row: FieldMapping): string | null {
+    return row.evidence?.find((e) => e.kind === 'aiSuggestion')?.reference ?? null;
+  }
 
   protected readonly row = computed(() => this.mapping()?.mappings.find((m) => m.id === this.selected()) ?? null);
   protected readonly overrideError = computed(() => {
