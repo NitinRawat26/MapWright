@@ -11,8 +11,9 @@ import { Router, RouterLink } from '@angular/router';
 import { Observable, finalize } from 'rxjs';
 import { parse as parseYaml } from 'yaml';
 import { Api } from '../core/api';
+import { Icon } from '../core/icon';
 import { changeCount, sideBySide } from '../core/diff';
-import { Playbook, PlaybookEvent, PlaybookStatus, PlaybookSummary, TestResponse, ValidationResponse } from '../core/models';
+import { AttributeRef, Playbook, PlaybookEvent, PlaybookStatus, PlaybookSummary, TestResponse, ValidationResponse } from '../core/models';
 import { UserService } from '../core/user';
 import { statusClass, statusLabels } from './status';
 
@@ -38,7 +39,7 @@ const transitions: Record<PlaybookStatus, Transition[]> = {
 
 @Component({
   selector: 'app-playbook-detail',
-  imports: [DatePipe, FormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatTabsModule, RouterLink],
+  imports: [DatePipe, FormsModule, Icon, MatButtonModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatTabsModule, RouterLink],
   templateUrl: './playbook-detail.html',
   styleUrl: './playbook-detail.scss',
 })
@@ -91,15 +92,40 @@ export class PlaybookDetail {
     }
 
     return [
-      ['Vocabulary terms', domain.vocabulary?.length ?? 0],
-      ['Detection signals', domain.signals?.length ?? 0],
-      ['Derivations', domain.derivations?.length ?? 0],
-      ['Conditional rules', domain.conditions?.length ?? 0],
-      ['Value maps', domain.valueMaps?.length ?? 0],
-      ['Validation rules', domain.validations?.length ?? 0],
-      ['Tests', domain.tests?.length ?? 0],
+      ['Attributes', domain.concept.attributes.length, 'pb-concept'],
+      ['Vocabulary terms', domain.vocabulary?.length ?? 0, 'pb-vocabulary'],
+      ['Qualifiers', domain.qualifiers?.length ?? 0, 'pb-qualifiers'],
+      ['Detection signals', domain.signals?.length ?? 0, 'pb-signals'],
+      ['Derivations', domain.derivations?.length ?? 0, 'pb-derivations'],
+      ['Conditional rules', domain.conditions?.length ?? 0, 'pb-conditions'],
+      ['Value maps', domain.valueMaps?.length ?? 0, 'pb-valuemaps'],
+      ['Validation rules', domain.validations?.length ?? 0, 'pb-validations'],
+      ['Risks', domain.risks?.length ?? 0, 'pb-risks'],
+      ['Review questions', domain.reviewGuidance?.length ?? 0, 'pb-review'],
+      ['Tests', domain.tests?.length ?? 0, 'pb-tests'],
     ] as const;
   });
+
+  protected readonly operators: Record<string, string> = { lt: '<', le: '≤', eq: '=', ge: '≥', gt: '>' };
+
+  /** An attribute with its qualifiers, e.g. "ProcessingVolume.Amount [period=monthly]". */
+  protected ref(a: AttributeRef): string {
+    const qualifiers = this.entries(a.qualifiers);
+    return qualifiers.length ? `${a.attribute} [${qualifiers.map(([k, v]) => `${k}=${v}`).join(', ')}]` : a.attribute;
+  }
+
+  protected range(min?: number, max?: number): string {
+    return min === undefined && max === undefined ? '' : ` ${min ?? '…'}–${max ?? '…'}`;
+  }
+
+  protected entries(map?: Record<string, string>): [string, string][] {
+    return Object.entries(map ?? {});
+  }
+
+  protected jump(event: Event, id: string): void {
+    event.preventDefault();
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   constructor() {
     effect(() => {

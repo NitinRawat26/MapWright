@@ -92,4 +92,23 @@ describe('PlaybookList', () => {
     expect(request.request.body).toBe(yaml);
     expect(request.request.headers.get('Content-Type')).toBe('application/yaml');
   });
+
+  it('counts published, draft and in-review playbooks and opens a row on click', async () => {
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const fixture = TestBed.createComponent(PlaybookList);
+    fixture.detectChanges();
+    respond('/api/playbooks', [
+      summary('domain/tax-id', '1.0.0', 'published'),
+      summary('domain/tax-id', '1.1.0', 'draft'),
+      summary('domain/principals', '1.1.0', 'inReview'),
+      summary('process/onboard-new-system', '1.0.0', 'published'),
+    ]);
+    await settle(fixture);
+    const root = fixture.nativeElement as HTMLElement;
+    const values = [...root.querySelectorAll('[data-testid="playbook-stats"] .value')].map((v) => v.textContent?.trim());
+    expect(values).toEqual(['2', '1', '1', '3 · 1']);
+
+    (root.querySelectorAll('tr.mat-mdc-row')[1] as HTMLElement).click();
+    expect(navigate).toHaveBeenCalledWith(['/playbooks', 'domain', 'tax-id', '1.1.0']);
+  });
 });

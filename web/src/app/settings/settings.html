@@ -1,0 +1,138 @@
+<div class="page">
+  <div class="page-head">
+    <div>
+      <h1>Settings</h1>
+      <div class="sub">How this MapWright API is set up. These values come from its environment variables and are read when it starts, so they are shown here but changed there.</div>
+    </div>
+  </div>
+
+  @if (settings(); as s) {
+    <div class="grid-cards">
+      <section class="card" data-testid="settings-ai">
+        <h3 class="section-title"><app-icon name="star_shine" [size]="18" /> AI provider</h3>
+        @if (s.ai.available) {
+          <div class="status good"><app-icon name="check_circle" [size]="18" /> Connected to <b class="mono">{{ s.ai.provider }}</b></div>
+        } @else if (s.ai.error) {
+          <div class="status bad" data-testid="ai-error"><app-icon name="error" [size]="18" /> {{ s.ai.error }}</div>
+        } @else {
+          <div class="status warn"><app-icon name="warning" [size]="18" /> Not configured. The AI options stay off.</div>
+        }
+        <dl class="kv">
+          @if (s.ai.ollama; as o) {
+            <dt>Ollama URL</dt><dd class="mono">{{ o.url }}</dd>
+            <dt>Model</dt><dd class="mono">{{ o.model }}</dd>
+            <dt>Context</dt><dd>{{ o.contextTokens | number }} tokens</dd>
+          }
+          @if (s.ai.vertex; as v) {
+            <dt>Vertex project</dt><dd class="mono">{{ v.project }}</dd>
+            <dt>Location</dt><dd class="mono">{{ v.location }}</dd>
+            <dt>Model</dt><dd class="mono">{{ v.model }}</dd>
+          }
+          <dt>Timeout</dt><dd>{{ s.ai.timeoutSeconds }} seconds</dd>
+          <dt>Confidence cap</dt><dd><span class="chip ai">{{ s.ai.maxConfidence }}%</span></dd>
+        </dl>
+        <p class="hint">Set <code>MAPWRIGHT_OLLAMA_URL</code> and <code>MAPWRIGHT_OLLAMA_MODEL</code>, or <code>MAPWRIGHT_VERTEX_PROJECT</code>, then restart the API. The cap comes from the published process playbook.</p>
+      </section>
+
+      <section class="card" data-testid="settings-signin">
+        <h3 class="section-title"><app-icon name="lock" [size]="18" /> Sign-in</h3>
+        @if (s.signIn.required) {
+          <div class="status good"><app-icon name="lock" [size]="18" /> Required for every change</div>
+        } @else {
+          <div class="status warn" data-testid="signin-off"><app-icon name="lock_open" [size]="18" /> Off: anyone who can reach this API can change profiles, mappings and playbooks.</div>
+        }
+        <dl class="kv">
+          <dt>API keys</dt><dd>{{ s.signIn.apiKeys.length ? s.signIn.apiKeys.length + ' configured' : 'none' }}</dd>
+          <dt>OpenID Connect</dt>
+          <dd>
+            @if (s.signIn.jwt) {
+              <span class="chip good">on</span> <span class="mono">{{ s.signIn.jwtAuthority }}</span>
+              @if (s.signIn.jwtAudience) {
+                <div class="muted">audience <span class="mono">{{ s.signIn.jwtAudience }}</span></div>
+              }
+            } @else {
+              <span class="chip">off</span>
+            }
+          </dd>
+          <dt>SSO proxy</dt>
+          <dd>
+            @if (s.signIn.proxy) {
+              <span class="chip good">on</span> header <span class="mono">{{ s.signIn.proxyUserHeader }}</span>
+            } @else {
+              <span class="chip">off</span>
+            }
+          </dd>
+        </dl>
+        <p class="hint">The README's "Sign-in" section shows how to turn each method on.</p>
+      </section>
+
+      <section class="card" id="api-keys" data-testid="settings-keys">
+        <h3 class="section-title"><app-icon name="key" [size]="18" /> API keys</h3>
+        @for (k of s.signIn.apiKeys; track k) {
+          <div class="key"><app-icon name="key" [size]="16" /> <b class="mono">{{ k }}</b></div>
+        } @empty {
+          <p class="muted">No API keys are configured.</p>
+        }
+        <p class="hint">
+          Only the names are shown. Keys are stored as SHA-256 hashes in <code>MapWright__Auth__ApiKeys__N__Name</code> and
+          <code>MapWright__Auth__ApiKeys__N__Sha256</code>; add or revoke one there and restart the API. Creating keys from this page isn't available yet.
+        </p>
+      </section>
+
+      <section class="card" data-testid="settings-storage">
+        <h3 class="section-title"><app-icon name="storage" [size]="18" /> Storage</h3>
+        @if (s.storage.inMemory) {
+          <div class="status warn" data-testid="storage-temporary"><app-icon name="warning" [size]="18" /> In memory: everything is lost when the API stops.</div>
+        } @else {
+          <div class="status good"><app-icon name="check_circle" [size]="18" /> SQLite database</div>
+        }
+        <dl class="kv">
+          <dt>Database</dt><dd class="mono">{{ s.storage.databasePath }}</dd>
+          @if (s.storage.sizeBytes !== undefined && s.storage.sizeBytes !== null) {
+            <dt>Size</dt><dd>{{ size(s.storage.sizeBytes) }}</dd>
+          }
+          @if (s.storage.seedPlaybooks) {
+            <dt>Starter playbooks</dt><dd class="mono">{{ s.storage.seedPlaybooks }}</dd>
+          }
+          <dt>Independent review</dt>
+          <dd>
+            @if (s.storage.requireIndependentReview) {
+              <span class="chip good">required</span> a playbook's publisher must not be its submitter
+            } @else {
+              <span class="chip warn">not required</span>
+            }
+          </dd>
+        </dl>
+        <p class="hint">On a host without a persistent disk, such as Render's free plan, the database is reset on every restart or redeploy.</p>
+      </section>
+
+      <section class="card" data-testid="settings-confidence">
+        <h3 class="section-title"><app-icon name="verified" [size]="18" /> Confidence bands</h3>
+        <div class="bands">
+          <div><span class="chip good">High</span> {{ s.confidence.highThreshold }}% and above</div>
+          <div><span class="chip warn">Medium</span> {{ s.confidence.mediumThreshold }}% to {{ s.confidence.highThreshold - 1 }}%</div>
+          <div><span class="chip bad">Low</span> below {{ s.confidence.mediumThreshold }}%</div>
+          <div><span class="chip ai">AI</span> never above {{ s.ai.maxConfidence }}%</div>
+        </div>
+      </section>
+
+      <section class="card" data-testid="settings-about">
+        <h3 class="section-title"><app-icon name="info" [size]="18" /> About</h3>
+        <dl class="kv">
+          <dt>Version</dt><dd class="mono">{{ s.version }}</dd>
+          <dt>Published playbooks</dt>
+          <dd><a routerLink="/playbooks">{{ s.playbooks.published }}</a> ({{ s.playbooks.domain }} domain, {{ s.playbooks.process }} process)</dd>
+          <dt>API reference</dt><dd><a href="/swagger" target="_blank" rel="noopener">Swagger UI</a></dd>
+        </dl>
+      </section>
+    </div>
+  } @else if (failed()) {
+    <div class="card empty" data-testid="settings-error">
+      <app-icon name="error" [size]="32" />
+      <b>The settings couldn't be loaded.</b>
+      <span>Check that the API is running and that you're signed in.</span>
+    </div>
+  } @else {
+    <p class="muted">Loading…</p>
+  }
+</div>

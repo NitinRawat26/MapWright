@@ -1,43 +1,62 @@
-.cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
-  margin: 16px 0;
+.icon-badge.big {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  align-self: center;
 }
 
-.card {
-  padding: 12px;
-  border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 8px;
+.flip {
+  transform: rotate(180deg);
 }
 
-.card .value {
-  font: var(--mat-sys-headline-small);
+.page-head .meta {
+  margin-top: 6px;
+}
+
+.exports {
+  flex-wrap: wrap;
+}
+
+.stat-card .bar {
+  width: 100%;
+}
+
+.callout.ai .icon-badge {
+  width: 30px;
+  height: 30px;
 }
 
 tr.clickable {
   cursor: pointer;
 }
 
-tr.clickable:hover,
-tr.selected {
-  background: var(--mat-sys-surface-container);
+tr.clickable:hover td,
+tr.selected td {
+  background: #f5f5ff;
 }
 
-.detail {
-  padding: 12px;
-  background: var(--mat-sys-surface-container-low);
+tr.selected td:first-child {
+  box-shadow: inset 3px 0 0 var(--mw-brand);
+}
+
+td.detail {
+  padding: 16px 18px;
+  background: #fafbff;
+}
+
+.detail-flow {
+  margin-bottom: 14px;
 }
 
 .detail dl {
   display: grid;
   grid-template-columns: 160px 1fr;
-  gap: 4px 12px;
+  gap: 6px 12px;
   margin: 0 0 12px;
 }
 
 .detail dt {
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--mw-muted);
 }
 
 .detail dd {
@@ -48,34 +67,34 @@ tr.selected {
   width: 100%;
   min-height: 280px;
   box-sizing: border-box;
-}
-
-.ai-pass {
-  margin: 0 0 16px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  border: 1px solid var(--mat-sys-outline-variant, #ccc);
-  display: grid;
-  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--mw-line);
+  border-radius: 10px;
 }
 
 .warn-text {
-  color: var(--mat-sys-error, #b3261e);
+  color: #b91c1c;
 }
 
 button.stat {
   border: 0;
-  padding: 0 2px;
+  padding: 0 4px;
   background: none;
   color: inherit;
   font: inherit;
   cursor: pointer;
-  border-radius: 4px;
-  border-bottom: 2px dotted currentColor;
+  border-radius: 6px;
+  border-bottom: 2px dotted #c7cbe8;
 }
 
 button.stat:hover,
 button.stat.active {
-  color: var(--mat-sys-primary);
-  background: var(--mat-sys-primary-container);
+  color: var(--mw-brand);
+  background: #eef0ff;
+  border-bottom-color: var(--mw-brand);
+}
+
+.stat-card .value button.stat {
+  font-size: 24px;
+  font-weight: 700;
 }

@@ -98,25 +98,124 @@ export interface ConceptAttribute {
   description?: string;
   dataType?: string;
   sensitivity?: string;
+  requiresContext?: boolean;
 }
 
 export interface VocabularyTerm {
   term: string;
   appliesTo?: string;
   relation?: string;
+  note?: string;
+}
+
+export interface Qualifier {
+  name: string;
+  description?: string;
+  appliesTo?: string[];
+  values: { value: string; terms?: string[]; minValue?: number; maxValue?: number }[];
+  default?: string;
+}
+
+export interface DetectionSignal {
+  id: string;
+  kind: string;
+  appliesTo?: string;
+  pattern?: string;
+  minValue?: number;
+  maxValue?: number;
+  weight: number;
+  note?: string;
+}
+
+export interface AttributeRef {
+  attribute: string;
+  qualifiers?: Record<string, string>;
+}
+
+export interface NamedInput extends AttributeRef {
+  name: string;
+}
+
+export interface DerivationRule {
+  id: string;
+  description: string;
+  output: AttributeRef;
+  inputs: NamedInput[];
+  expression?: string;
+  transformation: string;
+  dataLoss?: string;
+  requiresReview?: boolean;
+  note?: string;
+  examples?: unknown[];
+}
+
+export interface ConditionalRule {
+  id: string;
+  description: string;
+  output: AttributeRef;
+  cases: { when: { concept: string; in: string[] }[]; then: string }[];
+  otherwise?: string;
+  examples?: unknown[];
+}
+
+export interface ValueMapDefinition {
+  id: string;
+  attribute: string;
+  values: { code: string; label?: string; aliases?: string[] }[];
+}
+
+export interface ValidationRuleDefinition {
+  id: string;
+  description: string;
+  inputs: NamedInput[];
+  expression: string;
+  severity?: string;
+  examples?: unknown[];
+}
+
+export interface ConfidenceRules {
+  equivalentTermPoints?: number;
+  narrowerTermPoints?: number;
+  broaderTermPoints?: number;
+  relatedTermPoints?: number;
+  contextPoints?: number;
+  matchThreshold?: number;
+  reviewTriggers?: string[];
+}
+
+export interface DetectionTest {
+  id: string;
+  description?: string;
+  field: { path?: string; name?: string; [key: string]: unknown };
+  expect?: string;
+  expectQualifiers?: Record<string, string>;
+  minScore?: number;
+  expectReview?: boolean;
 }
 
 export interface DomainDefinition {
   concept: { name: string; description?: string; cardinality?: string; attributes: ConceptAttribute[] };
   vocabulary?: VocabularyTerm[];
-  qualifiers?: unknown[];
-  signals?: unknown[];
-  derivations?: unknown[];
-  conditions?: unknown[];
-  valueMaps?: unknown[];
-  validations?: unknown[];
+  qualifiers?: Qualifier[];
+  signals?: DetectionSignal[];
+  derivations?: DerivationRule[];
+  conditions?: ConditionalRule[];
+  valueMaps?: ValueMapDefinition[];
+  validations?: ValidationRuleDefinition[];
+  confidence?: ConfidenceRules;
   risks?: { id: string; appliesTo?: string; level: string; text: string }[];
-  tests?: unknown[];
+  reviewGuidance?: { id: string; appliesTo?: string; when?: string; question: string }[];
+  aiGuidance?: string;
+  tests?: DetectionTest[];
+}
+
+export interface ProcessGate {
+  id: string;
+  metric: string;
+  operator: string;
+  value: number;
+  action: string;
+  message?: string;
 }
 
 export interface ProcessStep {
@@ -124,6 +223,18 @@ export interface ProcessStep {
   name: string;
   kind: string;
   description?: string;
+  uses?: string[];
+  gates?: ProcessGate[];
+  reviewers?: string[];
+  maxConfidence?: number;
+  optional?: boolean;
+}
+
+export interface ProcessDefinition {
+  inputs?: { side: string; kinds: string[]; minCount?: number; note?: string }[];
+  steps?: ProcessStep[];
+  thresholds?: { autoAcceptAt?: number; reviewBelow?: number; rejectBelow?: number };
+  outputs?: string[];
 }
 
 /** A playbook in the file format; only the parts the UI shows are typed. */
@@ -138,7 +249,7 @@ export interface Playbook {
   description?: string;
   changeNotes?: { version: string; date: string; author: string; description: string }[];
   domain?: DomainDefinition;
-  process?: { steps?: ProcessStep[] };
+  process?: ProcessDefinition;
 }
 
 export interface ProfileField {
@@ -378,4 +489,37 @@ export interface Me {
   name?: string;
   method?: 'header' | 'apiKey' | 'bearer' | 'proxy';
   signInRequired: boolean;
+}
+
+/** The read-only configuration from `/api/settings`; secrets are never included. */
+export interface Settings {
+  version: string;
+  ai: {
+    available: boolean;
+    provider?: string;
+    error?: string;
+    maxConfidence: number;
+    timeoutSeconds: number;
+    ollama?: { url: string; model: string; contextTokens: number };
+    vertex?: { project: string; location: string; model: string };
+  };
+  signIn: {
+    required: boolean;
+    apiKeys: string[];
+    jwt: boolean;
+    jwtAuthority?: string;
+    jwtAudience?: string;
+    proxy: boolean;
+    proxyUserHeader?: string;
+  };
+  storage: {
+    databasePath: string;
+    inMemory: boolean;
+    sizeBytes?: number;
+    seedPlaybooks?: string;
+    requireIndependentReview: boolean;
+    host?: string;
+  };
+  confidence: { highThreshold: number; mediumThreshold: number };
+  playbooks: { published: number; domain: number; process: number };
 }

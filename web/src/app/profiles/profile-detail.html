@@ -1,31 +1,82 @@
 <div class="page">
-  <a routerLink="/profiles" class="muted back">← Profiles</a>
+  <a routerLink="/profiles" class="muted back"><app-icon name="chevron_right" [size]="16" class="flip" /> Profiles</a>
   @if (profile(); as p) {
-    <h1>{{ p.system }}</h1>
-    <div class="row muted">
-      <span class="mono">{{ id() }}</span><span>{{ p.format | uppercase }}</span>
-      @if (p.version) {
-        <span>Version {{ p.version }}</span>
-      }
-      <span>{{ p.fields.length }} fields</span><span>{{ p.findings?.length ?? 0 }} findings</span>
+    <div class="page-head">
+      <span class="icon-badge big"><app-icon [name]="p.format === 'xml' ? 'schema' : 'data_object'" [size]="24" /></span>
+      <div>
+        <h1>{{ p.system }}</h1>
+        <div class="meta">
+          <span class="mono">{{ id() }}</span>
+          <span class="chip" [class.info]="p.format === 'json'" [class.ai]="p.format === 'xml'">{{ p.format | uppercase }}</span>
+          @if (p.version) {
+            <span class="chip">Version {{ p.version }}</span>
+          }
+          <span>{{ p.fields.length }} fields</span><span>{{ p.findings?.length ?? 0 }} findings</span>
+          <span>Built {{ p.createdAt | date: 'medium' }}</span>
+        </div>
+        @if (p.description) {
+          <div class="sub">{{ p.description }}</div>
+        }
+      </div>
+      <div class="head-actions">
+        <a mat-stroked-button [routerLink]="['/mappings']" [queryParams]="{ source: id() }"><app-icon name="account_tree" [size]="18" /> Map from this profile</a>
+      </div>
     </div>
-    @if (p.description) {
-      <p>{{ p.description }}</p>
-    }
 
-    <div class="actions">
+    <div class="stats">
+      <div class="stat-card">
+        <span class="label"><app-icon name="list_alt" [size]="16" /> Fields</span>
+        <span class="value">{{ p.fields.length }}</span>
+        <span class="foot">{{ counts().values }} values · {{ counts().groups }} groups</span>
+      </div>
+      <div class="stat-card">
+        <span class="label"><app-icon name="verified" [size]="16" /> Required</span>
+        <span class="value">{{ counts().required }}</span>
+        <span class="foot">required or likely required</span>
+      </div>
+      <div class="stat-card">
+        <span class="label"><app-icon name="lock" [size]="16" /> Sensitive</span>
+        <span class="value">{{ counts().sensitive }}</span>
+        <span class="foot">sample values masked</span>
+      </div>
+      <div class="stat-card">
+        <span class="label"><app-icon name="lightbulb" [size]="16" /> Recognised</span>
+        @if (detection(); as d) {
+          <span class="value">{{ coverage() }}%</span>
+          <span class="bar"><i class="high" [style.width.%]="coverage()"></i></span>
+        } @else {
+          <span class="value muted">—</span>
+          <span class="foot">run detection to see</span>
+        }
+      </div>
+    </div>
+
+    <div class="card detect">
+      <div class="card-head">
+        <span class="icon-badge"><app-icon name="bolt" [size]="18" /></span>
+        <div>
+          <h2>Detect business concepts</h2>
+          <div class="muted">Matches every field against the published playbooks, so mappings can pair fields by meaning.</div>
+        </div>
+      </div>
       <div class="row">
-        <button mat-flat-button type="button" [disabled]="busy() || (useAi() && !user.name())" (click)="detect()" data-testid="detect">Detect business concepts</button>
+        <button mat-flat-button type="button" [disabled]="busy() || (useAi() && !user.name())" (click)="detect()" data-testid="detect">
+          @if (busy()) {
+            <mat-spinner diameter="18" class="button-spinner" />
+            Detecting…
+          } @else {
+            <app-icon name="play_arrow" [size]="18" /> Detect business concepts
+          }
+        </button>
         <mat-checkbox [disabled]="!ai()?.available" [checked]="useAi()" (change)="useAi.set($event.checked)" data-testid="use-ai">
           Ask AI about fields no playbook recognises
         </mat-checkbox>
-        <a mat-button [routerLink]="['/mappings']" [queryParams]="{ source: id() }">Map from this profile</a>
       </div>
-      <div class="muted">
+      <div class="muted note">
         @if (!ai()?.available) {
           AI is not configured, so only the published playbooks are used.
         } @else if (useAi()) {
-          Field names, types and masked sample values are sent to {{ ai()?.provider }}. Answers are capped at {{ ai()?.maxConfidence }}% and go to the AI suggestions inbox for review.
+          <span class="chip ai">AI</span> Field names, types and masked sample values are sent to {{ ai()?.provider }}. Answers are capped at {{ ai()?.maxConfidence }}% and go to the AI suggestions inbox for review.
         } @else {
           Only the published playbooks are used; nothing leaves MapWright.
         }
@@ -33,83 +84,114 @@
     </div>
 
     @if (detection(); as d) {
-      <h2 data-testid="detected">Recognised {{ d.recognised.length }} of {{ d.recognised.length + d.remaining.length + d.suggestions.length }} fields</h2>
-      @if (d.detectedAt) {
-        <p class="muted" data-testid="detected-at">
-          Last run {{ d.detectedAt | date: 'medium' }} by {{ d.detectedBy }}{{ d.usedAi ? ', with AI' : ', playbooks only' }}.
-        </p>
-      }
-      @for (s of d.stale ?? []; track $index) {
-        <p class="warn-text" data-testid="stale">{{ s }} Run detection again to update it.</p>
-      }
-      <table class="plain wide">
-        <tr><th>Field</th><th>Concept</th><th>Score</th><th>Playbook</th><th>Notes</th></tr>
-        @for (m of d.recognised; track m.path) {
-          <tr>
-            <td class="mono">{{ m.path }}</td><td>{{ m.detection.businessConcept }}</td>
-            <td><span class="chip" [class]="m.detection.requiresReview ? 'warn' : 'good'">{{ m.detection.score }}</span></td>
-            <td class="mono">{{ m.detection.playbook }}</td>
-            <td>{{ (m.detection.warnings ?? []).concat(m.detection.questions ?? []).join(' ') }}</td>
-          </tr>
-        }
-      </table>
-      @if (d.suggestions.length) {
-        <p><a routerLink="/suggestions">{{ d.suggestions.length }} AI suggestion(s)</a> are waiting for review.</p>
-      }
-      @if (d.remaining.length) {
-        <h2>Not recognised</h2>
-        <div class="row terms">
-          @for (r of d.remaining; track r) {
-            <span class="chip mono">{{ r }}</span>
+      <div class="card result">
+        <div class="card-head">
+          <h2 data-testid="detected">Recognised {{ d.recognised.length }} of {{ d.recognised.length + d.remaining.length + d.suggestions.length }} fields</h2>
+          @if (d.usedAi) {
+            <span class="chip ai">with AI</span>
           }
         </div>
-      }
-      @for (w of d.warnings; track $index) {
-        <p class="warn-text">{{ w }}</p>
-      }
-    }
-
-    <mat-tab-group animationDuration="0ms">
-      <mat-tab [label]="'Fields (' + p.fields.length + ')'">
-        <div class="tab">
-          <mat-form-field appearance="outline" subscriptSizing="dynamic">
-            <mat-label>Search fields</mat-label>
-            <input matInput [ngModel]="search()" (ngModelChange)="search.set($event)" />
-          </mat-form-field>
-          <table class="plain wide" data-testid="fields">
-            <tr><th>Path</th><th>Type</th><th>Required</th><th>Repeats</th><th>Sample</th><th>Description</th></tr>
-            @for (f of fields(); track f.path) {
+        @if (d.detectedAt) {
+          <p class="muted" data-testid="detected-at">
+            Last run {{ d.detectedAt | date: 'medium' }} by {{ d.detectedBy }}{{ d.usedAi ? ', with AI' : ', playbooks only' }}.
+          </p>
+        }
+        @for (s of d.stale ?? []; track $index) {
+          <div class="callout warn" data-testid="stale"><app-icon name="warning" [size]="18" /><div>{{ s }} Run detection again to update it.</div></div>
+        }
+        @if (d.suggestions.length) {
+          <div class="callout ai">
+            <app-icon name="star_shine" [size]="18" />
+            <div><span><a routerLink="/suggestions">{{ d.suggestions.length }} AI suggestion(s)</a> are waiting for review.</span></div>
+          </div>
+        }
+        <table class="grid">
+          <thead>
+            <tr><th>Field</th><th>Concept</th><th>Score</th><th>Playbook</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            @for (m of d.recognised; track m.path) {
               <tr>
-                <td class="mono">{{ f.path }}</td>
-                <td>{{ f.dataType }}{{ f.format ? ' (' + f.format + ')' : '' }}{{ f.maxLength ? ' ≤' + f.maxLength : '' }}</td>
-                <td>{{ f.required }}</td><td>{{ f.cardinality }}</td>
-                <td class="mono">{{ f.sensitive ? '🔒 ' : '' }}{{ f.allowedValues?.length ? f.allowedValues?.join(', ') : f.sampleValue }}</td>
-                <td>{{ f.description }}</td>
+                <td class="mono">{{ m.path }}</td>
+                <td><b>{{ m.detection.businessConcept }}</b></td>
+                <td><span class="chip" [class]="m.detection.requiresReview ? 'warn' : 'good'">{{ m.detection.score }}</span></td>
+                <td class="mono muted">{{ m.detection.playbook }}</td>
+                <td>{{ (m.detection.warnings ?? []).concat(m.detection.questions ?? []).join(' ') }}</td>
               </tr>
             }
-          </table>
-        </div>
-      </mat-tab>
-      <mat-tab [label]="'Findings (' + (p.findings?.length ?? 0) + ')'">
-        <div class="tab">
-          <table class="plain wide">
-            @for (f of p.findings ?? []; track $index) {
-              <tr><td>{{ f.kind }}</td><td class="mono">{{ f.path }}</td><td>{{ f.message }}</td></tr>
-            } @empty {
-              <tr><td class="muted">No findings.</td></tr>
+          </tbody>
+        </table>
+        @if (d.remaining.length) {
+          <h3>Not recognised <span class="muted">({{ d.remaining.length }})</span></h3>
+          <div class="row terms">
+            @for (r of d.remaining; track r) {
+              <span class="chip mono">{{ r }}</span>
             }
-          </table>
-        </div>
-      </mat-tab>
-      <mat-tab [label]="'Inputs (' + (p.inputs?.length ?? 0) + ')'">
-        <div class="tab">
-          <table class="plain wide">
-            @for (i of p.inputs ?? []; track i.name) {
-              <tr><td>{{ i.name }}</td><td>{{ i.kind }}</td><td class="mono muted">{{ i.sha256 }}</td><td>{{ i.notes }}</td></tr>
-            }
-          </table>
-        </div>
-      </mat-tab>
-    </mat-tab-group>
+          </div>
+        }
+        @for (w of d.warnings; track $index) {
+          <p class="warn-text">{{ w }}</p>
+        }
+      </div>
+    }
+
+    <div class="card tabs">
+      <mat-tab-group animationDuration="0ms">
+        <mat-tab [label]="'Fields (' + p.fields.length + ')'">
+          <div class="tab">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search">
+              <mat-label>Search fields</mat-label>
+              <input matInput [ngModel]="search()" (ngModelChange)="search.set($event)" />
+            </mat-form-field>
+            <table class="grid" data-testid="fields">
+              <thead>
+                <tr><th>Path</th><th>Type</th><th>Required</th><th>Repeats</th><th>Sample</th><th>Description</th></tr>
+              </thead>
+              <tbody>
+                @for (f of fields(); track f.path) {
+                  <tr>
+                    <td class="mono">{{ f.path }}</td>
+                    <td><span class="chip info">{{ f.dataType }}</span>{{ f.format ? ' (' + f.format + ')' : '' }}{{ f.maxLength ? ' ≤' + f.maxLength : '' }}</td>
+                    <td><span class="chip" [class.good]="f.required === 'required' || f.required === 'likelyRequired'">{{ f.required }}</span></td>
+                    <td>{{ f.cardinality }}</td>
+                    <td class="mono">{{ f.sensitive ? '🔒 ' : '' }}{{ f.allowedValues?.length ? f.allowedValues?.join(', ') : f.sampleValue }}</td>
+                    <td>{{ f.description }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </mat-tab>
+        <mat-tab [label]="'Findings (' + (p.findings?.length ?? 0) + ')'">
+          <div class="tab">
+            <table class="grid">
+              <tbody>
+                @for (f of p.findings ?? []; track $index) {
+                  <tr><td><span class="chip warn">{{ f.kind }}</span></td><td class="mono">{{ f.path }}</td><td>{{ f.message }}</td></tr>
+                } @empty {
+                  <tr><td class="muted">No findings.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </mat-tab>
+        <mat-tab [label]="'Inputs (' + (p.inputs?.length ?? 0) + ')'">
+          <div class="tab">
+            <table class="grid">
+              <tbody>
+                @for (i of p.inputs ?? []; track i.name) {
+                  <tr>
+                    <td><app-icon name="description" [size]="16" /> {{ i.name }}</td>
+                    <td><span class="chip">{{ i.kind }}</span></td>
+                    <td class="mono muted">{{ i.sha256 }}</td>
+                    <td>{{ i.notes }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </div>
   }
 </div>

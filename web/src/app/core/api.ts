@@ -16,6 +16,7 @@ import {
   NewProfile,
   ReviewDecision,
   ReviewDecisionKind,
+  Settings,
   SystemProfile,
   PlaybookEvent,
   PlaybookStatus,
@@ -48,6 +49,10 @@ export class Api {
 
   ai(): Observable<AiStatus> {
     return this.http.get<AiStatus>('/api/ai');
+  }
+
+  settings(): Observable<Settings> {
+    return this.http.get<Settings>('/api/settings');
   }
 
   playbooks(status?: PlaybookStatus): Observable<PlaybookSummary[]> {

@@ -1,10 +1,37 @@
 <div class="page">
-  <h1>Playbooks</h1>
-  <p class="muted">
-    Domain playbooks hold the business knowledge used to recognise and map fields; process playbooks describe the
-    mapping workflow. Only published versions are used when mapping.
-  </p>
+  <div class="page-head">
+    <div>
+      <h1>Playbooks</h1>
+      <div class="sub">
+        Domain playbooks hold the business knowledge used to recognise and map fields; process playbooks describe the
+        mapping workflow. Only published versions are used when mapping.
+      </div>
+    </div>
+    <div class="head-actions">
+      <button mat-flat-button type="button" (click)="openImport()"><app-icon name="add" [size]="18" /> Add a playbook</button>
+    </div>
+  </div>
 
+  <div class="stats" data-testid="playbook-stats">
+    <div class="stat-card">
+      <div class="label"><app-icon name="verified" [size]="16" /> Published</div>
+      <div class="value">{{ stats().published }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label"><app-icon name="edit" [size]="16" /> Drafts</div>
+      <div class="value">{{ stats().draft }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label"><app-icon name="schedule" [size]="16" /> In review</div>
+      <div class="value">{{ stats().inReview }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label"><app-icon name="menu_book" [size]="16" /> Domain · process</div>
+      <div class="value">{{ stats().domain }} · {{ stats().process }}</div>
+    </div>
+  </div>
+
+  <div class="card list">
   <div class="row filters">
     <mat-button-toggle-group [value]="status()" (change)="filter($event.value)" data-testid="status-filter" hideSingleSelectionIndicator>
       <mat-button-toggle value="">All</mat-button-toggle>
@@ -14,8 +41,10 @@
       <mat-button-toggle value="retired">Retired</mat-button-toggle>
       <mat-button-toggle value="abandoned">Abandoned</mat-button-toggle>
     </mat-button-toggle-group>
-    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <span class="spacer"></span>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search">
       <mat-label>Search</mat-label>
+      <app-icon matPrefix name="search" [size]="18" />
       <input matInput [ngModel]="search()" (ngModelChange)="search.set($event)" />
     </mat-form-field>
   </div>
@@ -23,19 +52,24 @@
   <table mat-table [dataSource]="rows()" data-testid="playbooks">
     <ng-container matColumnDef="id">
       <th mat-header-cell *matHeaderCellDef>Id</th>
-      <td mat-cell *matCellDef="let p"><a [routerLink]="link(p)" class="mono">{{ p.id }}</a></td>
+      <td mat-cell *matCellDef="let p">
+        <div class="ident">
+          <span class="icon-badge" [class.process]="p.kind === 'process'"><app-icon [name]="p.kind === 'process' ? 'conversion_path' : 'menu_book'" [size]="18" /></span>
+          <a [routerLink]="link(p)" class="mono" (click)="$event.stopPropagation()">{{ p.id }}</a>
+        </div>
+      </td>
     </ng-container>
     <ng-container matColumnDef="version">
       <th mat-header-cell *matHeaderCellDef>Version</th>
-      <td mat-cell *matCellDef="let p">{{ p.version }}</td>
+      <td mat-cell *matCellDef="let p"><span class="chip mono">{{ p.version }}</span></td>
     </ng-container>
     <ng-container matColumnDef="name">
       <th mat-header-cell *matHeaderCellDef>Name</th>
-      <td mat-cell *matCellDef="let p">{{ p.name }}</td>
+      <td mat-cell *matCellDef="let p"><b>{{ p.name }}</b></td>
     </ng-container>
     <ng-container matColumnDef="kind">
       <th mat-header-cell *matHeaderCellDef>Kind</th>
-      <td mat-cell *matCellDef="let p">{{ p.kind }}</td>
+      <td mat-cell *matCellDef="let p"><span class="chip info">{{ p.kind }}</span></td>
     </ng-container>
     <ng-container matColumnDef="status">
       <th mat-header-cell *matHeaderCellDef>Status</th>
@@ -47,21 +81,22 @@
     </ng-container>
     <ng-container matColumnDef="updated">
       <th mat-header-cell *matHeaderCellDef>Updated</th>
-      <td mat-cell *matCellDef="let p">{{ p.updatedAt | date: 'medium' }} · {{ p.updatedBy }}</td>
+      <td mat-cell *matCellDef="let p"><span [title]="(p.updatedAt | date: 'medium') ?? ''">{{ p.updatedAt | date: 'mediumDate' }}</span> <span class="muted">· {{ p.updatedBy }}</span></td>
     </ng-container>
     <tr mat-header-row *matHeaderRowDef="columns"></tr>
-    <tr mat-row *matRowDef="let row; columns: columns"></tr>
+    <tr mat-row *matRowDef="let row; columns: columns" class="link" (click)="open(row)"></tr>
     <tr class="mat-mdc-row" *matNoDataRow>
       <td class="mat-mdc-cell muted" [attr.colspan]="columns.length">No playbooks match.</td>
     </tr>
   </table>
+  </div>
 
-  <mat-expansion-panel class="import">
+  <mat-expansion-panel class="import" [expanded]="importOpen()" (opened)="importOpen.set(true)" (closed)="importOpen.set(false)" id="add-playbook">
     <mat-expansion-panel-header><mat-panel-title>Add a playbook</mat-panel-title></mat-expansion-panel-header>
     <p class="muted">Paste or load a playbook file (YAML, or JSON from older versions). It is stored as a new draft; to change an existing playbook, open it and draft a new version.</p>
     <div class="row">
       <input #file type="file" accept=".yaml,.yml,.json,application/yaml,application/json" hidden (change)="readFile(file)" />
-      <button mat-stroked-button type="button" (click)="file.click()">Load file…</button>
+      <button mat-stroked-button type="button" (click)="file.click()"><app-icon name="upload_file" [size]="18" /> Load file…</button>
     </div>
     <mat-form-field appearance="outline" class="json">
       <mat-label>Playbook YAML</mat-label>
@@ -69,7 +104,7 @@
     </mat-form-field>
     <button mat-flat-button type="button" [disabled]="!importText().trim() || !user.name()" (click)="create()" data-testid="import">Create draft</button>
     @if (!user.name()) {
-      <span class="muted"> Enter your name in the toolbar first.</span>
+      <span class="muted"> Enter your name in the header first.</span>
     }
   </mat-expansion-panel>
 </div>

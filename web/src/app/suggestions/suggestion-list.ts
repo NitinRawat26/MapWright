@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
@@ -10,6 +10,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { Api } from '../core/api';
+import { Icon } from '../core/icon';
 import { Suggestion, SuggestionStatus } from '../core/models';
 import { UserService } from '../core/user';
 
@@ -21,8 +22,9 @@ interface Draft {
 
 @Component({
   selector: 'app-suggestion-list',
-  imports: [DatePipe, FormsModule, MatButtonModule, MatButtonToggleModule, MatCheckboxModule, MatFormFieldModule, MatInputModule, RouterLink],
+  imports: [DatePipe, FormsModule, Icon, MatButtonModule, MatButtonToggleModule, MatCheckboxModule, MatFormFieldModule, MatInputModule, RouterLink],
   templateUrl: './suggestion-list.html',
+  styleUrl: './suggestion-list.scss',
 })
 export class SuggestionList {
   private readonly api = inject(Api);
@@ -33,6 +35,14 @@ export class SuggestionList {
   protected readonly suggestions = signal<Suggestion[]>([]);
   protected readonly drafts = signal<Record<number, Draft>>({});
   protected readonly busy = signal<number | null>(null);
+  protected readonly kinds = computed(() => {
+    const list = this.suggestions();
+    return {
+      mapping: list.filter((s) => s.content.mapping).length,
+      detection: list.filter((s) => !s.content.mapping).length,
+      drafts: list.filter((s) => s.status === 'pending' && !s.content.domainPlaybook && s.content.proposedConcept).length,
+    };
+  });
 
   constructor() {
     effect(() => {

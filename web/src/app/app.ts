@@ -44,7 +44,7 @@ export class App {
   /** The nav label of the current page, for the header. */
   protected readonly section = computed(() => {
     const first = this.url().split(/[/?#]/)[1] ?? '';
-    return this.links.find((l) => l.path === `/${first}`)?.label ?? 'Overview';
+    return [...this.links, ...this.configure.filter((l) => !l.fragment)].find((l) => l.path === `/${first}`)?.label ?? 'Overview';
   });
 
   protected readonly method = computed(() => methods[this.user.me()?.method ?? ''] ?? '');
@@ -88,5 +88,10 @@ export class App {
     { key: 'mappings', path: '/mappings', label: 'Mappings', icon: 'account_tree', exact: false },
     { key: 'playbooks', path: '/playbooks', label: 'Playbooks', icon: 'menu_book', exact: false },
     { key: 'suggestions', path: '/suggestions', label: 'AI suggestions', icon: 'star_shine', exact: false },
+  ];
+
+  protected readonly configure: { key: string; path: string; label: string; icon: IconName; exact: boolean; fragment?: string }[] = [
+    { key: 'api-keys', path: '/settings', label: 'API keys', icon: 'key', exact: false, fragment: 'api-keys' },
+    { key: 'settings', path: '/settings', label: 'Settings', icon: 'settings', exact: false },
   ];
 }
