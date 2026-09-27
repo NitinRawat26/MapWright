@@ -297,7 +297,7 @@ public sealed class AiFieldAssistantTests
         }
 
         var concepts = AiSamples.Input(prompt)["concepts"]!.AsArray();
-        Assert.Equal(5, concepts.Count);
+        Assert.Equal(6, concepts.Count);
         Assert.Contains(concepts, c => c!["concept"]!.GetValue<string>() == "Principal" && c["guidance"] is not null);
     }
 
@@ -371,7 +371,7 @@ public sealed class DetectAiCliTests
         CliApp.Run(["playbook", "detect", Profile, "--playbooks", StarterPlaybooks.Directory, .. extra], new StringReader(stdin), _out, _err, ai);
 
     private static FakeProvider Mcc() => new("fake", _ => AiSamples.Answer(
-        new { path = "$.account.mcc", newConcept = "Merchant.Mcc", meaning = "Merchant category code", confidence = 90, reasoning = "4-digit codes." }));
+        new { path = "$.account.dbaName", newConcept = "Merchant.DbaName", meaning = "Trading name", confidence = 90, reasoning = "Doing business as." }));
 
     [Fact]
     public void Asks_before_using_ai_and_runs_it_on_yes()
@@ -382,7 +382,7 @@ public sealed class DetectAiCliTests
 
         var output = _out.ToString();
         Assert.Contains("Do you want to use AI to decode the remaining", output);
-        Assert.Contains("$.account.mcc  new: Merchant.Mcc 70% review (fake/fake-model)", output);
+        Assert.Contains("$.account.dbaName  new: Merchant.DbaName 70% review (fake/fake-model)", output);
         Assert.Contains("AI suggestion(s)", output);
         var prompt = Assert.Single(ai.Prompts);
         Assert.DoesNotContain(AiSamples.Input(prompt)["fields"]!.AsArray(), f => f!["path"]!.GetValue<string>() == "$.owners");
@@ -447,9 +447,9 @@ public sealed class DetectAiCliTests
             Assert.Equal("SalesAlpha CRM", report["system"]!.GetValue<string>());
             Assert.Contains(report["recognised"]!.AsArray(), m => m!["path"]!.GetValue<string>() == "$.owners");
             var suggestion = Assert.Single(report["aiSuggestions"]!.AsArray())!;
-            Assert.Equal(("$.account.mcc", "needsReview"), (suggestion["path"]!.GetValue<string>(), suggestion["review"]!.GetValue<string>()));
+            Assert.Equal(("$.account.dbaName", "needsReview"), (suggestion["path"]!.GetValue<string>(), suggestion["review"]!.GetValue<string>()));
             var remaining = report["remaining"]!.AsArray().Select(r => r!.GetValue<string>()).ToList();
-            Assert.DoesNotContain("$.account.mcc", remaining);
+            Assert.DoesNotContain("$.account.dbaName", remaining);
             Assert.Contains("$.account.legalName", remaining);
         }
         finally

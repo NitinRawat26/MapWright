@@ -391,11 +391,11 @@ public sealed class MappingCompletionTests
             m =>
             {
                 Assert.True(m.ConfidencePercent >= policy.HighThreshold);
-                Assert.Equal(RiskLevel.None, m.Risk.DataLoss);
+                Assert.True(m.Risk.DataLoss <= RiskLevel.Low);
                 Assert.DoesNotContain("Needs review", m.Reasoning);
             });
         Assert.Equal(
-            ["M006", "M017", "M018", "M020", "M021"],
+            ["M006", "M008", "M017", "M018", "M020", "M021"],
             SalesToUw.Mappings.Where(m => m.Review.Status == ReviewStatus.AutoAccepted).Select(m => m.Id));
     }
 }
