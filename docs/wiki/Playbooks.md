@@ -48,6 +48,10 @@ Source of truth in code: `src/MapWright.Core/Playbooks/` (`Playbook.cs` model, `
 
 A file has exactly one of a `domain:` or `process:` section, matching its `kind` (rule `PB005`).
 
+> Codes such as `PB005` are the playbook validator's issue codes: each one is a structural check that
+> `mapwright playbook validate` / `playbook test` and every save through the API or UI runs on the YAML.
+> They are listed in [section 16](#16-validation-of-the-playbook-itself-pb0xx-codes).
+
 ## 2. File header and lifecycle
 
 ```yaml
@@ -241,10 +245,23 @@ signals:
   - id: VOL-SIG-TEXT-VOL
     kind: dataType
     appliesTo: CardVolume
-    pattern: string|date|dateTime|boolean
+    pattern: date|dateTime|boolean
     weight: -30
-    note: not a number, e.g. a volume tier
+    note: not a number
+  - id: VOL-SIG-TIER-VOL
+    kind: valuePattern
+    appliesTo: CardVolume
+    pattern: ^(?!-?(\d+|\d{1,3}(,\d{3})+)(\.\d+)?$)
+    weight: -30
+    note: text that is not a number, e.g. a volume tier
 ```
+
+`dataType` signals see the **profiled** type, not the raw text. A JSON number `280000` profiles as `integer`
+(+10 via `VOL-SIG-NUM-VOL`); a JSON string `"280000"` or `"280,000"` keeps its declared type `string`
+(untyped XML text is inferred from content, so `<Volume>280000</Volume>` is `integer` but `280,000` is `string`).
+That is why the penalty for text is a `valuePattern` on the observed values: `"280,000"` is numeric text and
+scores 0 from signals (recognised by name and context, reviewed rather than auto-accepted), while `LOW`/`HIGH`
+is a tier and gets −30. Replay parses thousands separators, so the `annual / 12` derivation still runs on `"280,000"`.
 
 | `kind` | Matches when | `pattern` / extras |
 | --- | --- | --- |
@@ -323,7 +340,13 @@ Same 95, but `period=monthly assumed (playbook default).` → trigger `assumedQu
 
 ### Example: `volumeTier` with values `LOW`, `HIGH`
 
-`volume` (+60), no ancestor, string type → `VOL-SIG-TEXT-VOL` (−30) = 30 < 50 → **no match** (test `VOL-T-06`).
+`volume` (+60), no ancestor, values are not numbers → `VOL-SIG-TIER-VOL` (−30) = 30 < 50 → **no match** (test `VOL-T-06`).
+
+### Example: `annualCardVolume` sent as text `"280,000"`
+
+`CardVolume` (+60), ancestor `processing` (+25), type `string` so no `VOL-SIG-NUM-VOL`; the values are numeric text so
+`VOL-SIG-TIER-VOL` does not fire → 85, `period=annual` from the name (test `VOL-T-08`). Below `autoAcceptAt` 90, so the
+row is reviewed.
 
 ### Example: `$.owners[*].ownershipPercent` (decimal, 0.2–1)
 
