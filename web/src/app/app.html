@@ -1,6 +1,6 @@
 <div class="shell">
   <aside class="side">
-    <a routerLink="/" class="logo"><span class="mark"><app-icon name="conversion_path" /></span>MapWright</a>
+    <a routerLink="/" class="logo" data-testid="logo"><app-logo [size]="36" [tile]="true" /><span class="wordmark"><span>Map<b>Wright</b></span><small>Playbook-driven mapping</small></span></a>
     <div class="navh">Workspace</div>
     <nav>
       @for (link of links; track link.path) {

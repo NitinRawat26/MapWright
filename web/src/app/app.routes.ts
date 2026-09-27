@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 import { Home } from './home/home';
 
 export const routes: Routes = [
-  { path: '', component: Home, title: 'MapWright' },
+  { path: '', component: Home, title: 'Overview · MapWright' },
   { path: 'playbooks', loadComponent: () => import('./playbooks/playbook-list').then((m) => m.PlaybookList), title: 'Playbooks · MapWright' },
   {
     path: 'playbooks/:kind/:slug/:version',

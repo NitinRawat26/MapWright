@@ -6,6 +6,7 @@ import { catchError, filter, map, of } from 'rxjs';
 import { Api } from './core/api';
 import { Icon } from './core/icon';
 import { IconName } from './core/icons';
+import { Logo } from './core/logo';
 import { Search } from './core/search';
 import { initials } from './core/time';
 import { UserService } from './core/user';
@@ -16,6 +17,7 @@ const methods: Record<string, string> = { apiKey: 'API key', bearer: 'Single sig
   selector: 'app-root',
   imports: [
     Icon,
+    Logo,
     MatButtonModule,
     RouterLink,
     RouterLinkActive,

@@ -30,14 +30,32 @@
   text-decoration: none;
 }
 
-.mark {
-  width: 34px;
-  height: 34px;
+.logo app-logo {
   border-radius: 10px;
-  background: linear-gradient(135deg, #6366f1, #a855f7);
-  display: grid;
-  place-items: center;
   box-shadow: 0 6px 18px rgba(124, 58, 237, 0.45);
+}
+
+.wordmark {
+  display: grid;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.wordmark b {
+  font-weight: 800;
+  background: linear-gradient(90deg, #a5b4fc, #d8b4fe);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.wordmark small {
+  font-size: 10.5px;
+  white-space: nowrap;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: #8a90b8;
+  margin-top: 3px;
 }
 
 .navh {
