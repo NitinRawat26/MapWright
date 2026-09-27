@@ -156,9 +156,16 @@ domain:
     - id: VOL-SIG-TEXT-VOL
       kind: dataType
       appliesTo: CardVolume
-      pattern: string|date|dateTime|boolean
+      pattern: date|dateTime|boolean
       weight: -30
-      note: not a number, e.g. a volume tier
+      note: not a number
+    # Text-typed fields are judged by their values: "280,000" is still a volume, "HIGH" is a tier.
+    - id: VOL-SIG-TIER-VOL
+      kind: valuePattern
+      appliesTo: CardVolume
+      pattern: ^(?!-?(\d+|\d{1,3}(,\d{3})+)(\.\d+)?$)
+      weight: -30
+      note: text that is not a number, e.g. a volume tier
   derivations:
     - id: VOL-PERIOD-01
       description: Annual volume to monthly volume.
@@ -330,6 +337,20 @@ domain:
           - LOW
           - HIGH
       expect: null
+    - id: VOL-T-08
+      description: Volume sent as text with thousands separators is still a volume.
+      field:
+        name: annualCardVolume
+        ancestors:
+          - processing
+        dataType: string
+        values:
+          - "280,000"
+          - "1,250,000.50"
+      expect: ProcessingVolume.CardVolume
+      expectQualifiers:
+        period: annual
+      minScore: 85
     - id: VOL-T-07
       description: Gross sales is related, so it needs review.
       field:
