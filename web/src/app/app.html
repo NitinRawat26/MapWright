@@ -1,3 +1,8 @@
+@if (intro()) {
+  @defer {
+    <app-intro (done)="closeIntro()" />
+  }
+}
 <div class="shell">
   <aside class="side">
     <a routerLink="/" class="logo" data-testid="logo"><app-logo [size]="36" [tile]="true" /><span class="wordmark"><span>Map<b>Wright</b></span><small>Playbook-driven mapping</small></span></a>
@@ -31,6 +36,7 @@
         >
       }
     </nav>
+    <button type="button" class="nav replay" (click)="intro.set(true)" data-testid="nav-intro"><app-icon name="play_arrow" />Watch the intro</button>
     <div class="foot" data-testid="ai-status">
       @if (ai(); as ai) {
         @if (ai.available) {
