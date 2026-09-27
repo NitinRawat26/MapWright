@@ -10,6 +10,7 @@ import { Logo } from './core/logo';
 import { Search } from './core/search';
 import { initials } from './core/time';
 import { UserService } from './core/user';
+import { Intro } from './intro/intro';
 
 const methods: Record<string, string> = { apiKey: 'API key', bearer: 'Single sign-on token', proxy: 'SSO proxy', header: 'Name header' };
 
@@ -17,6 +18,7 @@ const methods: Record<string, string> = { apiKey: 'API key', bearer: 'Single sig
   selector: 'app-root',
   imports: [
     Icon,
+    Intro,
     Logo,
     MatButtonModule,
     RouterLink,
@@ -50,6 +52,13 @@ export class App {
   });
 
   protected readonly method = computed(() => methods[this.user.me()?.method ?? ''] ?? '');
+
+  /** The opening film plays on every visit that lands on the overview; deep links go straight to the page. */
+  protected readonly intro = signal(location.pathname.replace(/\/+$/, '') === '');
+
+  protected closeIntro(): void {
+    this.intro.set(false);
+  }
 
   constructor() {
     this.refresh();

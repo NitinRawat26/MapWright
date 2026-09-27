@@ -100,6 +100,22 @@ nav + .navh {
   color: #a5b4fc;
 }
 
+.nav.replay {
+  margin-top: 14px;
+  width: 100%;
+  border: 1px dashed rgba(129, 140, 248, 0.35);
+  background: transparent;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  color: #a5b4fc;
+}
+
+.nav.replay:hover {
+  background: rgba(129, 140, 248, 0.1);
+  color: #fff;
+}
+
 .badge {
   margin-left: auto;
   background: #7c3aed;
