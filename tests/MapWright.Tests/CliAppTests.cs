@@ -142,7 +142,7 @@ public sealed class CliAppTests : IDisposable
     public void Playbook_validate_and_test_pass_for_the_starter_set()
     {
         Assert.Equal(CliApp.Success, Run("playbook", "validate", StarterPlaybooks.Directory));
-        Assert.Contains("6 playbook(s) valid (0 warning(s))", _out.ToString());
+        Assert.Contains("7 playbook(s) valid (0 warning(s))", _out.ToString());
 
         Assert.Equal(CliApp.Success, Run("playbook", "test", StarterPlaybooks.Directory));
         Assert.Matches(@"(\d+) of \1 playbook test\(s\) passed", _out.ToString());
@@ -201,8 +201,8 @@ public sealed class CliAppTests : IDisposable
         var output = _out.ToString();
         Assert.Contains("/UnderwritingRequest/Officers/Officer  Principal 65% review", output);
         Assert.Contains("/UnderwritingRequest/Processing/MonthlyVolume  ProcessingVolume.CardVolume [period=monthly]", output);
-        Assert.Contains("/UnderwritingRequest/Merchant/MCC  -", output);
-        Assert.Contains("14 of 24 field(s) recognised; 10 remaining.", output);
+        Assert.Contains("/UnderwritingRequest/Merchant/MCC  MerchantCategory.CategoryCode [codeSet=mcc]", output);
+        Assert.Contains("15 of 24 field(s) recognised; 9 remaining.", output);
     }
 
     [Fact]

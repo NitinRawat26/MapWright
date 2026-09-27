@@ -1,0 +1,259 @@
+# Domain playbook: Merchant Category.
+# Edit a draft in the MapWright UI, or edit this file and check it with: mapwright playbook test playbooks
+# Values that look like numbers or dates (versions, dates, codes) are quoted so every YAML tool reads them as text.
+
+specVersion: "1.0"
+id: domain/merchant-category
+name: Merchant Category
+kind: domain
+version: "1.0.0"
+status: published
+owner: Underwriting BA team
+description: What the merchant sells, and which code set (MCC, SIC, NAICS, or a system-specific list) says so.
+changeNotes:
+  - version: "1.0.0"
+    date: "2026-09-27"
+    author: MapWright starter set
+    description: Initial version.
+domain:
+  concept:
+    name: MerchantCategory
+    description: The merchant's line of business.
+    attributes:
+      - name: CategoryCode
+        description: Numeric industry code — MCC, SIC or NAICS; the qualifier records which.
+        dataType: string
+      - name: CategoryName
+        description: Short label for the category (e.g. 'Grocery Stores', 'Restaurants').
+        dataType: string
+      - name: GoodsOrServicesSold
+        description: Free-text description of what the merchant sells.
+        dataType: string
+  # Names systems use for the concept or one of its attributes; relation is equivalent unless stated.
+  vocabulary:
+    - term: merchant
+    - term: business
+    - term: industry
+      relation: related
+    - term: account
+      relation: related
+    - term: mcc
+      appliesTo: CategoryCode
+    - term: merchant category code
+      appliesTo: CategoryCode
+    - term: merchant category
+      appliesTo: CategoryCode
+    - term: category code
+      appliesTo: CategoryCode
+    - term: sic
+      appliesTo: CategoryCode
+    - term: sic code
+      appliesTo: CategoryCode
+    - term: naics
+      appliesTo: CategoryCode
+    - term: naics code
+      appliesTo: CategoryCode
+    - term: industry code
+      appliesTo: CategoryCode
+    - term: business category
+      appliesTo: CategoryCode
+      relation: related
+    - term: dba category
+      appliesTo: CategoryCode
+      relation: related
+    - term: category
+      appliesTo: CategoryName
+    - term: merchant category name
+      appliesTo: CategoryName
+    - term: category description
+      appliesTo: CategoryName
+    - term: industry name
+      appliesTo: CategoryName
+      relation: related
+    - term: goods or services
+      appliesTo: GoodsOrServicesSold
+    - term: goods sold
+      appliesTo: GoodsOrServicesSold
+    - term: services sold
+      appliesTo: GoodsOrServicesSold
+    - term: products and services
+      appliesTo: GoodsOrServicesSold
+    - term: what the business sells
+      appliesTo: GoodsOrServicesSold
+  # Dimensions that change meaning: which industry code set the number belongs to.
+  qualifiers:
+    - name: codeSet
+      description: Which industry code taxonomy the code comes from.
+      appliesTo:
+        - CategoryCode
+      default: mcc
+      values:
+        - value: mcc
+          terms:
+            - mcc
+            - merchant category code
+            - merchant category
+            - category code
+        - value: sic
+          terms:
+            - sic
+            - standard industrial classification
+        - value: naics
+          terms:
+            - naics
+            - north american industry classification
+        - value: proprietary
+          terms:
+            - category type
+            - internal category
+  # Extra evidence: each matching signal adds its weight (negative weights count against a match).
+  signals:
+    - id: MCT-SIG-CODE4
+      kind: valueShape
+      appliesTo: CategoryCode
+      pattern: ^9999$
+      weight: 10
+      note: MCC and SIC codes are exactly four digits
+    - id: MCT-SIG-NUM4-6
+      kind: valueShape
+      appliesTo: CategoryCode
+      pattern: ^999999$
+      weight: 10
+      note: NAICS codes run to six digits
+    - id: MCT-SIG-NAME
+      kind: namePattern
+      appliesTo: CategoryCode
+      pattern: mcc|sic|naics
+      weight: 15
+      note: field name says which code set it is
+    - id: MCT-SIG-NOTCODE
+      kind: valueShape
+      appliesTo: CategoryCode
+      pattern: ^(?!9+$)
+      weight: -30
+      note: not a digit code, e.g. a label like RETAIL
+  # No derivation converts between code sets: MCC↔SIC↔NAICS is many-to-many and lossy, so a
+  # different-set target stays unmapped for review rather than guessing a code.
+  risks:
+    - id: MCT-RISK-CODESET
+      appliesTo: CategoryCode
+      level: high
+      text: MCC, SIC and NAICS are different taxonomies for the same concept; pairing across code sets without a crosswalk assigns the wrong industry and the wrong interchange/risk profile.
+    - id: MCT-RISK-FREETEXT
+      appliesTo: GoodsOrServicesSold
+      level: medium
+      text: Free text cannot be validated against a code list; a reviewer should check it actually describes the category.
+  reviewGuidance:
+    - id: MCT-Q-CODESET
+      appliesTo: CategoryCode
+      when: assumedQualifier
+      question: Which code set does this field use — MCC, SIC, NAICS or a system-specific list?
+    - id: MCT-Q-CROSS
+      appliesTo: CategoryCode
+      question: Source and target use different code sets; which crosswalk table or manual mapping applies?
+  aiGuidance: Merchant category is the line of business — usually an MCC, SIC or NAICS code, sometimes a label or free text. Identify the code set from the field name and value shape; never translate between code sets without an explicit crosswalk.
+  # Fields this playbook must (or must not) recognise; a version can only be published when they pass.
+  tests:
+    - id: MCT-T-01
+      description: Sales-system MCC sent as a string.
+      field:
+        name: mcc
+        ancestors:
+          - account
+          - $
+        dataType: string
+        values:
+          - "5411"
+          - "5814"
+          - "7542"
+        valueShapes:
+          - "9999"
+      expect: MerchantCategory.CategoryCode
+      expectQualifiers:
+        codeSet: mcc
+      minScore: 90
+      expectReview: false
+    - id: MCT-T-02
+      description: Underwriting MCC element.
+      field:
+        name: MCC
+        ancestors:
+          - Merchant
+          - UnderwritingRequest
+        dataType: integer
+        valueShapes:
+          - "9999"
+      expect: MerchantCategory.CategoryCode
+      expectQualifiers:
+        codeSet: mcc
+      minScore: 90
+      expectReview: false
+    - id: MCT-T-03
+      description: SIC code resolves to the sic code set.
+      field:
+        name: sicCode
+        ancestors:
+          - merchant
+        dataType: integer
+        valueShapes:
+          - "9999"
+      expect: MerchantCategory.CategoryCode
+      expectQualifiers:
+        codeSet: sic
+      minScore: 90
+      expectReview: false
+    - id: MCT-T-04
+      description: Bare industry code assumes MCC and asks.
+      field:
+        name: industryCode
+        ancestors:
+          - merchant
+        dataType: string
+        valueShapes:
+          - "9999"
+      expect: MerchantCategory.CategoryCode
+      expectQualifiers:
+        codeSet: mcc
+      expectReview: true
+    - id: MCT-T-05
+      description: Merchant category description is the name, not the code.
+      field:
+        name: categoryDescription
+        ancestors:
+          - merchant
+        dataType: string
+        values:
+          - Grocery Stores
+          - Fast Food Restaurants
+      expect: MerchantCategory.CategoryName
+      minScore: 60
+    - id: MCT-T-06
+      description: What the business sells is goods/services free text.
+      field:
+        name: goodsOrServicesSold
+        dataType: string
+      expect: MerchantCategory.GoodsOrServicesSold
+      minScore: 60
+    - id: MCT-T-07
+      description: An entity type is not a category code.
+      field:
+        name: entityType
+        ancestors:
+          - account
+        values:
+          - CORP
+          - LLC
+        valueShapes:
+          - Aaaa
+      expect: null
+    - id: MCT-T-08
+      description: Postal code is digits but not a merchant category.
+      field:
+        name: postalCode
+        ancestors:
+          - address
+          - merchant
+        dataType: string
+        valueShapes:
+          - "99999"
+      expect: null

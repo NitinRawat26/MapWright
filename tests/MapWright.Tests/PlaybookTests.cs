@@ -22,14 +22,15 @@ internal static class StarterPlaybooks
 public sealed class StarterPlaybookTests
 {
     [Fact]
-    public void Starter_set_has_the_five_domain_playbooks_and_the_onboarding_process()
+    public void Starter_set_has_the_six_domain_playbooks_and_the_onboarding_process()
     {
         var ids = StarterPlaybooks.Library().All.Select(p => p.Reference).Order(StringComparer.Ordinal);
 
         Assert.Equal(
             [
-                "domain/channel-mix@1.0.0", "domain/entity-type@1.0.0", "domain/principals@1.0.0",
-                "domain/processing-volume@1.0.0", "domain/tax-id@1.0.0", "process/onboard-new-system@1.0.0",
+                "domain/channel-mix@1.0.0", "domain/entity-type@1.0.0", "domain/merchant-category@1.0.0",
+                "domain/principals@1.0.0", "domain/processing-volume@1.0.0", "domain/tax-id@1.0.0",
+                "process/onboard-new-system@1.0.0",
             ],
             ids);
     }

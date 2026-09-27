@@ -67,6 +67,7 @@ process:
         - domain/channel-mix
         - domain/tax-id
         - domain/entity-type
+        - domain/merchant-category
     - id: ai-assist
       name: Decode remaining fields with AI
       kind: aiAssist
