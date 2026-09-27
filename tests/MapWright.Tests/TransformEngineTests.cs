@@ -56,6 +56,16 @@ public sealed class TransformEngineTests
     }
 
     [Fact]
+    public void Numbers_sent_as_text_with_thousands_separators_are_still_derived()
+    {
+        var text = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "samples", "systems", "sales-alpha", "samples", "llc-two-owners.json"))
+            .Replace("\"annualCardVolume\": 500000", "\"annualCardVolume\": \"280,000\"");
+        var result = TransformEngine.Run(SalesToUw, SampleReader.Read("llc-two-owners.json", text), Uw);
+
+        Assert.Equal(["23333.33"], Values(result, "/UnderwritingRequest/Processing/MonthlyVolume"));
+    }
+
+    [Fact]
     public void Rows_report_pass_fail_or_skipped()
     {
         var result = TransformEngine.Run(SalesToUw, SamplePayloads.Load("sales-alpha", "sole-prop.json"), Uw);

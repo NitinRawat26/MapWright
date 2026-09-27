@@ -284,7 +284,7 @@ public static class TransformEngine
     }
 
     private static decimal Number(string path, string text) =>
-        decimal.TryParse(text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var n)
+        decimal.TryParse(text.Trim(), NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var n)
             ? n
             : throw new TransformException($"{path} is not a number.");
 
