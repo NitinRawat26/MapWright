@@ -288,14 +288,14 @@ public sealed class MappingCompletionTests
     {
         var legal = SalesToUw.Row("/UnderwritingRequest/Merchant/LegalName");
         Assert.Equal("$.account.legalName", Assert.Single(legal.Sources).Path);
-        Assert.Equal(70, legal.ConfidencePercent);
+        Assert.Equal(85, legal.ConfidencePercent);
         Assert.Equal(ReviewStatus.NeedsReview, legal.Review.Status);
-        Assert.Contains(legal.Evidence, e => e.Kind == EvidenceKind.NameSimilarity);
+        Assert.Contains(legal.Evidence, e => e.Kind == EvidenceKind.Playbook);
 
         var dba = SalesToUw.Row("/UnderwritingRequest/Merchant/DoingBusinessAs");
         Assert.Equal("$.account.dbaName", Assert.Single(dba.Sources).Path);
         Assert.Equal(TransformationType.Rename, dba.Transformation.Type);
-        Assert.Equal(60, dba.ConfidencePercent);
+        Assert.Equal(85, dba.ConfidencePercent);
 
         Assert.All(
             SalesToUw.Mappings.Where(m => m.Evidence.Any(e => e.Kind == EvidenceKind.NameSimilarity)),
@@ -395,7 +395,7 @@ public sealed class MappingCompletionTests
                 Assert.DoesNotContain("Needs review", m.Reasoning);
             });
         Assert.Equal(
-            ["M006", "M008", "M017", "M018", "M020", "M021"],
+            ["M006", "M008", "M017", "M018", "M020", "M021", "M022", "M023"],
             SalesToUw.Mappings.Where(m => m.Review.Status == ReviewStatus.AutoAccepted).Select(m => m.Id));
     }
 }

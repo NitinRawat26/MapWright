@@ -151,12 +151,12 @@ public sealed class StoreTests : IDisposable
         var first = store.Import(StarterPlaybooks.Library().All, "seed");
         var second = store.Import(StarterPlaybooks.Library().All, "seed");
 
-        Assert.Equal(7, first.Count);
+        Assert.Equal(9, first.Count);
         Assert.Empty(second);
         Assert.All(store.List(), s => Assert.Equal((PlaybookStatus.Published, "seed"), (s.Status, s.CreatedBy)));
-        Assert.Equal(["domain/channel-mix", "domain/entity-type", "domain/merchant-category", "domain/principals", "domain/processing-volume", "domain/tax-id", "process/onboard-new-system"],
+        Assert.Equal(["domain/bank-accounts", "domain/business", "domain/channel-mix", "domain/entity-type", "domain/merchant-category", "domain/principals", "domain/processing-volume", "domain/tax-id", "process/onboard-new-system"],
             store.List().Select(s => s.Id));
-        Assert.Equal(6, store.Library().Domains.Count());
+        Assert.Equal(8, store.Library().Domains.Count());
         Assert.Equal("imported", Assert.Single(store.History("domain/tax-id")).Action);
     }
 
@@ -435,7 +435,7 @@ public sealed class StoreTests : IDisposable
             }
 
             using var reopened = new MapWrightDatabase(new() { DatabasePath = path }, _time);
-            Assert.Equal(7, new PlaybookStore(reopened).List(PlaybookStatus.Published).Count);
+            Assert.Equal(9, new PlaybookStore(reopened).List(PlaybookStatus.Published).Count);
             Assert.Empty(new PlaybookStore(reopened).List(PlaybookStatus.Draft));
         }
         finally

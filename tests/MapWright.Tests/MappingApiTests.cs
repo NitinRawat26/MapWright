@@ -105,7 +105,8 @@ public sealed class MappingApiTests : IDisposable
         Assert.Contains("domain/tax-id@1.0.0 is no longer published", stale[1]);
 
         var again = await (await client.PostAsync("/api/profiles/sales-alpha/detect", null)).Node();
-        Assert.DoesNotContain(again["recognised"]!.AsArray(), r => r!["path"].Text() == "$.account.taxId");
+        var taxId = Assert.Single(again["recognised"]!.AsArray(), r => r!["path"].Text() == "$.account.taxId");
+        Assert.Equal(("Business", "GovernmentalIdentifier"), (taxId!["detection"]!["concept"].Text(), taxId["detection"]!["attribute"].Text()));
         Assert.Empty((await (await client.GetAsync("/api/profiles/sales-alpha/detection")).Node())["stale"]!.AsArray());
 
         Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync("/api/profiles/sales-alpha")).StatusCode);

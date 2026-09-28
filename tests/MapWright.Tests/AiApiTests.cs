@@ -19,9 +19,9 @@ public sealed class AiApiTests
             },
         })
         : AiSamples.Answer(
-            new { path = "$.account.legalName", concept = "LegalEntity", meaning = "Registered business name", confidence = 90, reasoning = "Name under account." },
-            new { path = "$.account.phone", concept = "ChannelMix.Moto", meaning = "Phone orders", confidence = 90, reasoning = "Phone." },
-            new { path = "$.account.dbaName", newConcept = "Merchant.DbaName", meaning = "Trading name", confidence = 88, reasoning = "Doing business as." }));
+            new { path = "$.account.leadSource", concept = "LegalEntity", meaning = "Where the lead came from", confidence = 90, reasoning = "Lead under account." },
+            new { path = "$.account.salesRepId", concept = "ChannelMix.Moto", meaning = "Rep identifier", confidence = 90, reasoning = "Rep id." },
+            new { path = "$.account.incorporationDate", newConcept = "Merchant.IncorporationDate", meaning = "Incorporation date", confidence = 88, reasoning = "Date the business incorporated." }));
 
     private static async Task<HttpClient> WithProfiles(ApiFactory api)
     {
@@ -68,7 +68,7 @@ public sealed class AiApiTests
         Assert.Equal(HttpStatusCode.BadRequest, (await api.CreateClient().Post("/api/profiles/sales-alpha/detect", new { useAi = true })).StatusCode);
         var detect = await (await ana.Post("/api/profiles/sales-alpha/detect", new { useAi = true })).Node();
         var filed = detect["suggestions"]!.AsArray();
-        Assert.Equal(["$.account.legalName", "$.account.phone", "$.account.dbaName"], filed.Select(s => s!["content"]!["path"].Text()));
+        Assert.Equal(["$.account.leadSource", "$.account.salesRepId", "$.account.incorporationDate"], filed.Select(s => s!["content"]!["path"].Text()));
         Assert.All(filed, s => Assert.True(s!["content"]!["confidencePercent"]!.GetValue<int>() <= 70));
         Assert.All(filed, s => Assert.Equal("pending", s!["status"].Text()));
         var ids = filed.Select(s => s!["id"]!.GetValue<long>()).ToList();
@@ -83,30 +83,27 @@ public sealed class AiApiTests
             (body["version"].Text(), body["suggestion"]!["status"].Text(), body["suggestion"]!["decidedBy"].Text(), body["suggestion"]!["playbook"].Text()));
         var draft = PlaybookSerializer.Deserialize(await ben.GetStringAsync($"/api/playbooks/{playbook}/1.1.0"));
         Assert.Equal(PlaybookStatus.Draft, draft.Status);
-        var term = Assert.Single(draft.Domain!.Vocabulary, v => v.Term == "legal name");
+        var term = Assert.Single(draft.Domain!.Vocabulary, v => v.Term == "lead source");
         Assert.Null(term.AppliesTo);
         Assert.Contains("approved by ben", term.Note);
         var draftYaml = await ben.GetStringAsync($"/api/playbooks/{playbook}/1.1.0?format=yaml");
         Assert.StartsWith("# Domain playbook:", draftYaml, StringComparison.Ordinal);
-        Assert.Contains("- term: legal name\n", draftYaml, StringComparison.Ordinal);
+        Assert.Contains("- term: lead source\n", draftYaml, StringComparison.Ordinal);
         Assert.Equal(PlaybookStatus.Published, PlaybookSerializer.Deserialize(await ben.GetStringAsync($"/api/playbooks/{playbook}/1.0.0")).Status);
         var keep = await ben.DeleteAsync($"/api/playbooks/{playbook}/1.1.0");
         Assert.Equal(HttpStatusCode.Conflict, keep.StatusCode);
         Assert.Contains("approved AI suggestions", (await keep.Node())["detail"].Text());
 
         Assert.Equal(HttpStatusCode.Conflict, (await ben.Post($"/api/suggestions/{ids[0]}/reject", new { })).StatusCode);
-        var duplicate = await ben.Post($"/api/suggestions/{ids[1]}/approve", new { });
-        Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
-        Assert.Contains("already a term", (await duplicate.Node())["detail"].Text());
 
         var newConcept = await ben.Post($"/api/suggestions/{ids[2]}/approve", new { });
-        Assert.Contains("new concept 'Merchant.DbaName'", (await newConcept.Node())["detail"].Text());
-        Assert.Equal(HttpStatusCode.BadRequest, (await ben.Post($"/api/suggestions/{ids[2]}/approve", new { concept = "LegalEntity.DbaName" })).StatusCode);
+        Assert.Contains("new concept 'Merchant.IncorporationDate'", (await newConcept.Node())["detail"].Text());
+        Assert.Equal(HttpStatusCode.BadRequest, (await ben.Post($"/api/suggestions/{ids[2]}/approve", new { concept = "LegalEntity.IncorporationDate" })).StatusCode);
         Assert.Contains("send the concept as Concept.Attribute", (await (await ben.Post($"/api/suggestions/{ids[2]}/approve", new { concept = "LegalEntity" })).Node())["detail"].Text());
         var filedUnder = await (await ben.Post($"/api/suggestions/{ids[2]}/approve", new { concept = "legalentity.taxidtype" })).Node();
         Assert.Equal(("domain/tax-id", "1.1.0"), (filedUnder["playbookId"].Text(), filedUnder["version"].Text()));
         draft = PlaybookSerializer.Deserialize(await ben.GetStringAsync("/api/playbooks/domain/tax-id/1.1.0"));
-        Assert.Equal("TaxIdType", Assert.Single(draft.Domain!.Vocabulary, v => v.Term == "dba name").AppliesTo);
+        Assert.Equal("TaxIdType", Assert.Single(draft.Domain!.Vocabulary, v => v.Term == "incorporation date").AppliesTo);
 
         var rejected = await (await ben.Post($"/api/suggestions/{ids[1]}/reject", new { comment = "Already covered." })).Node();
         Assert.Equal(("rejected", "Already covered."), (rejected["status"].Text(), rejected["comment"].Text()));
@@ -119,13 +116,13 @@ public sealed class AiApiTests
     public async Task Approving_with_create_drafts_new_concepts_and_attributes()
     {
         using var api = new ApiFactory(new FakeProvider("fake", _ => AiSamples.Answer(
-            new { path = "$.account.dbaName", newConcept = "Merchant.DbaName", meaning = "Trading name", confidence = 88, reasoning = "Doing business as." },
+            new { path = "$.account.incorporationDate", newConcept = "Merchant.IncorporationDate", meaning = "Incorporation date", confidence = 88, reasoning = "Date the business incorporated." },
             new { path = "$.account.salesRepId", newConcept = "merchant.sales_rep", meaning = "Sales rep", confidence = 80, reasoning = "Rep ids." },
             new { path = "$.account.leadSource", newConcept = "ChannelMix.LeadSource", meaning = "Where the lead came from", confidence = 80, reasoning = "Web, referral." })));
         var ana = await WithProfiles(api);
         var ben = api.As("ben");
         var filed = (await (await ana.Post("/api/profiles/sales-alpha/detect", new { useAi = true })).Node())["suggestions"]!.AsArray();
-        Assert.Equal(["$.account.dbaName", "$.account.salesRepId", "$.account.leadSource"], filed.Select(s => s!["content"]!["path"].Text()));
+        Assert.Equal(["$.account.incorporationDate", "$.account.salesRepId", "$.account.leadSource"], filed.Select(s => s!["content"]!["path"].Text()));
         var ids = filed.Select(s => s!["id"]!.GetValue<long>()).ToList();
 
         var refused = await ben.Post($"/api/suggestions/{ids[0]}/approve", new { concept = "Merchant.Mcc" });
@@ -139,14 +136,14 @@ public sealed class AiApiTests
         Assert.Equal(("domain/merchant", "0.1.0", true), (created["playbookId"].Text(), created["version"].Text(), created["created"]!.GetValue<bool>()));
         var merchant = PlaybookSerializer.Deserialize(await ben.GetStringAsync("/api/playbooks/domain/merchant/0.1.0"));
         Assert.Equal((PlaybookStatus.Draft, "Merchant", "ben"), (merchant.Status, merchant.Domain!.Concept.Name, merchant.Owner));
-        Assert.Equal(("DbaName", "Trading name"), (Assert.Single(merchant.Domain.Concept.Attributes).Name, merchant.Domain.Concept.Attributes[0].Description));
+        Assert.Equal(("IncorporationDate", "Incorporation date"), (Assert.Single(merchant.Domain.Concept.Attributes).Name, merchant.Domain.Concept.Attributes[0].Description));
         Assert.Empty(merchant.Domain.Vocabulary);
         Assert.Contains("AI suggestion", Assert.Single(merchant.ChangeNotes).Description);
 
         var added = await (await ben.Post($"/api/suggestions/{ids[1]}/approve", new { create = true })).Node();
         Assert.Equal(("domain/merchant", "0.1.0", false), (added["playbookId"].Text(), added["version"].Text(), added["created"]!.GetValue<bool>()));
         merchant = PlaybookSerializer.Deserialize(await ben.GetStringAsync("/api/playbooks/domain/merchant/0.1.0"));
-        Assert.Equal(["DbaName", "SalesRep"], merchant.Domain!.Concept.Attributes.Select(a => a.Name));
+        Assert.Equal(["IncorporationDate", "SalesRep"], merchant.Domain!.Concept.Attributes.Select(a => a.Name));
         Assert.Equal("SalesRep", Assert.Single(merchant.Domain.Vocabulary).AppliesTo);
 
         Assert.Equal(HttpStatusCode.BadRequest, (await ben.Post($"/api/suggestions/{ids[2]}/approve", new { })).StatusCode);
