@@ -181,7 +181,12 @@
               <tbody>
                 @for (i of p.inputs ?? []; track i.name) {
                   <tr>
-                    <td><app-icon name="description" [size]="16" /> {{ i.name }}</td>
+                    <td>
+                      <app-icon name="description" [size]="16" /> {{ i.name }}
+                      @if (downloadableInputs().has(i.name)) {
+                        <a [href]="inputDownload(i.name)" [download]="i.name" title="Download {{ i.name }}"><app-icon name="download" [size]="16" /></a>
+                      }
+                    </td>
                     <td><span class="chip">{{ i.kind }}</span></td>
                     <td class="mono muted">{{ i.sha256 }}</td>
                     <td>{{ i.notes }}</td>

@@ -69,6 +69,29 @@ public sealed class MappingApiTests : IDisposable
     }
 
     [Fact]
+    public async Task Original_uploads_can_be_downloaded()
+    {
+        var ana = _api.As("ana");
+
+        var created = await ana.Upload("/api/profiles", Files(Systems("sales-alpha", "samples")), ("system", "SalesAlpha CRM"));
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+
+        var names = (await (await ana.GetAsync("/api/profiles/salesalpha-crm/inputs")).Node()).AsArray();
+        Assert.Equal(["corp-three-owners.json", "llc-two-owners.json", "sole-prop.json"], names.Select(n => n!.GetValue<string>()));
+
+        var download = await ana.GetAsync("/api/profiles/salesalpha-crm/inputs/sole-prop.json");
+        Assert.Equal(HttpStatusCode.OK, download.StatusCode);
+        Assert.Equal("attachment", download.Content.Headers.ContentDisposition?.DispositionType);
+        Assert.Equal(await File.ReadAllTextAsync(Systems("sales-alpha", "samples", "sole-prop.json")), await download.Content.ReadAsStringAsync());
+
+        Assert.Equal(HttpStatusCode.NotFound, (await ana.GetAsync("/api/profiles/salesalpha-crm/inputs/nope.json")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await ana.GetAsync("/api/profiles/nope/inputs")).StatusCode);
+
+        Assert.Equal(HttpStatusCode.OK, (await ana.PutJson("/api/profiles/salesalpha-crm", await File.ReadAllTextAsync(Systems("sales-alpha", "profile.json")))).StatusCode);
+        Assert.Empty((await (await ana.GetAsync("/api/profiles/salesalpha-crm/inputs")).Node()).AsArray());
+    }
+
+    [Fact]
     public async Task Detect_uses_the_published_playbooks()
     {
         var client = await WithProfiles();

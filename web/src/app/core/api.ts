@@ -145,6 +145,15 @@ export class Api {
     return this.http.delete(`/api/profiles/${encodeURIComponent(id)}`);
   }
 
+  /** Names of the inputs whose original uploads are kept for download. */
+  profileInputs(id: string): Observable<string[]> {
+    return this.http.get<string[]>(`/api/profiles/${encodeURIComponent(id)}/inputs`);
+  }
+
+  profileInputDownload(id: string, name: string): string {
+    return `/api/profiles/${encodeURIComponent(id)}/inputs/${encodeURIComponent(name)}`;
+  }
+
   /** Playbook detection; with useAi the unrecognised fields go to AI and its answers to the suggestions inbox. */
   detect(id: string, useAi: boolean): Observable<DetectResponse> {
     return this.http.post<DetectResponse>(`/api/profiles/${encodeURIComponent(id)}/detect`, { useAi });

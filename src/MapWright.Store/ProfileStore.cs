@@ -14,6 +14,9 @@ public sealed record ProfileSummary(
     DateTimeOffset UpdatedAt,
     string UpdatedBy);
 
+/// <summary>An uploaded file kept next to a stored profile (original sample or contract document).</summary>
+public sealed record StoredProfileInput(string Name, byte[] Content);
+
 /// <summary>Stored system profiles, addressed by a slug id (e.g. "sales-alpha-crm").</summary>
 public sealed class ProfileStore(MapWrightDatabase database)
 {
@@ -51,8 +54,9 @@ public sealed class ProfileStore(MapWrightDatabase database)
         return command.ExecuteScalar() is string json ? ProfileSerializer.Deserialize(json) : null;
     }
 
-    /// <summary>Creates or replaces the profile. Profiles with validation errors are rejected.</summary>
-    public void Save(string id, SystemProfile profile, string actor)
+    /// <summary>Creates or replaces the profile. Profiles with validation errors are rejected.
+    /// Uploaded input files may be stored alongside so the originals can be downloaded later.</summary>
+    public void Save(string id, SystemProfile profile, string actor, IReadOnlyList<StoredProfileInput>? inputs = null)
     {
         MapWrightDatabase.RequireId(id, "Profile");
         var errors = SystemProfileValidator.Validate(profile).Where(i => i.Severity == IssueSeverity.Error).ToList();
@@ -78,6 +82,48 @@ public sealed class ProfileStore(MapWrightDatabase database)
         command.Parameters.AddWithValue("$now", database.Now());
         command.Parameters.AddWithValue("$actor", actor);
         command.ExecuteNonQuery();
+
+        command.Parameters.Clear();
+        command.CommandText = "DELETE FROM profile_inputs WHERE profile_id = $id";
+        command.Parameters.AddWithValue("$id", id);
+        command.ExecuteNonQuery();
+        foreach (var input in inputs ?? [])
+        {
+            command.Parameters.Clear();
+            command.CommandText = "INSERT INTO profile_inputs (profile_id, name, content) VALUES ($id, $name, $content)";
+            command.Parameters.AddWithValue("$id", id);
+            command.Parameters.AddWithValue("$name", input.Name);
+            command.Parameters.AddWithValue("$content", input.Content);
+            command.ExecuteNonQuery();
+        }
+    }
+
+    /// <summary>Names of the uploaded inputs whose original files are stored for download.</summary>
+    public IReadOnlyList<string> InputNames(string id)
+    {
+        using var connection = database.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT name FROM profile_inputs WHERE profile_id = $id ORDER BY name";
+        command.Parameters.AddWithValue("$id", id);
+        var names = new List<string>();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            names.Add(reader.GetString(0));
+        }
+
+        return names;
+    }
+
+    /// <summary>The stored bytes of an uploaded input, or null when no file was kept under that name.</summary>
+    public byte[]? InputContent(string id, string name)
+    {
+        using var connection = database.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT content FROM profile_inputs WHERE profile_id = $id AND name = $name";
+        command.Parameters.AddWithValue("$id", id);
+        command.Parameters.AddWithValue("$name", name);
+        return command.ExecuteScalar() as byte[];
     }
 
     public void Delete(string id)
