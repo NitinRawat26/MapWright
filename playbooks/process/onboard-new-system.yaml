@@ -6,7 +6,7 @@ specVersion: "1.0"
 id: process/onboard-new-system
 name: Onboard New System
 kind: process
-version: "1.0.0"
+version: "1.1.0"
 status: published
 owner: Integration team
 description: 'Map a new source system onto an existing target system: profile both, apply the domain playbooks, optionally ask AI about the rest, validate, review and publish.'
@@ -15,6 +15,10 @@ changeNotes:
     date: "2026-09-25"
     author: MapWright starter set
     description: Initial version.
+  - version: "1.1.0"
+    date: "2026-09-27"
+    author: Devin
+    description: The match step also applies the new domain/business and domain/bank-accounts playbooks.
 process:
   inputs:
     - side: source
@@ -68,6 +72,8 @@ process:
         - domain/tax-id
         - domain/entity-type
         - domain/merchant-category
+        - domain/business
+        - domain/bank-accounts
     - id: ai-assist
       name: Decode remaining fields with AI
       kind: aiAssist
