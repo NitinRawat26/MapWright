@@ -123,6 +123,12 @@ public sealed partial class MapWrightDatabase : IDisposable
                 updated_at TEXT NOT NULL,
                 updated_by TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS profile_inputs (
+                profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                content BLOB NOT NULL,
+                PRIMARY KEY (profile_id, name)
+            );
             CREATE TABLE IF NOT EXISTS mappings (
                 id TEXT PRIMARY KEY,
                 title TEXT NOT NULL,

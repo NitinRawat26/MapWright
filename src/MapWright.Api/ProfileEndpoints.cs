@@ -84,13 +84,29 @@ public static class ProfileEndpoints
                     new() { System = system.Trim(), Version = version, Description = description, Samples = set.Samples, Contracts = set.Contracts },
                     new() { RetainValues = noValues != true });
                 profile = profile with { Findings = [.. profile.Findings, .. aiFindings] };
-                store.Save(profileId, profile, actor);
+                store.Save(profileId, profile, actor, [.. inputs.Select(i => new StoredProfileInput(i.Name, i.Content))]);
                 context.Response.Headers.Location = $"/api/profiles/{profileId}";
                 return Results.Text(ProfileSerializer.Serialize(profile), "application/json", statusCode: StatusCodes.Status201Created);
             })
             .DisableAntiforgery()
             .Produces<SystemProfile>(StatusCodes.Status201Created)
             .WithSummary("Build a profile from sample payloads and contracts (JSON, XML, JSON Schema, OpenAPI, XSD, WSDL, CSV/Excel field specs, PDF/Word specs); with useAi, AI also reads the documents' text.");
+
+        group.MapGet("/{id}/inputs", (string id, ProfileStore store) =>
+            {
+                store.Get(id);
+                return store.InputNames(id);
+            })
+            .WithSummary("Names of the uploaded inputs whose original files are kept for download.");
+
+        group.MapGet("/{id}/inputs/{name}", (string id, string name, ProfileStore store) =>
+            {
+                store.Get(id);
+                return store.InputContent(id, name) is { } content
+                    ? Results.File(content, "application/octet-stream", name)
+                    : throw StoreException.NotFound($"Profile '{id}' input '{name}'");
+            })
+            .WithSummary("Download the original file an input was uploaded as.");
 
         group.MapGet("/{id}", (string id, ProfileStore store) => Results.Text(ProfileSerializer.Serialize(store.Get(id)), "application/json"))
             .Produces<SystemProfile>()

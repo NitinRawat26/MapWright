@@ -41,6 +41,7 @@ export class ProfileDetail {
 
   protected readonly profile = signal<SystemProfile | null>(null);
   protected readonly detection = signal<DetectResponse | null>(null);
+  protected readonly downloadableInputs = signal<ReadonlySet<string>>(new Set());
   protected readonly busy = signal(false);
   protected readonly useAi = signal(false);
   protected readonly search = signal('');
@@ -75,8 +76,13 @@ export class ProfileDetail {
         this.detection.set(null);
         this.api.profile(id).subscribe((profile) => this.profile.set(profile));
         this.api.detection(id).subscribe({ next: (saved) => this.detection.set(saved), error: () => undefined });
+        this.api.profileInputs(id).subscribe({ next: (names) => this.downloadableInputs.set(new Set(names)), error: () => undefined });
       });
     });
+  }
+
+  protected inputDownload(name: string): string {
+    return this.api.profileInputDownload(this.id(), name);
   }
 
   protected detect(): void {
