@@ -492,7 +492,7 @@ internal sealed class MappingBuilder(IReadOnlyList<RecognisedField> sources, Pla
             .Select(s => (Source: s, Score: NameMatcher.Score(s.Field, target.Field)))
             .Where(c => c.Score >= NameMatcher.MinimumScore)
             .OrderByDescending(c => c.Score)
-            .ThenByDescending(c => NameMatcher.Similarity(ParentName(c.Source), ParentName(target)))
+            .ThenByDescending(c => AncestorSimilarity(c.Source, target))
             .FirstOrDefault();
         if (best.Source is not { } source)
         {
@@ -518,7 +518,16 @@ internal sealed class MappingBuilder(IReadOnlyList<RecognisedField> sources, Pla
         return draft;
     }
 
-    private static string ParentName(RecognisedField field) => field.Context.Ancestors.FirstOrDefault() ?? "";
+    /// <summary>Token overlap across the whole ancestor chain (nearest to root), so a distinguishing
+    /// grandparent like "LegalInformation" vs "DbaInformation" breaks name-score ties.</summary>
+    private static double AncestorSimilarity(RecognisedField source, RecognisedField target)
+    {
+        var sourceTokens = source.Context.Ancestors.SelectMany(NameTokens.Split).ToHashSet(StringComparer.Ordinal);
+        var targetTokens = target.Context.Ancestors.SelectMany(NameTokens.Split).ToHashSet(StringComparer.Ordinal);
+        return sourceTokens.Count + targetTokens.Count == 0
+            ? 0
+            : (double)sourceTokens.Intersect(targetTokens).Count() / sourceTokens.Union(targetTokens).Count();
+    }
 
     // ------------------------------------------------------------ unmapped
 

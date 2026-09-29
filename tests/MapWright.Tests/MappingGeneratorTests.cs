@@ -322,6 +322,26 @@ public sealed class MappingCompletionTests
     }
 
     [Fact]
+    public void Name_only_ties_are_broken_by_the_whole_ancestor_chain()
+    {
+        var source = SampleProfiles.FromJson("UW", """
+            { "business": { "legalAddress": { "addressLine1": "1 Way" },
+                            "dbaAddress": { "addressLine1": "2 Way" } } }
+            """);
+        var target = SampleProfiles.FromJson("Sales", """
+            { "companyInformation": { "legalInformation": { "address": { "address1": "x" } },
+                                      "dbaInformation": { "address": { "address1": "x" } } } }
+            """);
+
+        var map = SampleProfiles.Map(source, target);
+
+        Assert.Equal("$.business.legalAddress.addressLine1",
+            Assert.Single(map.Row("$.companyInformation.legalInformation.address.address1").Sources).Path);
+        Assert.Equal("$.business.dbaAddress.addressLine1",
+            Assert.Single(map.Row("$.companyInformation.dbaInformation.address.address1").Sources).Path);
+    }
+
+    [Fact]
     public void Unused_source_fields_are_orphans()
     {
         var orphans = SalesToUw.OrphanSourceFields.Select(o => o.Field.Path).ToList();
