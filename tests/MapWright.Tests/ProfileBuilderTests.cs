@@ -73,6 +73,21 @@ public sealed class ProfileBuilderTests
     }
 
     [Fact]
+    public void Name_value_arrays_expand_each_key_into_a_field()
+    {
+        var profile = Build(("a.json", """
+            { "markers": [ { "name": "Mcc", "value": "5814" }, { "name": "Bankrupt", "value": null } ],
+              "owners": [ { "name": "A", "email": "a@x.example" }, { "name": "B", "email": null } ] }
+            """));
+
+        Assert.Equal(FieldDataType.String, Field(profile, "$.markers.Mcc").DataType);
+        Assert.Contains(profile.Fields, f => f.Path == "$.markers.Bankrupt");
+        Assert.DoesNotContain(profile.Fields, f => f.Path == "$.markers[*].name");
+        Assert.Contains(profile.Fields, f => f.Path == "$.owners[*].email");
+        Assert.DoesNotContain(profile.Fields, f => f.Path == "$.owners.A");
+    }
+
+    [Fact]
     public void Presence_distinguishes_optional_from_likely_required()
     {
         var profile = Build(
