@@ -86,17 +86,16 @@ static void SeedPlaybooks(WebApplication app)
         return;
     }
 
+    var files = PlaybookLibrary.Read([directory]);
     if (!empty)
     {
-        var restored = store.RestoreYaml(PlaybookLibrary.Read([directory]));
+        var restored = store.RestoreYaml(files);
         if (restored.Count > 0)
         {
             app.Logger.LogInformation("Restored the YAML and comments of {Count} playbook version(s) from {Directory}.", restored.Count, directory);
         }
-
-        return;
     }
 
-    var imported = store.Import(PlaybookLibrary.Read([directory]), "seed");
+    var imported = store.Import(files, "seed");
     app.Logger.LogInformation("Imported {Count} playbook(s) from {Directory}.", imported.Count, directory);
 }
