@@ -96,6 +96,12 @@ static void SeedPlaybooks(WebApplication app)
         }
     }
 
-    var imported = store.Import(files, "seed");
-    app.Logger.LogInformation("Imported {Count} playbook(s) from {Directory}.", imported.Count, directory);
+    // Seed only playbooks the store does not have at all: versions already stored (in any status) are the
+    // user's own edits, and re-importing a file's published version alongside them fails validation.
+    var storedIds = store.List().Select(p => p.Id).ToHashSet(StringComparer.Ordinal);
+    var added = store.Import([.. files.Where(f => !storedIds.Contains(f.Playbook.Id))], "seed");
+    if (added.Count > 0)
+    {
+        app.Logger.LogInformation("Imported {Count} playbook(s) from {Directory}.", added.Count, directory);
+    }
 }
