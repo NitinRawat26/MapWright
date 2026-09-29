@@ -162,11 +162,11 @@ public static partial class ProfileBuilder
             Visit(document.Root, root, path);
         }
 
-        private FieldStats Touch(string path, SampleNode node, string? parentPath)
+        private FieldStats Touch(string path, SampleNode node, string? parentPath, string? name = null)
         {
             if (!_fields.TryGetValue(path, out var stats))
             {
-                stats = new(path, node.Name, parentPath, node);
+                stats = new(path, name ?? node.Name, parentPath, node);
                 _fields.Add(path, stats);
                 _order.Add(stats);
             }
@@ -210,6 +210,11 @@ public static partial class ProfileBuilder
                         stats.MaxOccursIn = _sample;
                     }
 
+                    if (TryExpandPropertyBag(node, stats, prefix))
+                    {
+                        break;
+                    }
+
                     var itemPrefix = IsXml ? prefix : prefix + "[*]";
                     foreach (var item in node.Children)
                     {
@@ -234,6 +239,74 @@ public static partial class ProfileBuilder
                     break;
             }
         }
+
+        /// <summary>An array of {key, value} objects (a property bag like "CustomMarkers") is expanded so each key
+        /// becomes a field under the array's path — the member names don't matter, only the shape.</summary>
+        private bool TryExpandPropertyBag(SampleNode array, FieldStats stats, string prefix)
+        {
+            var items = array.Children;
+            if (items.Count < 2 || items.Any(item => item.Type != SampleNodeType.Object || item.Children.Count != 2))
+            {
+                return false;
+            }
+
+            // Position is a bag key when every item carries it as a non-empty, distinct string and the other
+            // member is named like a value holder — this keeps plain two-property lists from being treated as bags.
+            bool Candidate(int position)
+            {
+                var keyName = items[0].Children[position].Name;
+                var valueName = items[0].Children[1 - position].Name;
+                return IsValueMember(valueName)
+                    && items.All(item =>
+                        item.Children[1 - position].Name == valueName
+                        && item.Children[position] is { Type: SampleNodeType.Value, Scalar: ScalarKind.String, Name: var member, Value: { Length: > 0 } }
+                        && member == keyName)
+                    && items.Select(item => item.Children[position].Value).Distinct().Count() == items.Count;
+            }
+
+            var candidates = new List<int>(2);
+            if (Candidate(0))
+            {
+                candidates.Add(0);
+            }
+
+            if (Candidate(1))
+            {
+                candidates.Add(1);
+            }
+
+            if (candidates.Count == 0)
+            {
+                return false;
+            }
+
+            var keyPosition = candidates[0];
+
+            stats.SawObject = true;
+            stats.Instances++;
+            foreach (var item in items)
+            {
+                var fieldName = item.Children[keyPosition].Value!;
+                var value = item.Children[1 - keyPosition];
+                var fieldPath = IsXml
+                    ? $"{prefix}/{fieldName}"
+                    : SimpleJsonName().IsMatch(fieldName)
+                        ? $"{prefix}.{fieldName}"
+                        : $"{prefix}['{fieldName.Replace("'", "\\'", StringComparison.Ordinal)}']";
+                var fieldStats = Touch(fieldPath, value, stats.Path, fieldName);
+                fieldStats.PresentInstances++;
+                Visit(value, fieldStats, fieldPath);
+            }
+
+            return true;
+        }
+
+        private static bool IsValueMember(string name) =>
+            name.EndsWith("value", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("val", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("data", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("text", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("content", StringComparison.OrdinalIgnoreCase);
 
         private string ChildPath(string prefix, SampleNode child)
         {
