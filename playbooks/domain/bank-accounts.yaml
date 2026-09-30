@@ -1,0 +1,269 @@
+# Domain playbook: Bank Accounts.
+# Edit a draft in the MapWright UI, or edit this file and check it with: mapwright playbook test playbooks
+# Values that look like numbers or dates (versions, dates, codes) are quoted so every YAML tool reads them as text.
+
+specVersion: "1.0"
+id: domain/bank-accounts
+name: Bank Accounts
+kind: domain
+version: "1.0.0"
+status: published
+owner: Underwriting BA team
+description: 'The merchant settlement bank account(s): account number, bank name and routing number. Required for payouts; mishandling them is a fraud vector.'
+changeNotes:
+  - version: "1.0.0"
+    date: "2026-03-27"
+    author: Nitin
+    description: Initial version.
+domain:
+  concept:
+    name: BankAccount
+    description: A settlement bank account for the merchant.
+    cardinality: array
+    attributes:
+      - name: BankAccountNumber
+        description: The account number at the bank.
+        dataType: string
+        sensitivity: financial
+        requiresContext: true
+      - name: BankName
+        description: Name of the bank holding the account.
+        dataType: string
+      - name: BankRoutingNumber
+        description: Routing / transit number identifying the bank branch (US ABA is 9 digits).
+        dataType: string
+        sensitivity: financial
+        requiresContext: true
+  # Names systems use for the concept or one of its attributes; relation is equivalent unless stated.
+  vocabulary:
+    - term: bank account
+    - term: settlement account
+    - term: settlement bank account
+    - term: deposit account
+    - term: bank
+      relation: related
+      note: A bare "bank" object may describe the institution rather than the account.
+    - term: banking
+      relation: related
+    - term: account
+      relation: related
+    - term: payout account
+      relation: related
+    - term: settlement
+      relation: related
+      note: A settlement block usually carries the payout account.
+    - term: remittance account
+      relation: related
+    - term: bank account number
+      appliesTo: BankAccountNumber
+    - term: account number
+      appliesTo: BankAccountNumber
+    - term: acct number
+      appliesTo: BankAccountNumber
+    - term: acct no
+      appliesTo: BankAccountNumber
+    - term: account no
+      appliesTo: BankAccountNumber
+    - term: dda
+      appliesTo: BankAccountNumber
+      note: Demand deposit account, the US term for a checking account.
+    - term: checking account number
+      appliesTo: BankAccountNumber
+    - term: iban
+      appliesTo: BankAccountNumber
+      relation: related
+      note: IBAN embeds bank, branch and account; not a US-style pair.
+    - term: bank name
+      appliesTo: BankName
+    - term: bank
+      appliesTo: BankName
+    - term: financial institution
+      appliesTo: BankName
+    - term: institution name
+      appliesTo: BankName
+    - term: depository institution
+      appliesTo: BankName
+    - term: routing number
+      appliesTo: BankRoutingNumber
+    - term: routing transit number
+      appliesTo: BankRoutingNumber
+    - term: aba
+      appliesTo: BankRoutingNumber
+    - term: aba number
+      appliesTo: BankRoutingNumber
+    - term: aba routing
+      appliesTo: BankRoutingNumber
+    - term: aba routing number
+      appliesTo: BankRoutingNumber
+    - term: transit number
+      appliesTo: BankRoutingNumber
+    - term: sort code
+      appliesTo: BankRoutingNumber
+      relation: related
+      note: UK 6-digit equivalent; map only after confirming the scheme.
+    - term: swift
+      appliesTo: BankRoutingNumber
+      relation: related
+      note: SWIFT/BIC identifies the bank internationally, not a branch routing number.
+    - term: bic
+      appliesTo: BankRoutingNumber
+      relation: related
+    - term: ifsc
+      appliesTo: BankRoutingNumber
+      relation: related
+      note: Indian Financial System Code.
+  # Extra evidence: each matching signal adds its weight (negative weights count against a match).
+  signals:
+    - id: BNK-SIG-LIST
+      kind: cardinality
+      pattern: array
+      weight: 10
+      note: merchants may hold several settlement accounts
+    - id: BNK-SIG-CHILDREN
+      kind: childNamePattern
+      pattern: ^(account|acct|routing|aba|transit|bank|swift|bic|iban|ifsc|sort)[ _]?(number|num|no|name|code)?$
+      weight: 15
+      note: children look like account / routing / bank fields
+    - id: BNK-SIG-ACCT-SHAPE
+      kind: valueShape
+      appliesTo: BankAccountNumber
+      pattern: ^9{4,17}$
+      weight: 10
+      note: account numbers are 4–17 digits
+    - id: BNK-SIG-ACCT-NONNUMERIC
+      kind: valuePattern
+      appliesTo: BankAccountNumber
+      pattern: ^[A-Za-z]+$
+      weight: -20
+      note: pure letters are not an account number
+    - id: BNK-SIG-ROUTING-SHAPE
+      kind: valueShape
+      appliesTo: BankRoutingNumber
+      pattern: ^9{9}$
+      weight: 15
+      note: US ABA routing is exactly 9 digits
+    - id: BNK-SIG-ROUTING-DASHED
+      kind: valuePattern
+      appliesTo: BankRoutingNumber
+      pattern: ^\d{2}-?\d{2}-?\d{4}$|^\d{3}-\d{3}-\d{3}$
+      weight: 10
+      note: dashed transit schemes (US fractional, Canadian)
+    - id: BNK-SIG-BANKNAME-LETTERS
+      kind: valuePattern
+      appliesTo: BankName
+      pattern: ^[A-Za-z][A-Za-z0-9 &'\.,\-]{2,60}$
+      weight: 10
+      note: a bank name is mostly letters
+  confidence: {}
+  risks:
+    - id: BNK-RISK-ACCT
+      appliesTo: BankAccountNumber
+      level: high
+      text: 'Account numbers are financial data: keep masked in documents and never send unmasked to AI. A wrong or swapped number misroutes settlement funds.'
+    - id: BNK-RISK-SCHEME
+      appliesTo: BankRoutingNumber
+      level: medium
+      text: Routing schemes differ by country (US ABA 9 digits, UK sort code, Canada transit); a non-US field may be a sort code or IFSC, not an ABA.
+    - id: BNK-RISK-IBAN
+      level: medium
+      text: IBAN/SWIFT regions do not split bank, branch and account the way US fields do; mapping IBAN to account number alone loses the embedded routing.
+  reviewGuidance:
+    - id: BNK-Q-SCHEME
+      appliesTo: BankRoutingNumber
+      when: nonEquivalentTerm
+      question: Which routing scheme is this — US ABA, UK sort code, Canadian transit, or an international code (SWIFT/IFSC)?
+    - id: BNK-Q-ACCT-IBAN
+      appliesTo: BankAccountNumber
+      when: nonEquivalentTerm
+      question: Is this a plain account number or an IBAN that embeds bank and branch codes?
+    - id: BNK-Q-CURRENCY
+      question: Does the merchant settle more than one currency? If so, which account serves each currency?
+  aiGuidance: 'A bank account is the settlement destination: account number plus a routing/transit identifier and the bank name. Account numbers are digits only (4–17); a US routing number is exactly 9 digits. Sort codes, IFSC, SWIFT and IBAN are international equivalents — flag them for scheme confirmation rather than forcing them into the US pair. Never unmask account numbers.'
+  # Fields this playbook must (or must not) recognise; a version can only be published when they pass.
+  tests:
+    - id: BNK-T-01
+      description: A settlementAccounts list is the bank account collection.
+      field:
+        name: settlementAccounts
+        ancestors:
+          - $
+        kind: object
+        dataType: object
+        cardinality: array
+        children:
+          - accountNumber
+          - bankName
+          - routingNumber
+      expect: BankAccount
+      minScore: 80
+      expectReview: false
+    - id: BNK-T-02
+      description: Account number inside a bank account.
+      field:
+        name: accountNumber
+        ancestors:
+          - bankAccount
+          - $
+        valueShapes:
+          - "9999999999"
+      expect: BankAccount.BankAccountNumber
+      minScore: 90
+    - id: BNK-T-03
+      description: US ABA routing number.
+      field:
+        name: routingNumber
+        ancestors:
+          - bankAccount
+          - $
+        valueShapes:
+          - "999999999"
+      expect: BankAccount.BankRoutingNumber
+      minScore: 95
+    - id: BNK-T-04
+      description: Bank name.
+      field:
+        name: bankName
+        ancestors:
+          - settlementAccount
+          - merchant
+        values:
+          - "First National Bank"
+      expect: BankAccount.BankName
+      minScore: 90
+    - id: BNK-T-05
+      description: UK sort code maps to routing but needs review.
+      field:
+        name: sortCode
+        ancestors:
+          - bankAccount
+          - $
+        values:
+          - "40-02-26"
+      expect: BankAccount.BankRoutingNumber
+      minScore: 60
+      expectReview: true
+    - id: BNK-T-06
+      description: A merchant id is not a bank account number.
+      field:
+        name: merchantId
+        ancestors:
+          - account
+          - $
+        valueShapes:
+          - "999999999"
+      expect: null
+    - id: BNK-T-07
+      description: Bare "accounts" is too vague to auto-accept.
+      field:
+        name: account
+        ancestors:
+          - $
+        kind: object
+        dataType: object
+        children:
+          - accountNumber
+          - routingNumber
+          - bankName
+      expect: BankAccount
+      minScore: 35
+      expectReview: true
