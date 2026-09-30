@@ -162,12 +162,22 @@ public sealed partial class AiFieldAssistant(IAiProvider provider, int maxConfid
     [GeneratedRegex(@"^[A-Za-z0-9_.\-]{1,12}$")]
     private static partial Regex CodeLike();
 
-    /// <summary>A string schema that allows only <paramref name="values"/>.</summary>
-    internal static JsonObject OneOf(IEnumerable<string> values) => new()
+    /// <summary>
+    /// A string schema that allows only <paramref name="values"/>. Vertex rejects response schemas whose
+    /// constraints produce too many states, which long enums of full field paths do, so large lists are
+    /// emitted unconstrained — the returned paths are still validated against the input.
+    /// </summary>
+    internal static JsonObject OneOf(IEnumerable<string> values)
     {
-        ["type"] = "string",
-        ["enum"] = new JsonArray([.. values.Select(v => (JsonNode)v)]),
-    };
+        var list = values.ToList();
+        var schema = new JsonObject { ["type"] = "string" };
+        if (list.Count <= 50 && list.Sum(v => v.Length) <= 1000)
+        {
+            schema["enum"] = new JsonArray([.. list.Select(v => (JsonNode)v)]);
+        }
+
+        return schema;
+    }
 
     /// <summary>The answer's shape: at most one suggestion per field, and only for the paths asked about.</summary>
     internal static JsonObject ResponseSchema(IReadOnlyList<string> paths) => new()
