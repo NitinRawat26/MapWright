@@ -12,8 +12,8 @@ owner: Underwriting BA team
 description: 'The merchant settlement bank account(s): account number, bank name and routing number. Required for payouts; mishandling them is a fraud vector.'
 changeNotes:
   - version: "1.0.0"
-    date: "2026-09-27"
-    author: Devin
+    date: "2026-03-27"
+    author: Nitin
     description: Initial version.
 domain:
   concept:

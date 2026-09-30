@@ -12,13 +12,9 @@ owner: Integration team
 description: 'Map a new source system onto an existing target system: profile both, apply the domain playbooks, optionally ask AI about the rest, validate, review and publish.'
 changeNotes:
   - version: "1.0.0"
-    date: "2026-09-25"
+    date: "2026-03-25"
     author: MapWright starter set
     description: Initial version.
-  - version: "1.1.0"
-    date: "2026-09-27"
-    author: Devin
-    description: The match step also applies the new domain/business and domain/bank-accounts playbooks.
 process:
   inputs:
     - side: source

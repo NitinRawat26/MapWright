@@ -13,7 +13,7 @@ description: The merchant business being boarded — its legal and DBA (trading)
 changeNotes:
   - version: "1.0.0"
     date: "2026-09-27"
-    author: Devin
+    author: Nitin
     description: Initial version.
 domain:
   concept:
