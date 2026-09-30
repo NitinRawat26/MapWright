@@ -15,6 +15,7 @@
 }
 
 .side {
+  position: relative;
   background: linear-gradient(180deg, #0f1330, #141a45);
   color: #c9cdf0;
   padding: 20px 14px;
@@ -31,15 +32,18 @@
 }
 
 .collapse {
+  position: absolute;
+  top: 120px;
+  right: 6px;
+  z-index: 5;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 28px;
   height: 28px;
-  margin-top: 6px;
   border: 0;
   border-radius: 8px;
-  background: transparent;
+  background: rgba(129, 140, 248, 0.14);
   color: #aab0dc;
   cursor: pointer;
 }
