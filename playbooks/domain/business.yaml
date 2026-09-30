@@ -396,6 +396,8 @@ domain:
     - term: license number
       appliesTo: GovernmentalIdentifier
       relation: related
+    - term: federaltaxidentification
+      appliesTo: GovernmentalIdentifier
   # Extra evidence: each matching signal adds its weight (negative weights count against a match).
   signals:
     - id: BUS-SIG-CHILDREN

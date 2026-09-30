@@ -117,11 +117,46 @@ public static class PlaybookMatcher
             .OrderByDescending(m => m.Points)
             .ThenByDescending(m => m.Tokens)
             .FirstOrDefault();
+        var ancestorAssist = false;
+        if (best.Tokens == 0 && target is not null && context.Count > 0)
+        {
+            // A leaf like "name" carries no meaning alone; let the nearest ancestor supply the missing term
+            // tokens ("legalInformation.name" ~ "legal name") as a set match — weaker than a leaf match, so always reviewed.
+            // Ancestor tokens that name the whole concept ("merchant" in a MerchantCategory playbook) are
+            // context, not attribute evidence — only tokens the concept vocabulary does not own may assist.
+            var conceptTokens = new[] { domain.Concept.Name }
+                .Concat(domain.Vocabulary.Where(v => v.AppliesTo is null).Select(v => v.Term))
+                .Select(NameTokens.Split)
+                .Where(t => t.Count == 1)
+                .SelectMany(t => t)
+                .ToHashSet(StringComparer.Ordinal);
+            var ancestorTokens = NameTokens.Split(context[0]).Where(t => !conceptTokens.Contains(t)).ToHashSet(StringComparer.Ordinal);
+            var assisted = nameTokens.Concat(ancestorTokens).ToHashSet(StringComparer.Ordinal);
+            best = terms
+                .Select(t =>
+                {
+                    var termTokens = NameTokens.Split(t.Term);
+                    // Only a shared match: the leaf covers part of the term and the ancestor covers the rest.
+                    var shared = termTokens.Count > 1
+                        && termTokens.Any(nameTokens.Contains)
+                        && termTokens.Any(ancestorTokens.Contains)
+                        && termTokens.All(assisted.Contains);
+                    return (Term: t, Tokens: shared ? termTokens.Count : 0, Points: Points(rules, t.Relation));
+                })
+                .Where(m => m.Tokens > 0)
+                .OrderByDescending(m => m.Points)
+                .ThenByDescending(m => m.Tokens)
+                .FirstOrDefault();
+            ancestorAssist = best.Tokens > 0;
+        }
+
         if (best.Tokens > 0)
         {
             score += best.Points;
-            evidence.Add($"Name matches {best.Term.Relation.ToString().ToLowerInvariant()} term '{best.Term.Term}' (+{best.Points}).");
-            if (best.Term.Relation != TermRelation.Equivalent)
+            evidence.Add(ancestorAssist
+                ? $"Name and ancestor '{context[0]}' match {best.Term.Relation.ToString().ToLowerInvariant()} term '{best.Term.Term}' (+{best.Points})."
+                : $"Name matches {best.Term.Relation.ToString().ToLowerInvariant()} term '{best.Term.Term}' (+{best.Points}).");
+            if (best.Term.Relation != TermRelation.Equivalent || ancestorAssist)
             {
                 triggers.Add(ReviewTrigger.NonEquivalentTerm);
             }
