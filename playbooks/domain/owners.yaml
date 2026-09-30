@@ -65,6 +65,34 @@ domain:
         description: The person's residential or mailing address.
         dataType: object
         sensitivity: pii
+      - name: AddressLine1
+        description: Street line of the person's address; only matches inside the person's address.
+        dataType: string
+        sensitivity: pii
+        requiresContext: true
+      - name: AddressLine2
+        description: Second street line of the person's address.
+        dataType: string
+        sensitivity: pii
+        requiresContext: true
+      - name: City
+        dataType: string
+        sensitivity: pii
+        requiresContext: true
+      - name: StateProvince
+        description: State or province of the person's address.
+        dataType: string
+        requiresContext: true
+      - name: PostalCode
+        dataType: string
+        requiresContext: true
+      - name: CountryRegion
+        dataType: string
+        requiresContext: true
+      - name: IpAddress
+        description: The person's IP address captured with the application.
+        dataType: string
+        requiresContext: true
       - name: IndividualWithControl
         description: Whether the person is a control person (significant responsibility over the business).
         dataType: boolean
@@ -214,12 +242,46 @@ domain:
     - term: address
       appliesTo: Address
       relation: related
+    - term: address line 1
+      appliesTo: AddressLine1
+    - term: street
+      appliesTo: AddressLine1
+      relation: related
+    - term: address line 2
+      appliesTo: AddressLine2
+    - term: city
+      appliesTo: City
+    - term: town
+      appliesTo: City
+      relation: related
+    - term: state province
+      appliesTo: StateProvince
+    - term: state
+      appliesTo: StateProvince
+    - term: province
+      appliesTo: StateProvince
+    - term: postal code
+      appliesTo: PostalCode
+    - term: zip code
+      appliesTo: PostalCode
+    - term: zip
+      appliesTo: PostalCode
+      relation: related
+    - term: country region
+      appliesTo: CountryRegion
+    - term: country
+      appliesTo: CountryRegion
     - term: home address
       appliesTo: Address
     - term: residential address
       appliesTo: Address
     - term: mailing address
       appliesTo: Address
+    - term: ip address
+      appliesTo: IpAddress
+    - term: ip
+      appliesTo: IpAddress
+      relation: related
     - term: individual with control
       appliesTo: IndividualWithControl
     - term: control person
@@ -623,4 +685,53 @@ domain:
           - Owners
         dataType: boolean
       expect: Owner.UsCitizen
+      minScore: 80
+    - id: OWN-T-14
+      description: PostalCode inside the owner's address object.
+      field:
+        name: PostalCode
+        ancestors:
+          - Address
+          - Owners
+        dataType: string
+      expect: Owner.PostalCode
+      minScore: 80
+    - id: OWN-T-15
+      description: City and StateProvince inside the owner's address object.
+      field:
+        name: City
+        ancestors:
+          - Address
+          - Owners
+        dataType: string
+      expect: Owner.City
+      minScore: 80
+    - id: OWN-T-16
+      description: AddressLine1 inside the owner's address object.
+      field:
+        name: AddressLine1
+        ancestors:
+          - Address
+          - Owners
+        dataType: string
+      expect: Owner.AddressLine1
+      minScore: 80
+    - id: OWN-T-17
+      description: A PostalCode outside an owner context must not match.
+      field:
+        name: PostalCode
+        ancestors:
+          - Address
+          - Company
+        dataType: string
+      expect: null
+    - id: OWN-T-18
+      description: IpAddress inside DynamicProps is the person's IP, not an address line.
+      field:
+        name: IpAddress
+        ancestors:
+          - DynamicProps
+          - Owners
+        dataType: string
+      expect: Owner.IpAddress
       minScore: 80
