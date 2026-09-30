@@ -7,6 +7,11 @@
   display: grid;
   grid-template-columns: 232px minmax(0, 1fr);
   height: 100vh;
+  transition: grid-template-columns 0.2s ease;
+}
+
+.shell.collapsed {
+  grid-template-columns: 60px minmax(0, 1fr);
 }
 
 .side {
@@ -17,6 +22,36 @@
   flex-direction: column;
   gap: 4px;
   overflow-y: auto;
+}
+
+.side-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.collapse {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-top: 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #aab0dc;
+  cursor: pointer;
+}
+
+.collapse:hover {
+  background: rgba(129, 140, 248, 0.1);
+  color: #fff;
+}
+
+.collapse app-icon.flip,
+.collapse .flip {
+  transform: scaleX(-1);
 }
 
 .logo {
@@ -135,6 +170,47 @@ nav + .navh {
   color: #aab0dc;
   display: grid;
   gap: 4px;
+}
+
+.collapsed .wordmark,
+.collapsed .navh,
+.collapsed .nav .lbl,
+.collapsed .foot div {
+  display: none;
+}
+
+.collapsed .side {
+  padding: 20px 8px;
+  align-items: center;
+}
+
+.collapsed .side-top {
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.collapsed .nav {
+  position: relative;
+  justify-content: center;
+  padding: 10px;
+}
+
+.collapsed .badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  margin-left: 0;
+  padding: 0 5px;
+}
+
+.collapsed .foot {
+  padding: 8px;
+  border-radius: 10px;
+}
+
+.collapsed .foot .dot {
+  margin: 0 auto;
 }
 
 .foot b {

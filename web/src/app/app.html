@@ -3,9 +3,21 @@
     <app-intro (done)="closeIntro()" />
   }
 }
-<div class="shell">
+<div class="shell" [class.collapsed]="collapsed()">
   <aside class="side">
-    <a routerLink="/" class="logo" data-testid="logo"><app-logo [size]="36" [tile]="true" /><span class="wordmark"><span>Map<b>Wright</b></span><small>Playbook-driven mapping</small></span></a>
+    <div class="side-top">
+      <a routerLink="/" class="logo" data-testid="logo"><app-logo [size]="36" [tile]="true" /><span class="wordmark"><span>Map<b>Wright</b></span><small>Playbook-driven mapping</small></span></a>
+      <button
+        type="button"
+        class="collapse"
+        (click)="toggleCollapsed()"
+        [attr.aria-label]="collapsed() ? 'Expand menu' : 'Collapse menu'"
+        [title]="collapsed() ? 'Expand menu' : 'Collapse menu'"
+        data-testid="nav-collapse"
+      >
+        <app-icon name="chevron_right" [class.flip]="!collapsed()" />
+      </button>
+    </div>
     <div class="navh">Workspace</div>
     <nav>
       @for (link of links; track link.path) {
@@ -14,8 +26,9 @@
           [routerLink]="link.path"
           routerLinkActive="on"
           [routerLinkActiveOptions]="{ exact: link.exact }"
-          [attr.data-testid]="'nav-' + link.key">
-          <app-icon [name]="link.icon" />{{ link.label }}
+          [attr.data-testid]="'nav-' + link.key"
+          [title]="collapsed() ? link.label : null">
+          <app-icon [name]="link.icon" /><span class="lbl">{{ link.label }}</span>
           @if (link.key === 'suggestions' && pending()) {
             <span class="badge" data-testid="pending-badge">{{ pending() }}</span>
           }
@@ -32,11 +45,12 @@
           routerLinkActive="on"
           [routerLinkActiveOptions]="{ paths: 'exact', fragment: 'exact', queryParams: 'ignored', matrixParams: 'ignored' }"
           [attr.data-testid]="'nav-' + link.key"
-          ><app-icon [name]="link.icon" />{{ link.label }}</a
+          [title]="collapsed() ? link.label : null"
+          ><app-icon [name]="link.icon" /><span class="lbl">{{ link.label }}</span></a
         >
       }
     </nav>
-    <button type="button" class="nav replay" (click)="intro.set(true)" data-testid="nav-intro"><app-icon name="play_arrow" />Watch the intro</button>
+    <button type="button" class="nav replay" (click)="intro.set(true)" data-testid="nav-intro" title="Watch the intro"><app-icon name="play_arrow" /><span class="lbl">Watch the intro</span></button>
     <div class="foot" data-testid="ai-status">
       @if (ai(); as ai) {
         @if (ai.available) {

@@ -56,6 +56,16 @@ export class App {
   /** The opening film plays on every visit that lands on the overview; deep links go straight to the page. */
   protected readonly intro = signal(location.pathname.replace(/\/+$/, '') === '');
 
+  /** Icon-only rail for more content space; remembered per browser. */
+  protected readonly collapsed = signal(localStorage.getItem('nav-collapsed') === '1');
+
+  protected toggleCollapsed(): void {
+    this.collapsed.update((on) => {
+      localStorage.setItem('nav-collapsed', on ? '0' : '1');
+      return !on;
+    });
+  }
+
   protected closeIntro(): void {
     this.intro.set(false);
   }
