@@ -30,7 +30,7 @@ public sealed class StarterPlaybookTests
             [
                 "domain/bank-accounts@1.0.0", "domain/business@1.0.0", "domain/channel-mix@1.0.0",
                 "domain/entity-type@1.0.0", "domain/merchant-category@1.0.0",
-                "domain/principals@1.0.0", "domain/processing-volume@1.0.0", "domain/tax-id@1.0.0",
+                "domain/owners@1.0.0", "domain/processing-volume@1.0.0", "domain/tax-id@1.0.0",
                 "process/onboard-new-system@1.1.0",
             ],
             ids);
@@ -90,15 +90,15 @@ public sealed class PlaybookDetectionTests
             .ToDictionary(f => f.Path!, Library.Detect);
 
     [Fact]
-    public void Owners_and_officers_are_both_principals_but_officers_need_review()
+    public void Owners_and_officers_are_both_owners_but_officers_need_review()
     {
         var sales = DetectProfile("sales-alpha");
         var uw = DetectProfile("uw-core");
 
         var owners = sales["$.owners"]!;
         var officers = uw["/UnderwritingRequest/Officers/Officer"]!;
-        Assert.Equal(("Principal", false), (owners.BusinessConcept, owners.RequiresReview));
-        Assert.Equal(("Principal", true), (officers.BusinessConcept, officers.RequiresReview));
+        Assert.Equal(("Owner", false), (owners.BusinessConcept, owners.RequiresReview));
+        Assert.Equal(("Owner", true), (officers.BusinessConcept, officers.RequiresReview));
         Assert.True(owners.Score > officers.Score);
         Assert.Contains(officers.Questions, q => q.Contains("beneficial owners", StringComparison.Ordinal));
         Assert.Null(uw["/UnderwritingRequest/Officers"]);
@@ -119,13 +119,13 @@ public sealed class PlaybookDetectionTests
     }
 
     [Fact]
-    public void Principal_ssn_is_not_the_business_tax_id()
+    public void Owner_govid_is_not_the_business_tax_id()
     {
         var sales = DetectProfile("sales-alpha");
         var uw = DetectProfile("uw-core");
 
-        Assert.Equal("Principal.Ssn", sales["$.owners[*].ssn"]!.BusinessConcept);
-        Assert.Equal("Principal.Ssn", uw["/UnderwritingRequest/Officers/Officer/SSN"]!.BusinessConcept);
+        Assert.Equal("Owner.GovernmentalIdentifier", sales["$.owners[*].ssn"]!.BusinessConcept);
+        Assert.Equal("Owner.GovernmentalIdentifier", uw["/UnderwritingRequest/Officers/Officer/SSN"]!.BusinessConcept);
         Assert.Equal("LegalEntity.TaxId", sales["$.account.taxId"]!.BusinessConcept);
         Assert.Equal("LegalEntity.TaxId", uw["/UnderwritingRequest/Merchant/TaxId/Number"]!.BusinessConcept);
         Assert.Equal("LegalEntity.TaxIdType", uw["/UnderwritingRequest/Merchant/TaxId/@type"]!.BusinessConcept);
@@ -182,18 +182,18 @@ public sealed class PlaybookDetectionTests
         Assert.Equal(95, result.Score);
         Assert.Collection(
             result.Evidence,
-            e => Assert.Contains("equivalent term 'Ssn' (+60)", e, StringComparison.Ordinal),
+            e => Assert.Contains("equivalent term 'ssn' (+60)", e, StringComparison.Ordinal),
             e => Assert.Contains("Ancestor 'owners'", e, StringComparison.Ordinal),
-            e => Assert.Contains("PRN-SIG-SSN-SHAPE", e, StringComparison.Ordinal));
+            e => Assert.Contains("OWN-SIG-GOVID-SHAPE", e, StringComparison.Ordinal));
     }
 
     [Fact]
     public void Requires_context_attributes_do_not_match_on_their_own()
     {
-        var principals = StarterPlaybooks.Get("domain/principals");
+        var principals = StarterPlaybooks.Get("domain/owners");
 
         Assert.Null(PlaybookMatcher.Detect(principals, new() { Name = "email", Ancestors = ["account"] }));
-        Assert.Equal("Principal.Email", PlaybookMatcher.Detect(principals, new() { Name = "email", Ancestors = ["owner"] })?.BusinessConcept);
+        Assert.Equal("Owner.Email", PlaybookMatcher.Detect(principals, new() { Name = "email", Ancestors = ["owner"] })?.BusinessConcept);
     }
 
     [Fact]
@@ -220,13 +220,13 @@ public sealed class PlaybookTestRunnerTests
     [Fact]
     public void Failing_expectations_are_reported()
     {
-        var principals = StarterPlaybooks.Get("domain/principals");
+        var principals = StarterPlaybooks.Get("domain/owners");
         var domain = principals.Domain!;
         var broken = principals with
         {
             Domain = domain with
             {
-                Tests = [domain.Tests[0] with { Expect = "Principal.Ssn" }],
+                Tests = [domain.Tests[0] with { Expect = "Owner.FirstName" }],
                 Derivations = [domain.Derivations[0] with { Examples = [Example(new() { ["fraction"] = 0.5m }, 5m)] }],
                 Validations = [],
                 Conditions = [],
@@ -236,7 +236,7 @@ public sealed class PlaybookTestRunnerTests
         var results = PlaybookTestRunner.Run(broken);
 
         Assert.All(results, r => Assert.False(r.Passed));
-        Assert.Contains("expected Principal.Ssn, got Principal", results[0].Message, StringComparison.Ordinal);
+        Assert.Contains("expected Owner.FirstName, got Owner", results[0].Message, StringComparison.Ordinal);
         Assert.Contains("expected 5, got 50", results[1].Message, StringComparison.Ordinal);
     }
 

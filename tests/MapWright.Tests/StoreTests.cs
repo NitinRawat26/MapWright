@@ -154,7 +154,7 @@ public sealed class StoreTests : IDisposable
         Assert.Equal(9, first.Count);
         Assert.Empty(second);
         Assert.All(store.List(), s => Assert.Equal((PlaybookStatus.Published, "seed"), (s.Status, s.CreatedBy)));
-        Assert.Equal(["domain/bank-accounts", "domain/business", "domain/channel-mix", "domain/entity-type", "domain/merchant-category", "domain/principals", "domain/processing-volume", "domain/tax-id", "process/onboard-new-system"],
+        Assert.Equal(["domain/bank-accounts", "domain/business", "domain/channel-mix", "domain/entity-type", "domain/merchant-category", "domain/owners", "domain/processing-volume", "domain/tax-id", "process/onboard-new-system"],
             store.List().Select(s => s.Id));
         Assert.Equal(8, store.Library().Domains.Count());
         Assert.Equal("imported", Assert.Single(store.History("domain/tax-id")).Action);
@@ -251,9 +251,9 @@ public sealed class StoreTests : IDisposable
         Assert.Contains(submit.Issues, i => i.Code == "PBTEST" && i.Location.Contains(failingTest.Id, StringComparison.Ordinal));
         Assert.Equal(PlaybookStatus.Draft, store.Get(draft.Id, draft.Version).Status);
 
-        var created = Assert.Throws<StoreException>(() => store.Create(StarterPlaybooks.Get("domain/principals") with { Id = "domain/owners-v2" }, "ana"));
+        var created = Assert.Throws<StoreException>(() => store.Create(StarterPlaybooks.Get("domain/owners") with { Id = "domain/owners-v2" }, "ana"));
         Assert.Contains("starts as a draft", created.Message);
-        var brandNew = StarterPlaybooks.Get("domain/principals") with { Id = "domain/owners-v2", Status = PlaybookStatus.Draft };
+        var brandNew = StarterPlaybooks.Get("domain/owners") with { Id = "domain/owners-v2", Status = PlaybookStatus.Draft };
         store.Create(brandNew, "ana");
         Assert.Equal(StoreError.Conflict, Assert.Throws<StoreException>(() => store.Create(brandNew, "ana")).Error);
         Assert.Equal(PlaybookStatus.Draft, store.Versions("domain/owners-v2").Single().Status);
@@ -386,10 +386,10 @@ public sealed class StoreTests : IDisposable
     {
         var store = Imported();
 
-        var yaml = store.GetYaml("domain/principals", "1.0.0");
+        var yaml = store.GetYaml("domain/owners", "1.0.0");
 
         Assert.DoesNotContain("#", yaml.Split('\n')[0], StringComparison.Ordinal);
-        Assert.Equal(PlaybookSerializer.Serialize(store.Get("domain/principals", "1.0.0")), PlaybookSerializer.Serialize(PlaybookSerializer.Deserialize(yaml)));
+        Assert.Equal(PlaybookSerializer.Serialize(store.Get("domain/owners", "1.0.0")), PlaybookSerializer.Serialize(PlaybookSerializer.Deserialize(yaml)));
     }
 
     [Fact]

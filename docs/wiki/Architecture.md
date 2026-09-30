@@ -3,7 +3,7 @@
 ## The problem MapWright solves
 
 Merchant-acquiring systems (sales/CRM capture, underwriting, boarding, risk) exchange the same business facts —
-legal entity, principals, expected volume, channel mix, tax ids — under different names, shapes, units and periods,
+legal entity, owners, expected volume, channel mix, tax ids — under different names, shapes, units and periods,
 in JSON or XML. MapWright produces the field-level mapping between any two such systems **without a canonical
 model**: knowledge is captured once per business concept in a [playbook](Playbooks.md) and reused for every pair of
 systems.

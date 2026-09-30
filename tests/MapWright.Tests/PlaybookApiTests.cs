@@ -90,7 +90,7 @@ public sealed class PlaybookApiTests : IDisposable
     {
         var anonymous = _api.CreateClient();
         var ana = _api.As("ana");
-        var starter = StarterPlaybooks.Get("domain/principals");
+        var starter = StarterPlaybooks.Get("domain/owners");
         var brandNew = starter with { Id = "domain/owners-v2", Status = PlaybookStatus.Draft };
 
         var noUser = await anonymous.PostJson("/api/playbooks", PlaybookSerializer.Serialize(brandNew));
@@ -109,9 +109,9 @@ public sealed class PlaybookApiTests : IDisposable
         Assert.Equal(HttpStatusCode.BadRequest, malformed.StatusCode);
         Assert.StartsWith("Invalid playbook", (await malformed.Node())["detail"].Text());
 
-        var published = await ana.PutJson("/api/playbooks/domain/principals/1.0.0", PlaybookSerializer.Serialize(starter));
+        var published = await ana.PutJson("/api/playbooks/domain/owners/1.0.0", PlaybookSerializer.Serialize(starter));
         Assert.Equal(HttpStatusCode.Conflict, published.StatusCode);
-        var badTransition = await ana.Post("/api/playbooks/domain/principals/1.0.0/status", new { status = "inReview" });
+        var badTransition = await ana.Post("/api/playbooks/domain/owners/1.0.0/status", new { status = "inReview" });
         Assert.Equal(HttpStatusCode.Conflict, badTransition.StatusCode);
     }
 

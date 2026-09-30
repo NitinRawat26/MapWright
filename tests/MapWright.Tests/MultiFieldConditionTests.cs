@@ -22,7 +22,7 @@ public sealed class MultiFieldConditionTests
                 When =
                 [
                     new() { Concept = "LegalEntity.EntityType", In = ["LLC"] },
-                    new() { Concept = "Principal.Title", In = ["Managing Member"] },
+                    new() { Concept = "Owner.Title", In = ["Managing Member"] },
                 ],
                 Then = "SSN",
             },

@@ -1,10 +1,10 @@
-# Domain playbook: Principals.
+# Domain playbook: Owners.
 # Edit a draft in the MapWright UI, or edit this file and check it with: mapwright playbook test playbooks
 # Values that look like numbers or dates (versions, dates, codes) are quoted so every YAML tool reads them as text.
 
 specVersion: "1.0"
-id: domain/principals
-name: Principals
+id: domain/owners
+name: Owners
 kind: domain
 version: "1.0.0"
 status: published
@@ -12,12 +12,12 @@ owner: Underwriting BA team
 description: 'People who own or control the merchant: owners, beneficial owners, officers, signers and guarantors. Similar but not always interchangeable.'
 changeNotes:
   - version: "1.0.0"
-    date: "2026-09-25"
-    author: MapWright starter set
-    description: Initial version.
+    date: "2026-09-29"
+    author: MapWright
+    description: Replaces the principals playbook; adds owner contact details and control/citizenship/guarantor/signer flags.
 domain:
   concept:
-    name: Principal
+    name: Owner
     description: A person who owns or controls the merchant.
     cardinality: array
     attributes:
@@ -33,24 +33,50 @@ domain:
         dataType: string
         sensitivity: pii
         requiresContext: true
+      - name: Suffix
+        description: Name suffix, e.g. Jr., III.
+        dataType: string
+        sensitivity: pii
+        requiresContext: true
       - name: Title
-        description: Job title or role, e.g. CEO, Managing Member.
+        description: Job title or role, e.g. CEO, Managing Member, CTO.
         dataType: string
         requiresContext: true
       - name: OwnershipPercent
         description: Share of the business the person owns.
         dataType: decimal
-      - name: Ssn
-        description: The person's social security number.
+      - name: GovernmentalIdentifier
+        description: Government identifier for the person (e.g. SSN or national id).
         dataType: string
         sensitivity: sensitivePii
       - name: DateOfBirth
         dataType: date
         sensitivity: sensitivePii
+      - name: TelephoneNumber
+        description: The person's phone number.
+        dataType: string
+        sensitivity: pii
+        requiresContext: true
       - name: Email
         dataType: string
         sensitivity: pii
         requiresContext: true
+      - name: Address
+        description: The person's residential or mailing address.
+        dataType: object
+        sensitivity: pii
+      - name: IndividualWithControl
+        description: Whether the person is a control person (significant responsibility over the business).
+        dataType: boolean
+      - name: UsCitizen
+        description: Whether the person is a US citizen.
+        dataType: boolean
+      - name: PersonalGuarantor
+        description: Whether the person personally guarantees the business's obligations.
+        dataType: boolean
+      - name: AppSigner
+        description: Whether the person signs the application.
+        dataType: boolean
   # Names systems use for the concept or one of its attributes; relation is equivalent unless stated.
   vocabulary:
     - term: owners
@@ -108,6 +134,10 @@ domain:
       appliesTo: LastName
     - term: lname
       appliesTo: LastName
+    - term: suffix
+      appliesTo: Suffix
+    - term: name suffix
+      appliesTo: Suffix
     - term: job title
       appliesTo: Title
     - term: position
@@ -122,6 +152,8 @@ domain:
     - term: ownership pct
       appliesTo: OwnershipPercent
     - term: ownership percentage
+      appliesTo: OwnershipPercent
+    - term: owner percentage
       appliesTo: OwnershipPercent
     - term: percent owned
       appliesTo: OwnershipPercent
@@ -139,13 +171,19 @@ domain:
       appliesTo: OwnershipPercent
       relation: related
     - term: social security number
-      appliesTo: Ssn
+      appliesTo: GovernmentalIdentifier
     - term: social security
-      appliesTo: Ssn
+      appliesTo: GovernmentalIdentifier
+    - term: ssn
+      appliesTo: GovernmentalIdentifier
     - term: ssn number
-      appliesTo: Ssn
+      appliesTo: GovernmentalIdentifier
+    - term: governmental identifier
+      appliesTo: GovernmentalIdentifier
+    - term: government id
+      appliesTo: GovernmentalIdentifier
     - term: national id
-      appliesTo: Ssn
+      appliesTo: GovernmentalIdentifier
       relation: related
     - term: dob
       appliesTo: DateOfBirth
@@ -155,12 +193,68 @@ domain:
       appliesTo: DateOfBirth
     - term: birthday
       appliesTo: DateOfBirth
+    - term: phone
+      appliesTo: TelephoneNumber
+      relation: related
+    - term: telephone
+      appliesTo: TelephoneNumber
+    - term: telephone number
+      appliesTo: TelephoneNumber
+    - term: phone number
+      appliesTo: TelephoneNumber
+    - term: mobile
+      appliesTo: TelephoneNumber
+      relation: related
     - term: email address
       appliesTo: Email
     - term: e mail
       appliesTo: Email
     - term: mail id
       appliesTo: Email
+    - term: address
+      appliesTo: Address
+      relation: related
+    - term: home address
+      appliesTo: Address
+    - term: residential address
+      appliesTo: Address
+    - term: mailing address
+      appliesTo: Address
+    - term: individual with control
+      appliesTo: IndividualWithControl
+    - term: control person
+      appliesTo: IndividualWithControl
+    - term: controlling person
+      appliesTo: IndividualWithControl
+    - term: us citizen
+      appliesTo: UsCitizen
+    - term: citizen
+      appliesTo: UsCitizen
+      relation: related
+    - term: citizenship
+      appliesTo: UsCitizen
+      relation: related
+    - term: personal guarantor
+      appliesTo: PersonalGuarantor
+    - term: guarantor
+      appliesTo: PersonalGuarantor
+    - term: personal guarantee
+      appliesTo: PersonalGuarantor
+    - term: guaranty
+      appliesTo: PersonalGuarantor
+      relation: related
+    - term: app signer
+      appliesTo: AppSigner
+    - term: application signer
+      appliesTo: AppSigner
+    - term: signer
+      appliesTo: AppSigner
+    - term: authorized signer
+      appliesTo: AppSigner
+      relation: related
+    - term: signatory
+      appliesTo: AppSigner
+      relation: related
   qualifiers:
     - name: unit
       description: Share expressed as a percent (0–100) or a fraction (0–1).
@@ -184,49 +278,67 @@ domain:
           maxValue: 100
   # Extra evidence: each matching signal adds its weight (negative weights count against a match).
   signals:
-    - id: PRN-SIG-LIST
+    - id: OWN-SIG-LIST
       kind: cardinality
       pattern: array
       weight: 15
-      note: principals usually arrive as a list
-    - id: PRN-SIG-CHILDREN
+      note: owners usually arrive as a list
+    - id: OWN-SIG-CHILDREN
       kind: childNamePattern
-      pattern: ^(first|last|full|given|family)_?name$|^ssn$|^dob$|ownership
+      pattern: ^(first|last|full|given|family)_?name$|^ssn$|^dob$|ownership|birth|telephone|citizen|guarantor|signer
       weight: 15
       note: has person-like children
-    - id: PRN-SIG-SSN-SHAPE
+    - id: OWN-SIG-GOVID-SHAPE
       kind: valueShape
-      appliesTo: Ssn
-      pattern: ^999-?99-?9999$
+      appliesTo: GovernmentalIdentifier
+      pattern: ^999-?99-?9999$|^9{4,15}$
       weight: 10
-      note: nine digits
-    - id: PRN-SIG-PCT-RANGE
+      note: digits, possibly dashed
+    - id: OWN-SIG-PCT-RANGE
       kind: valueRange
       appliesTo: OwnershipPercent
       minValue: 0
       maxValue: 100
       weight: 10
       note: values between 0 and 100
-    - id: PRN-SIG-PCT-TEXT
+    - id: OWN-SIG-PCT-TEXT
       kind: dataType
       appliesTo: OwnershipPercent
       pattern: string|date|dateTime|boolean
       weight: -30
       note: not a number
-    - id: PRN-SIG-DOB-TYPE
+    - id: OWN-SIG-DOB-TYPE
       kind: dataType
       appliesTo: DateOfBirth
       pattern: date|dateTime
       weight: 10
       note: a date
-    - id: PRN-SIG-EMAIL
+    - id: OWN-SIG-PHONE-VALUE
+      kind: valuePattern
+      appliesTo: TelephoneNumber
+      pattern: ^\+?[0-9 .()\-/]{7,20}$
+      weight: 10
+      note: digits, spaces, brackets and dashes
+    - id: OWN-SIG-EMAIL
       kind: valuePattern
       appliesTo: Email
       pattern: ^[^@\s]+@[^@\s]+\.[^@\s]+$
       weight: 10
       note: looks like an e-mail address
+    - id: OWN-SIG-ADDR-CHILDREN
+      kind: childNamePattern
+      appliesTo: Address
+      pattern: ^(address[ _]?line[ _]?[123]|line[123]|street|city|state[ _]?province|state|province|country[ _]?region|country|postal[ _]?code|zip[ _]?code?|zip)$
+      weight: 15
+      note: children look like address parts
+    - id: OWN-SIG-ADDR-OBJECT
+      kind: dataType
+      appliesTo: Address
+      pattern: object
+      weight: 10
+      note: an address is a structured object
   derivations:
-    - id: PRN-PCT-01
+    - id: OWN-PCT-01
       description: Fraction (0–1) to percent (0–100).
       output:
         attribute: OwnershipPercent
@@ -246,7 +358,7 @@ domain:
         - inputs:
             fraction: 1
           expected: 100
-    - id: PRN-PCT-02
+    - id: OWN-PCT-02
       description: Percent (0–100) to fraction (0–1).
       output:
         attribute: OwnershipPercent
@@ -263,7 +375,7 @@ domain:
         - inputs:
             percent: 25
           expected: 0.25
-    - id: PRN-NAME-01
+    - id: OWN-NAME-01
       description: Full name is first name, a space, then last name.
       output:
         attribute: FullName
@@ -273,7 +385,7 @@ domain:
         - name: last
           attribute: LastName
       transformation: concat
-    - id: PRN-NAME-02
+    - id: OWN-NAME-02
       description: Split a full name at the last space into first and last name.
       output:
         attribute: FirstName
@@ -285,7 +397,7 @@ domain:
       requiresReview: true
       note: Middle names, suffixes and multi-word surnames split wrongly.
   validations:
-    - id: PRN-VAL-01
+    - id: OWN-VAL-01
       description: Total ownership cannot exceed 100%.
       inputs:
         - name: ownership
@@ -305,8 +417,8 @@ domain:
               - 60
               - 50
           expected: false
-    - id: PRN-VAL-02
-      description: Principals together should own at least 25% (beneficial-ownership rule).
+    - id: OWN-VAL-02
+      description: Owners together should own at least 25% (beneficial-ownership rule).
       severity: warning
       inputs:
         - name: ownership
@@ -325,30 +437,30 @@ domain:
           expected: true
   confidence: {}
   risks:
-    - id: PRN-RISK-OFFICER
+    - id: OWN-RISK-OFFICER
       level: high
-      text: Officers and signers are not automatically owners; sending them as principals can misstate ownership.
-    - id: PRN-RISK-SSN
-      appliesTo: Ssn
+      text: Officers and signers are not automatically owners; sending them as owners can misstate ownership.
+    - id: OWN-RISK-GOVID
+      appliesTo: GovernmentalIdentifier
       level: medium
       text: 'Sensitive: keep masked in documents and never send unmasked to AI.'
   reviewGuidance:
-    - id: PRN-Q-RELATED
+    - id: OWN-Q-RELATED
       when: nonEquivalentTerm
-      question: The system's list is not called owners. Are all of these people beneficial owners (25%+)? If not, which ones should be sent as principals?
-    - id: PRN-Q-PCT-UNIT
+      question: The system's list is not called owners. Are all of these people beneficial owners (25%+)? If not, which ones should be sent as owners?
+    - id: OWN-Q-PCT-UNIT
       appliesTo: OwnershipPercent
       when: qualifierConflict
       question: Is ownership sent as a fraction (0–1) or a percent (0–100)?
-    - id: PRN-Q-PCT-MISSING
+    - id: OWN-Q-PCT-MISSING
       appliesTo: OwnershipPercent
       when: nonEquivalentTerm
       question: Is this really the ownership share, or another percentage?
-  aiGuidance: A principal is a person who owns or controls the merchant. Distinguish owners (hold equity) from officers, signers and guarantors (control or liability, possibly no equity). Never assume an officer is an owner. Ownership may be a fraction (0–1) or a percent (0–100); check observed values.
+  aiGuidance: An owner is a person who owns or controls the merchant. Distinguish owners (hold equity) from officers, signers and guarantors (control or liability, possibly no equity). Never assume an officer is an owner. Ownership may be a fraction (0–1) or a percent (0–100); check observed values. Some systems send extra owner facts as name/value property bags (e.g. Position, OwnerPercentage, IndividualWithControl, UsCitizen, PersonalGuarantor, AppSigner) — map each entry by its name.
   # Fields this playbook must (or must not) recognise; a version can only be published when they pass.
   tests:
-    - id: PRN-T-01
-      description: A JSON owners list is the principal collection.
+    - id: OWN-T-01
+      description: A JSON owners list is the owner collection.
       field:
         name: owners
         ancestors:
@@ -361,11 +473,11 @@ domain:
           - lastName
           - ssn
           - ownershipPercent
-      expect: Principal
+      expect: Owner
       minScore: 85
       expectReview: false
-    - id: PRN-T-02
-      description: An XML Officer list is principals, but needs review.
+    - id: OWN-T-02
+      description: An XML Officer list is owners, but needs review.
       field:
         name: Officer
         ancestors:
@@ -378,10 +490,10 @@ domain:
           - FullName
           - SSN
           - OwnershipPct
-      expect: Principal
+      expect: Owner
       minScore: 60
       expectReview: true
-    - id: PRN-T-03
+    - id: OWN-T-03
       description: The wrapper element alone is not enough.
       field:
         name: Officers
@@ -392,18 +504,39 @@ domain:
         children:
           - Officer
       expect: null
-    - id: PRN-T-04
-      description: SSN under owners is the principal's SSN.
+    - id: OWN-T-04
+      description: An owners entry with person-like children is the owner collection.
       field:
-        name: ssn
+        name: Owners
         ancestors:
-          - owners
+          - $
+        kind: object
+        dataType: object
+        cardinality: array
+        children:
+          - FirstName
+          - LastName
+          - Suffix
+          - GovernmentalIdentifier
+          - DateOfBirth
+          - TelephoneNumber
+          - Address
+          - DynamicProps
+      expect: Owner
+      minScore: 85
+      expectReview: false
+    - id: OWN-T-05
+      description: A personal government id under owners is the owner's identifier.
+      field:
+        name: GovernmentalIdentifier
+        ancestors:
+          - Owners
           - $
         valueShapes:
-          - "999-99-9999"
-      expect: Principal.Ssn
+          - "9999"
+      expect: Owner.GovernmentalIdentifier
       minScore: 90
-    - id: PRN-T-05
+    - id: OWN-T-06
       description: Ownership named percent but sent as a fraction.
       field:
         name: ownershipPercent
@@ -413,11 +546,11 @@ domain:
         dataType: decimal
         minValue: 0.2
         maxValue: 1
-      expect: Principal.OwnershipPercent
+      expect: Owner.OwnershipPercent
       expectQualifiers:
         unit: fraction
       expectReview: true
-    - id: PRN-T-06
+    - id: OWN-T-07
       description: Ownership sent as a percent.
       field:
         name: OwnershipPct
@@ -427,28 +560,28 @@ domain:
         dataType: integer
         minValue: 20
         maxValue: 100
-      expect: Principal.OwnershipPercent
+      expect: Owner.OwnershipPercent
       expectQualifiers:
         unit: percent
       expectReview: false
-    - id: PRN-T-07
-      description: First name needs a principal context.
+    - id: OWN-T-08
+      description: First name needs an owner context.
       field:
         name: firstName
         ancestors:
           - owners
           - $
-      expect: Principal.FirstName
+      expect: Owner.FirstName
       minScore: 80
-    - id: PRN-T-08
-      description: A business's legal name is not a principal's name.
+    - id: OWN-T-09
+      description: A business's legal name is not an owner's name.
       field:
         name: legalName
         ancestors:
           - account
           - $
       expect: null
-    - id: PRN-T-09
+    - id: OWN-T-10
       description: Date of birth.
       field:
         name: DateOfBirth
@@ -456,5 +589,38 @@ domain:
           - Officer
           - Officers
         dataType: date
-      expect: Principal.DateOfBirth
+      expect: Owner.DateOfBirth
       minScore: 90
+    - id: OWN-T-11
+      description: OwnerPercentage inside a DynamicProps entry is the ownership share.
+      field:
+        name: OwnerPercentage
+        ancestors:
+          - DynamicProps
+          - Owners
+        dataType: integer
+        minValue: 0
+        maxValue: 100
+      expect: Owner.OwnershipPercent
+      expectQualifiers:
+        unit: percent
+    - id: OWN-T-12
+      description: PersonalGuarantor flag inside DynamicProps.
+      field:
+        name: PersonalGuarantor
+        ancestors:
+          - DynamicProps
+          - Owners
+        dataType: boolean
+      expect: Owner.PersonalGuarantor
+      minScore: 80
+    - id: OWN-T-13
+      description: UsCitizen flag inside DynamicProps.
+      field:
+        name: UsCitizen
+        ancestors:
+          - DynamicProps
+          - Owners
+        dataType: boolean
+      expect: Owner.UsCitizen
+      minScore: 80

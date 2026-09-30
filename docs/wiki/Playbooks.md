@@ -43,7 +43,7 @@ Source of truth in code: `src/MapWright.Core/Playbooks/` (`Playbook.cs` model, `
 
 | Kind | Id prefix | Answers | Example |
 | --- | --- | --- | --- |
-| **Domain** | `domain/` | *What is this field, and how does it relate to other fields?* One business concept, its names, units/periods, arithmetic between variants, allowed codes, sanity checks. | `domain/processing-volume`, `domain/principals`, `domain/tax-id`, `domain/entity-type`, `domain/channel-mix` |
+| **Domain** | `domain/` | *What is this field, and how does it relate to other fields?* One business concept, its names, units/periods, arithmetic between variants, allowed codes, sanity checks. | `domain/processing-volume`, `domain/owners`, `domain/tax-id`, `domain/entity-type`, `domain/channel-mix` |
 | **Process** | `process/` | *How do we run and gate a mapping exercise?* Steps, which domain playbooks to use, whether AI may run, gates, reviewer roles, thresholds, output formats. | `process/onboard-new-system` |
 
 A file has exactly one of a `domain:` or `process:` section, matching its `kind` (rule `PB005`).
@@ -192,7 +192,7 @@ qualifiers:
         terms: [cents, minor units, pennies]
 ```
 
-The principals playbook shows the numeric form:
+The owners playbook shows the numeric form:
 
 ```yaml
   - name: unit
@@ -352,7 +352,7 @@ row is reviewed.
 
 `ownership percent` (+60) + ancestor `owners` (+25) + range signal (+10) = 95. Qualifier `unit`: name says `percent`,
 values fit `fraction` → **`unit=fraction`**, warning recorded, trigger `qualifierConflict` → requires review. The
-mapping later uses derivation `PRN-PCT-01` (`fraction * 100`) to feed a percent target — the conflict is what makes
+mapping later uses derivation `OWN-PCT-01` (`fraction * 100`) to feed a percent target — the conflict is what makes
 the conversion happen instead of a wrong direct copy.
 
 ## 9. Derivation rules
@@ -390,10 +390,10 @@ More shipped rules, to show the range:
 | --- | --- | --- | --- |
 | `VOL-PERIOD-02` | `monthly * 12` | periodConversion | inverse of 01 |
 | `VOL-UNIT-01` | `cents / 100` | unitConversion | `currencyUnit: minor` → `major`; 12345 → 123.45 |
-| `PRN-PCT-01` | `fraction * 100` | unitConversion | ownership 0–1 → 0–100 |
-| `PRN-PCT-02` | `percent / 100` | unitConversion | inverse |
-| `PRN-NAME-01` | *(none)* | concat | first + last → `FullName`; non-arithmetic rules have no expression |
-| `PRN-NAME-02` | *(none)* | split | full → first; `dataLoss: high`, `requiresReview: true` |
+| `OWN-PCT-01` | `fraction * 100` | unitConversion | ownership 0–1 → 0–100 |
+| `OWN-PCT-02` | `percent / 100` | unitConversion | inverse |
+| `OWN-NAME-01` | *(none)* | concat | first + last → `FullName`; non-arithmetic rules have no expression |
+| `OWN-NAME-02` | *(none)* | split | full → first; `dataLoss: high`, `requiresReview: true` |
 | `MIX-CNP-01` | `moto + ecomm` | aggregate | two inputs → `ChannelMix.CardNotPresent` |
 | `MIX-CNP-02` | `100 - cp` | derived | one input, alternative route to the same output |
 | `MIX-SPLIT-01` | *(none)* | split | CNP → Ecommerce, high data loss, review |
@@ -521,7 +521,7 @@ validations:
     expression: volume >= 0
 ```
 
-List-valued inputs feed the aggregate functions: `PRN-VAL-01` is `sum(ownership) <= 100` over every principal's
+List-valued inputs feed the aggregate functions: `OWN-VAL-01` is `sum(ownership) <= 100` over every owner's
 ownership percent; `MIX-VAL-01` is `abs(cp + moto + ecomm - 100) <= 0.5`. A validation runs only when every input can
 be located in the target through the mapping's business concepts; see [Replay and Validation](Replay-and-Validation.md).
 
@@ -646,7 +646,7 @@ process:
     #               openQuestions | unreviewedSensitiveMappings;  operators gt/lt/…;  actions stop | requireReview | warn
     - id: match
       kind: match
-      uses: [domain/principals, domain/processing-volume, domain/channel-mix, domain/tax-id, domain/entity-type]
+      uses: [domain/owners, domain/processing-volume, domain/channel-mix, domain/tax-id, domain/entity-type]
     - id: ai-assist
       kind: aiAssist
       optional: true            # required (PB031): the process must work without AI
