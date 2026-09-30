@@ -172,7 +172,6 @@ public sealed class AiMappingAssistant(IAiProvider provider, int maxConfidence =
             ["pairings"] = new JsonObject
             {
                 ["type"] = "array",
-                ["maxItems"] = targets.Count,
                 ["items"] = new JsonObject
                 {
                     ["type"] = "object",

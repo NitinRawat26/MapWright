@@ -343,7 +343,7 @@ public sealed class AiFieldAssistantTests
             var suggestions = prompt.ResponseSchema["properties"]!["suggestions"]!;
             var paths = AiSamples.Input(prompt)["fields"]!.AsArray().Select(f => f!["path"]!.GetValue<string>());
             Assert.Equal(paths, suggestions["items"]!["properties"]!["path"]!["enum"]!.AsArray().Select(p => p!.GetValue<string>()));
-            Assert.Equal(paths.Count(), suggestions["maxItems"]!.GetValue<int>());
+            Assert.Null(suggestions["maxItems"]);
         }
     }
 
@@ -500,7 +500,7 @@ public sealed class AiMappingTests
 
         var pairings = Assert.Single(ai.Prompts).ResponseSchema["properties"]!["pairings"]!;
         var item = pairings["items"]!["properties"]!;
-        Assert.Equal(targets.Count, pairings["maxItems"]!.GetValue<int>());
+        Assert.Null(pairings["maxItems"]);
         Assert.Equal(targets, item["target"]!["enum"]!.AsArray().Select(t => t!.GetValue<string>()));
         Assert.Equal(
             Source.Fields.Where(f => f.Kind == FieldNodeKind.Value).Select(f => f.Path),

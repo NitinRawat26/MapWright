@@ -188,7 +188,6 @@ public sealed partial class AiFieldAssistant(IAiProvider provider, int maxConfid
             ["suggestions"] = new JsonObject
             {
                 ["type"] = "array",
-                ["maxItems"] = paths.Count,
                 ["items"] = new JsonObject
                 {
                     ["type"] = "object",
