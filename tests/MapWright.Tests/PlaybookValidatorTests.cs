@@ -5,7 +5,7 @@ namespace MapWright.Tests;
 
 public sealed class PlaybookValidatorTests
 {
-    private static readonly Playbook Principals = StarterPlaybooks.Get("domain/principals");
+    private static readonly Playbook Principals = StarterPlaybooks.Get("domain/owners");
     private static readonly Playbook Onboarding = StarterPlaybooks.Get("process/onboard-new-system");
     private static DomainDefinition Domain => Principals.Domain!;
     private static ProcessDefinition Process => Onboarding.Process!;
@@ -36,7 +36,7 @@ public sealed class PlaybookValidatorTests
         var issue = Assert.Single(PlaybookValidator.Validate(Principals with { Version = "1.1.0" }));
 
         Assert.Equal(("PB006", IssueSeverity.Warning), (issue.Code, issue.Severity));
-        Assert.StartsWith("domain/principals@1.1.0", issue.Location, StringComparison.Ordinal);
+        Assert.StartsWith("domain/owners@1.1.0", issue.Location, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public sealed class PlaybookValidatorTests
     public void Tests_and_publishing_rules()
     {
         Assert.Contains("PB020", Errors(WithDomain(Domain with { Tests = [Domain.Tests[0] with { Expect = "Merchant.Name" }] })));
-        Assert.Contains("PB011", Errors(WithDomain(Domain with { Tests = [Domain.Tests[0] with { Expect = "Principal.Nope" }] })));
+        Assert.Contains("PB011", Errors(WithDomain(Domain with { Tests = [Domain.Tests[0] with { Expect = "Owner.Nope" }] })));
         Assert.Contains("PB021", Errors(WithDomain(Domain with { Tests = [] })));
         Assert.DoesNotContain("PB021", Errors(Principals with { Status = PlaybookStatus.Draft, Domain = Domain with { Tests = [] } }));
         Assert.Contains("PB019", Errors(WithDomain(Domain with { Confidence = new() { MatchThreshold = 120 } })));
@@ -190,7 +190,7 @@ public sealed class PlaybookValidatorTests
             Process = Process with { Steps = [.. steps.Select(s => s.Kind == StepKind.Validate ? s with { Gates = [s.Gates[1] with { Value = 150 }] } : s)] },
         }));
         Assert.Contains("PB035", Errors(Onboarding with { Process = Process with { Steps = [.. steps.Select(s => s == review ? s with { Reviewers = [] } : s)] } }));
-        Assert.Contains("PB035", Errors(Onboarding with { Process = Process with { Steps = [.. steps.Select(s => s == review ? s with { Uses = ["domain/principals"] } : s)] } }));
+        Assert.Contains("PB035", Errors(Onboarding with { Process = Process with { Steps = [.. steps.Select(s => s == review ? s with { Uses = ["domain/owners"] } : s)] } }));
         Assert.Contains("PB036", Errors(Onboarding with { Process = Process with { Outputs = ["pdf"] } }));
         Assert.Contains("PB036", Errors(Onboarding with { Process = Process with { Inputs = [Process.Inputs[0] with { Kinds = [] }] } }));
     }
@@ -228,6 +228,6 @@ public sealed class PlaybookValidatorTests
 
         var library = new PlaybookLibrary([Principals, draft, retired, draftOnly, olderDraft]);
 
-        Assert.Equal(["domain/new@0.10.0", "domain/principals@1.0.0"], library.Active.Select(p => p.Reference));
+        Assert.Equal(["domain/new@0.10.0", "domain/owners@1.0.0"], library.Active.Select(p => p.Reference));
     }
 }

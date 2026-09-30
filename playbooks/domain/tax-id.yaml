@@ -89,7 +89,7 @@ domain:
       appliesTo: TaxId
       pattern: owner|officer|principal|signer|guarantor
       weight: -40
-      note: belongs to a person, see the principals playbook
+      note: belongs to a person, see the owners playbook
     - id: TAX-SIG-TYPE-CODES
       kind: valueInMap
       appliesTo: TaxIdType
@@ -152,7 +152,7 @@ domain:
       appliesTo: TaxId
       when: nonEquivalentTerm
       question: The field is named for one kind of number (e.g. EIN). Can it hold an SSN for sole proprietors?
-  aiGuidance: The business tax ID is an EIN for most entities, but a sole proprietor may use the owner's SSN. A person's SSN inside an owner or officer record belongs to the principals playbook, not here.
+  aiGuidance: The business tax ID is an EIN for most entities, but a sole proprietor may use the owner's SSN. A person's SSN inside an owner or officer record belongs to the owners playbook, not here.
   # Fields this playbook must (or must not) recognise; a version can only be published when they pass.
   tests:
     - id: TAX-T-01

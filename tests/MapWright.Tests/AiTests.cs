@@ -298,23 +298,23 @@ public sealed class AiFieldAssistantTests
 
         var concepts = AiSamples.Input(prompt)["concepts"]!.AsArray();
         Assert.Equal(8, concepts.Count);
-        Assert.Contains(concepts, c => c!["concept"]!.GetValue<string>() == "Principal" && c["guidance"] is not null);
+        Assert.Contains(concepts, c => c!["concept"]!.GetValue<string>() == "Owner" && c["guidance"] is not null);
     }
 
     [Fact]
     public async Task Suggestions_are_capped_resolved_against_playbooks_and_need_review()
     {
         var provider = new FakeProvider("fake", _ => AiSamples.Answer(
-            new { path = "$.owners[*].email", concept = "principal.email", meaning = "Owner e-mail", confidence = 95, reasoning = "Name is email under owners." },
+            new { path = "$.owners[*].email", concept = "owner.email", meaning = "Owner e-mail", confidence = 95, reasoning = "Name is email under owners." },
             new { path = "$.account.mcc", concept = "", newConcept = "Merchant.Mcc", meaning = "Merchant category code", confidence = 88, reasoning = "4-digit codes like 5411.", question = "Is this the ISO 18245 MCC?" },
             new { path = "$.account.phone", concept = "Business.Phone", meaning = "Business phone", confidence = -3, reasoning = "" },
-            new { path = "$.not.asked", concept = "Principal", meaning = "?", confidence = 50, reasoning = "?" }));
+            new { path = "$.not.asked", concept = "Owner", meaning = "?", confidence = 50, reasoning = "?" }));
 
         var result = await new AiFieldAssistant(provider, maxConfidence: 60)
             .DecodeAsync(AiSamples.SalesAlpha(), Remaining, StarterPlaybooks.Library().Domains);
 
         var email = result.Suggestions.Single(s => s.Path == "$.owners[*].email");
-        Assert.Equal(("Principal.Email", "domain/principals@1.0.0", null), (email.BusinessConcept, email.DomainPlaybook, email.ProposedConcept));
+        Assert.Equal(("Owner.Email", "domain/owners@1.0.0", null), (email.BusinessConcept, email.DomainPlaybook, email.ProposedConcept));
         Assert.Equal(60, email.ConfidencePercent);
         Assert.Equal(("fake", "fake-model"), (email.Provider, email.Model));
 

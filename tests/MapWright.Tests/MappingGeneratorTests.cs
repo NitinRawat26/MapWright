@@ -54,7 +54,7 @@ public sealed class MappingGeneratorTests
         Assert.Equal(PayloadFormat.Xml, SalesToUw.Target.Format);
         Assert.Equal(3, SalesToUw.Inputs.Count(i => i.Side == SystemSide.Source));
         Assert.Equal(2, SalesToUw.Inputs.Count(i => i.Side == SystemSide.Target));
-        Assert.Contains(SalesToUw.Playbooks, p => p.Name == "domain/principals" && p.Version == "1.0.0");
+        Assert.Contains(SalesToUw.Playbooks, p => p.Name == "domain/owners" && p.Version == "1.0.0");
         Assert.Contains(SalesToUw.Playbooks, p => p.Name == "process/onboard-new-system");
         Assert.Equal(MappingGenerator.Author, Assert.Single(SalesToUw.ChangeLog).Author);
     }
@@ -350,7 +350,7 @@ public sealed class MappingCompletionTests
         Assert.Contains("$.owners[*].email", orphans);
         Assert.DoesNotContain("$.account.taxId", orphans);
         Assert.DoesNotContain("$.processing.motoPercent", orphans);
-        Assert.StartsWith("Recognised as Principal.Email", SalesToUw.OrphanSourceFields.Single(o => o.Field.Path == "$.owners[*].email").SuggestedResolution);
+        Assert.StartsWith("Recognised as Owner.Email", SalesToUw.OrphanSourceFields.Single(o => o.Field.Path == "$.owners[*].email").SuggestedResolution);
     }
 
     [Fact]

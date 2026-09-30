@@ -207,7 +207,7 @@ Findings for the whole mapping include
 | Source `grossSalesYearly` under `financials` | `CardVolume [period=annual]` via *related* term → `nonEquivalentTerm` | Derivation `VOL-PERIOD-01` still applies; row reviewed with "Does this figure include cash or other non-card sales?" |
 | Source `volumeTier` = `LOW/HIGH` | values are not numbers → `VOL-SIG-TIER-VOL` −30 → score 30 → **not** recognised | Falls to ByName (if a target is unrecognised too) or is listed as an orphan |
 | Source `annualCardVolume` = `"280,000"` (text) | type `string`: no `VOL-SIG-NUM-VOL` bonus, but the values are numeric text so no penalty → 85, `period=annual` | `VOL-PERIOD-01` runs (replay accepts thousands separators → `23333.33`); row is reviewed, not auto-accepted |
-| Source `ownershipPercent` holding 0.2–1 | name says percent, values say fraction → `unit=fraction`, `qualifierConflict` | `PRN-PCT-01` `fraction * 100` feeds the percent target; a `conflict` finding explains why |
+| Source `ownershipPercent` holding 0.2–1 | name says percent, values say fraction → `unit=fraction`, `qualifierConflict` | `OWN-PCT-01` `fraction * 100` feeds the percent target; a `conflict` finding explains why |
 | Target `AnnualVolume`, source `monthlyVolume` | both `CardVolume`, periods differ | `VOL-PERIOD-02` `monthly * 12` |
 | Target `VolumeUsd`, source `volumeCents` | `currencyUnit` major vs minor | `VOL-UNIT-01` `cents / 100` |
 | Source decimal volume, target integer | – | direct pair, `typeCast`, −5 confidence, `dataLoss: medium` → review "Data loss risk is medium." |

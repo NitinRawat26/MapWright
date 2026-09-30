@@ -175,7 +175,7 @@ public sealed class CliAppTests : IDisposable
     [Fact]
     public void Playbook_errors_and_failing_tests_are_reported()
     {
-        var principals = StarterPlaybooks.Get("domain/principals");
+        var principals = StarterPlaybooks.Get("domain/owners");
         var invalid = Path.Combine(_dir, "invalid.json");
         PlaybookSerializer.Save(principals with { Version = "one" }, invalid);
 
@@ -186,7 +186,7 @@ public sealed class CliAppTests : IDisposable
         var domain = principals.Domain!;
         PlaybookSerializer.Save(principals with { Status = PlaybookStatus.Draft, Domain = domain with { Tests = [domain.Tests[0] with { Expect = null }] } }, failing);
         Assert.Equal(CliApp.InvalidInput, Run("playbook", "test", failing));
-        Assert.Contains("FAIL domain/principals@1.0.0 detection PRN-T-01", _err.ToString());
+        Assert.Contains("FAIL domain/owners@1.0.0 detection OWN-T-01", _err.ToString());
 
         Assert.Equal(CliApp.InvalidInput, Run("playbook", "validate", Path.Combine(_dir, "nope")));
     }
@@ -199,7 +199,7 @@ public sealed class CliAppTests : IDisposable
         Assert.Equal(CliApp.Success, Run("playbook", "detect", profile, "--playbooks", StarterPlaybooks.Directory));
 
         var output = _out.ToString();
-        Assert.Contains("/UnderwritingRequest/Officers/Officer  Principal 65% review", output);
+        Assert.Contains("/UnderwritingRequest/Officers/Officer  Owner 65% review", output);
         Assert.Contains("/UnderwritingRequest/Processing/MonthlyVolume  ProcessingVolume.CardVolume [period=monthly]", output);
         Assert.Contains("/UnderwritingRequest/Merchant/MCC  MerchantCategory.CategoryCode [codeSet=mcc]", output);
         Assert.Contains("19 of 24 field(s) recognised; 5 remaining.", output);

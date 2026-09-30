@@ -87,7 +87,7 @@ public sealed class ReplayValidatorTests
     {
         var run = Replay(SamplePayloads.Load("sales-alpha", "corp-three-owners.json"));
 
-        var total = Rule(run, "PRN-VAL-01");
+        var total = Rule(run, "OWN-VAL-01");
         Assert.Equal(ValidationOutcome.Pass, total.Outcome);
         Assert.Equal("sum(ownership) <= 100", total.Expected);
         Assert.Equal("ownership=50|30|20", total.Actual);
@@ -95,7 +95,7 @@ public sealed class ReplayValidatorTests
 
         Assert.Equal(ValidationOutcome.Pass, Rule(run, "MIX-VAL-02").Outcome);
         Assert.Equal(ValidationOutcome.Pass, Rule(run, "VOL-VAL-02").Outcome);
-        Assert.EndsWith("(warning)", Rule(run, "PRN-VAL-02").Message);
+        Assert.EndsWith("(warning)", Rule(run, "OWN-VAL-02").Message);
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public sealed class ReplayValidatorTests
             """);
         var run = Replay(payload);
 
-        var total = Rule(run, "PRN-VAL-01");
+        var total = Rule(run, "OWN-VAL-01");
         Assert.Equal(ValidationOutcome.Fail, total.Outcome);
         Assert.Equal("ownership=70|60", total.Actual);
         var mix = Rule(run, "MIX-VAL-02");

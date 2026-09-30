@@ -60,8 +60,8 @@ VOL-VAL-01  avg <= high                       AverageTicket vs HighTicket       
 VOL-VAL-02  volume >= 0                       MonthlyVolume
 MIX-VAL-01  abs(cp + moto + ecomm - 100) <= 0.5  (left out: UW Core has no Moto/Ecommerce fields)
 MIX-VAL-02  abs(cp + cnp - 100) <= 0.5        CardPresentPct + CardNotPresentPct   80 + 20 = 100 ✓
-PRN-VAL-01  sum(ownership) <= 100             Officer/OwnershipPct across the list
-PRN-VAL-02  sum(ownership) >= 25              (warning severity)
+OWN-VAL-01  sum(ownership) <= 100             Officer/OwnershipPct across the list
+OWN-VAL-02  sum(ownership) >= 25              (warning severity)
 ```
 
 Rules whose inputs the target has no field for are left out, so a rule never fails for a field the target does not

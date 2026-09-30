@@ -70,7 +70,7 @@
       "version": "1.0.0"
     },
     {
-      "name": "domain/principals",
+      "name": "domain/owners",
       "version": "1.0.0"
     },
     {
@@ -709,11 +709,11 @@
         "allowedValues": [],
         "sampleValue": "Dana Whitfield"
       },
-      "businessConcept": "Principal.FullName",
-      "domainPlaybook": "domain/principals@1.0.0",
+      "businessConcept": "Owner.FullName",
+      "domainPlaybook": "domain/owners@1.0.0",
       "transformation": {
         "type": "concat",
-        "rule": "Full name is first name, a space, then last name. (PRN-NAME-01: first = $.owners[*].firstName, last = $.owners[*].lastName)",
+        "rule": "Full name is first name, a space, then last name. (OWN-NAME-01: first = $.owners[*].firstName, last = $.owners[*].lastName)",
         "inputs": {
           "first": "$.owners[*].firstName",
           "last": "$.owners[*].lastName"
@@ -721,17 +721,17 @@
         "valueMap": []
       },
       "confidencePercent": 85,
-      "reasoning": "Target is Principal.FullName; domain/principals@1.0.0 derives it with rule PRN-NAME-01 from Principal.FirstName and Principal.LastName. Needs review: List pairing $.owners → /UnderwritingRequest/Officers/Officer needs review.",
+      "reasoning": "Target is Owner.FullName; domain/owners@1.0.0 derives it with rule OWN-NAME-01 from Owner.FirstName and Owner.LastName. Needs review: List pairing $.owners → /UnderwritingRequest/Officers/Officer needs review.",
       "evidence": [
         {
           "kind": "playbook",
-          "reference": "domain/principals@1.0.0",
-          "detail": "Derivation PRN-NAME-01: Full name is first name, a space, then last name."
+          "reference": "domain/owners@1.0.0",
+          "detail": "Derivation OWN-NAME-01: Full name is first name, a space, then last name."
         },
         {
           "kind": "playbook",
-          "reference": "domain/principals@1.0.0",
-          "detail": "Source $.owners[*].firstName: Name matches equivalent term 'FirstName' (+60). Ancestor 'owners' names the Principal concept (+25)."
+          "reference": "domain/owners@1.0.0",
+          "detail": "Source $.owners[*].firstName: Name matches equivalent term 'FirstName' (+60). Ancestor 'owners' names the Owner concept (+25)."
         },
         {
           "kind": "sample",
@@ -740,8 +740,8 @@
         },
         {
           "kind": "playbook",
-          "reference": "domain/principals@1.0.0",
-          "detail": "Source $.owners[*].lastName: Name matches equivalent term 'LastName' (+60). Ancestor 'owners' names the Principal concept (+25)."
+          "reference": "domain/owners@1.0.0",
+          "detail": "Source $.owners[*].lastName: Name matches equivalent term 'LastName' (+60). Ancestor 'owners' names the Owner concept (+25)."
         },
         {
           "kind": "sample",
@@ -750,8 +750,8 @@
         },
         {
           "kind": "playbook",
-          "reference": "domain/principals@1.0.0",
-          "detail": "Target /UnderwritingRequest/Officers/Officer/FullName: Name matches equivalent term 'FullName' (+60). Ancestor 'Officer' names the Principal concept (+25)."
+          "reference": "domain/owners@1.0.0",
+          "detail": "Target /UnderwritingRequest/Officers/Officer/FullName: Name matches equivalent term 'FullName' (+60). Ancestor 'Officer' names the Owner concept (+25)."
         },
         {
           "kind": "sample",
@@ -768,7 +768,7 @@
       },
       "review": {
         "status": "needsReview",
-        "openQuestion": "The system's list is not called owners. Are all of these people beneficial owners (25%+)? If not, which ones should be sent as principals?"
+        "openQuestion": "The system's list is not called owners. Are all of these people beneficial owners (25%+)? If not, which ones should be sent as owners?"
       }
     },
     {
@@ -794,20 +794,20 @@
         "allowedValues": [],
         "sampleValue": "CEO"
       },
-      "businessConcept": "Principal.Title",
-      "domainPlaybook": "domain/principals@1.0.0",
+      "businessConcept": "Owner.Title",
+      "domainPlaybook": "domain/owners@1.0.0",
       "transformation": {
         "type": "direct",
         "rule": "Copy",
         "valueMap": []
       },
       "confidencePercent": 85,
-      "reasoning": "Both fields are recognised as Principal.Title by domain/principals@1.0.0. Needs review: List pairing $.owners → /UnderwritingRequest/Officers/Officer needs review.",
+      "reasoning": "Both fields are recognised as Owner.Title by domain/owners@1.0.0. Needs review: List pairing $.owners → /UnderwritingRequest/Officers/Officer needs review.",
       "evidence": [
         {
           "kind": "playbook",
-          "reference": "domain/principals@1.0.0",
-          "detail": "Source $.owners[*].title: Name matches equivalent term 'Title' (+60). Ancestor 'owners' names the Principal concept (+25)."
+          "reference": "domain/owners@1.0.0",
+          "detail": "Source $.owners[*].title: Name matches equivalent term 'Title' (+60). Ancestor 'owners' names the Owner concept (+25)."
         },
         {
           "kind": "sample",
@@ -816,8 +816,8 @@
         },
         {
           "kind": "playbook",
-          "reference": "domain/principals@1.0.0",
-          "detail": "Target /UnderwritingRequest/Officers/Officer/Title: Name matches equivalent term 'Title' (+60). Ancestor 'Officer' names the Principal concept (+25)."
+          "reference": "domain/owners@1.0.0",
+          "detail": "Target /UnderwritingRequest/Officers/Officer/Title: Name matches equivalent term 'Title' (+60). Ancestor 'Officer' names the Owner concept (+25)."
         },
         {
           "kind": "sample",
@@ -832,7 +832,7 @@
       },
       "review": {
         "status": "needsReview",
-        "openQuestion": "The system's list is not called owners. Are all of these people beneficial owners (25%+)? If not, which ones should be sent as principals?"
+        "openQuestion": "The system's list is not called owners. Are all of these people beneficial owners (25%+)? If not, which ones should be sent as owners?"
       }
     },
     {
@@ -858,8 +858,8 @@
         "allowedValues": [],
         "sampleValue": "*****2020"
       },
-      "businessConcept": "Principal.Ssn",
-      "domainPlaybook": "domain/principals@1.0.0",
+      "businessConcept": "Owner.GovernmentalIdentifier",
+      "domainPlaybook": "domain/owners@1.0.0",
       "transformation": {
         "type": "typeCast",
         "rule": "Reformat 999-99-9999 → 999999999",
@@ -867,12 +867,12 @@
         "valueMap": []
       },
       "confidencePercent": 95,
-      "reasoning": "Both fields are recognised as Principal.Ssn by domain/principals@1.0.0. Needs review: List pairing $.owners → /UnderwritingRequest/Officers/Officer needs review.",
+      "reasoning": "Both fields are recognised as Owner.GovernmentalIdentifier by domain/owners@1.0.0. Needs review: List pairing $.owners → /UnderwritingRequest/Officers/Officer needs review.",
       "evidence": [
         {
           "kind": "playbook",
-          "reference": "domain/principals@1.0.0",
-          "detail": "Source $.owners[*].ssn: Name matches equivalent term 'Ssn' (+60). Ancestor 'owners' names the Principal concept (+25). Signal PRN-SIG-SSN-SHAPE (nine digits) (+10)."
+          "reference": "domain/owners@1.0.0",
+          "detail": "Source $.owners[*].ssn: Name matches equivalent term 'ssn' (+60). Ancestor 'owners' names the Owner concept (+25). Signal OWN-SIG-GOVID-SHAPE (digits, possibly dashed) (+10)."
         },
         {
           "kind": "sample",
@@ -881,8 +881,8 @@
         },
         {
           "kind": "playbook",
-          "reference": "domain/principals@1.0.0",
-          "detail": "Target /UnderwritingRequest/Officers/Officer/SSN: Name matches equivalent term 'Ssn' (+60). Ancestor 'Officer' names the Principal concept (+25). Signal PRN-SIG-SSN-SHAPE (nine digits) (+10)."
+          "reference": "domain/owners@1.0.0",
+          "detail": "Target /UnderwritingRequest/Officers/Officer/SSN: Name matches equivalent term 'ssn' (+60). Ancestor 'Officer' names the Owner concept (+25). Signal OWN-SIG-GOVID-SHAPE (digits, possibly dashed) (+10)."
         },
         {
           "kind": "sample",
@@ -899,7 +899,7 @@
       },
       "review": {
         "status": "needsReview",
-        "openQuestion": "The system's list is not called owners. Are all of these people beneficial owners (25%+)? If not, which ones should be sent as principals?"
+        "openQuestion": "The system's list is not called owners. Are all of these people beneficial owners (25%+)? If not, which ones should be sent as owners?"
       }
     },
     {
@@ -925,11 +925,11 @@
         "allowedValues": [],
         "sampleValue": "50"
       },
-      "businessConcept": "Principal.OwnershipPercent",
-      "domainPlaybook": "domain/principals@1.0.0",
+      "businessConcept": "Owner.OwnershipPercent",
+      "domainPlaybook": "domain/owners@1.0.0",
       "transformation": {
         "type": "unitConversion",
-        "rule": "Fraction (0–1) to percent (0–100). (PRN-PCT-01: fraction = $.owners[*].ownershipPercent)",
+        "rule": "Fraction (0–1) to percent (0–100). (OWN-PCT-01: fraction = $.owners[*].ownershipPercent)",
         "expression": "fraction * 100",
         "inputs": {
           "fraction": "$.owners[*].ownershipPercent"
@@ -937,17 +937,17 @@
         "valueMap": []
       },
       "confidencePercent": 95,
-      "reasoning": "Target is Principal.OwnershipPercent [unit=percent]; domain/principals@1.0.0 derives it with rule PRN-PCT-01 from Principal.OwnershipPercent [unit=fraction]. Needs review: Source match needs review (QualifierConflict). List pairing $.owners → /UnderwritingRequest/Officers/Officer needs review.",
+      "reasoning": "Target is Owner.OwnershipPercent [unit=percent]; domain/owners@1.0.0 derives it with rule OWN-PCT-01 from Owner.OwnershipPercent [unit=fraction]. Needs review: Source match needs review (QualifierConflict). List pairing $.owners → /UnderwritingRequest/Officers/Officer needs review.",
       "evidence": [
         {
           "kind": "playbook",
-          "reference": "domain/principals@1.0.0",
-          "detail": "Derivation PRN-PCT-01: fraction * 100"
+          "reference": "domain/owners@1.0.0",
+          "detail": "Derivation OWN-PCT-01: fraction * 100"
         },
         {
           "kind": "playbook",
-          "reference": "domain/principals@1.0.0",
-          "detail": "Source $.owners[*].ownershipPercent: Name matches equivalent term 'OwnershipPercent' (+60). Ancestor 'owners' names the Principal concept (+25). Signal PRN-SIG-PCT-RANGE (values between 0 and 100) (+10). unit=fraction from observed values 0.2–1."
+          "reference": "domain/owners@1.0.0",
+          "detail": "Source $.owners[*].ownershipPercent: Name matches equivalent term 'OwnershipPercent' (+60). Ancestor 'owners' names the Owner concept (+25). Signal OWN-SIG-PCT-RANGE (values between 0 and 100) (+10). unit=fraction from observed values 0.2–1."
         },
         {
           "kind": "sample",
@@ -956,8 +956,8 @@
         },
         {
           "kind": "playbook",
-          "reference": "domain/principals@1.0.0",
-          "detail": "Target /UnderwritingRequest/Officers/Officer/OwnershipPct: Name matches equivalent term 'ownership pct' (+60). Ancestor 'Officer' names the Principal concept (+25). Signal PRN-SIG-PCT-RANGE (values between 0 and 100) (+10). unit=percent from the name."
+          "reference": "domain/owners@1.0.0",
+          "detail": "Target /UnderwritingRequest/Officers/Officer/OwnershipPct: Name matches equivalent term 'ownership pct' (+60). Ancestor 'Officer' names the Owner concept (+25). Signal OWN-SIG-PCT-RANGE (values between 0 and 100) (+10). unit=percent from the name."
         },
         {
           "kind": "sample",
@@ -970,13 +970,13 @@
         "sensitivity": "none",
         "targetValidationRules": [
           "Likely required (present in every sample)",
-          "PRN-VAL-01: Total ownership cannot exceed 100%.",
-          "PRN-VAL-02: Principals together should own at least 25% (beneficial-ownership rule)."
+          "OWN-VAL-01: Total ownership cannot exceed 100%.",
+          "OWN-VAL-02: Owners together should own at least 25% (beneficial-ownership rule)."
         ]
       },
       "review": {
         "status": "needsReview",
-        "openQuestion": "The system's list is not called owners. Are all of these people beneficial owners (25%+)? If not, which ones should be sent as principals? Is ownership sent as a fraction (0–1) or a percent (0–100)?"
+        "openQuestion": "The system's list is not called owners. Are all of these people beneficial owners (25%+)? If not, which ones should be sent as owners? Is ownership sent as a fraction (0–1) or a percent (0–100)?"
       }
     },
     {
@@ -1004,20 +1004,20 @@
         "allowedValues": [],
         "sampleValue": "****-01-30"
       },
-      "businessConcept": "Principal.DateOfBirth",
-      "domainPlaybook": "domain/principals@1.0.0",
+      "businessConcept": "Owner.DateOfBirth",
+      "domainPlaybook": "domain/owners@1.0.0",
       "transformation": {
         "type": "direct",
         "rule": "Copy",
         "valueMap": []
       },
       "confidencePercent": 95,
-      "reasoning": "Both fields are recognised as Principal.DateOfBirth by domain/principals@1.0.0. Needs review: List pairing $.owners → /UnderwritingRequest/Officers/Officer needs review.",
+      "reasoning": "Both fields are recognised as Owner.DateOfBirth by domain/owners@1.0.0. Needs review: List pairing $.owners → /UnderwritingRequest/Officers/Officer needs review.",
       "evidence": [
         {
           "kind": "playbook",
-          "reference": "domain/principals@1.0.0",
-          "detail": "Source $.owners[*].dateOfBirth: Name matches equivalent term 'DateOfBirth' (+60). Ancestor 'owners' names the Principal concept (+25). Signal PRN-SIG-DOB-TYPE (a date) (+10)."
+          "reference": "domain/owners@1.0.0",
+          "detail": "Source $.owners[*].dateOfBirth: Name matches equivalent term 'DateOfBirth' (+60). Ancestor 'owners' names the Owner concept (+25). Signal OWN-SIG-DOB-TYPE (a date) (+10)."
         },
         {
           "kind": "sample",
@@ -1026,8 +1026,8 @@
         },
         {
           "kind": "playbook",
-          "reference": "domain/principals@1.0.0",
-          "detail": "Target /UnderwritingRequest/Officers/Officer/DateOfBirth: Name matches equivalent term 'DateOfBirth' (+60). Ancestor 'Officer' names the Principal concept (+25). Signal PRN-SIG-DOB-TYPE (a date) (+10)."
+          "reference": "domain/owners@1.0.0",
+          "detail": "Target /UnderwritingRequest/Officers/Officer/DateOfBirth: Name matches equivalent term 'DateOfBirth' (+60). Ancestor 'Officer' names the Owner concept (+25). Signal OWN-SIG-DOB-TYPE (a date) (+10)."
         },
         {
           "kind": "sample",
@@ -1044,7 +1044,7 @@
       },
       "review": {
         "status": "needsReview",
-        "openQuestion": "The system's list is not called owners. Are all of these people beneficial owners (25%+)? If not, which ones should be sent as principals?"
+        "openQuestion": "The system's list is not called owners. Are all of these people beneficial owners (25%+)? If not, which ones should be sent as owners?"
       }
     },
     {
@@ -1671,7 +1671,7 @@
         "allowedValues": [],
         "sampleValue": "dana@northwind.example"
       },
-      "suggestedResolution": "Recognised as Principal.Email by domain/principals@1.0.0, but the target has no field for it; confirm it is not needed."
+      "suggestedResolution": "Recognised as Owner.Email by domain/owners@1.0.0, but the target has no field for it; confirm it is not needed."
     }
   ],
   "findings": [
@@ -1689,7 +1689,7 @@
     {
       "id": "F002",
       "kind": "assumption",
-      "description": "Each item of source list $.owners becomes an item of target list /UnderwritingRequest/Officers/Officer (both Principal). The system's list is not called owners. Are all of these people beneficial owners (25%+)? If not, which ones should be sent as principals?",
+      "description": "Each item of source list $.owners becomes an item of target list /UnderwritingRequest/Officers/Officer (both Owner). The system's list is not called owners. Are all of these people beneficial owners (25%+)? If not, which ones should be sent as owners?",
       "mappingIds": [
         "M012",
         "M013",
@@ -1698,18 +1698,18 @@
         "M016"
       ],
       "sources": [
-        "domain/principals@1.0.0"
+        "domain/owners@1.0.0"
       ]
     },
     {
       "id": "F003",
       "kind": "conflict",
-      "description": "Source field $.owners[*].ownershipPercent: its name and its sample values disagree on a qualifier; read as Principal.OwnershipPercent [unit=fraction].",
+      "description": "Source field $.owners[*].ownershipPercent: its name and its sample values disagree on a qualifier; read as Owner.OwnershipPercent [unit=fraction].",
       "mappingIds": [
         "M015"
       ],
       "sources": [
-        "domain/principals@1.0.0"
+        "domain/owners@1.0.0"
       ]
     },
     {
