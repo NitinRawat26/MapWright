@@ -244,10 +244,18 @@ domain:
       relation: related
     - term: address line 1
       appliesTo: AddressLine1
+    - term: address 1
+      appliesTo: AddressLine1
+    - term: addr 1
+      appliesTo: AddressLine1
     - term: street
       appliesTo: AddressLine1
       relation: related
     - term: address line 2
+      appliesTo: AddressLine2
+    - term: address 2
+      appliesTo: AddressLine2
+    - term: addr 2
       appliesTo: AddressLine2
     - term: city
       appliesTo: City
@@ -734,4 +742,14 @@ domain:
           - Owners
         dataType: string
       expect: Owner.IpAddress
+      minScore: 80
+    - id: OWN-T-19
+      description: address1 inside a homeAddress object is the first street line.
+      field:
+        name: address1
+        ancestors:
+          - homeAddress
+          - Owners
+        dataType: string
+      expect: Owner.AddressLine1
       minScore: 80
