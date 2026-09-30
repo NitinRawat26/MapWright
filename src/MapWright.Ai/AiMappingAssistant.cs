@@ -34,7 +34,7 @@ public sealed class AiMappingAssistant(IAiProvider provider, int maxConfidence =
         choose the source field(s) in "sources" that supply it, using names, parents, children, types, value shapes,
         code values and the playbooks' concepts and guidance. Prefer sources marked "used": false, but a used source
         may also feed another target. Give "transformation" as one of: direct, rename, typeCast, unitConversion,
-        periodConversion, concat, split, aggregate, enumMap, lookup, conditional, default, derived; and an
+        periodConversion, concat, split, aggregate, conditional, default, derived; and an
         "expression" when values must be calculated. Values of sensitive fields are withheld; never invent values.
         Give "confidence" from 0 to 100, one or two sentences of "reasoning", and a "question" for a reviewer when
         you are unsure. If no source fits a target, return it with an empty "sources" list. Use the exact paths given.
@@ -139,6 +139,12 @@ public sealed class AiMappingAssistant(IAiProvider provider, int maxConfidence =
             .Select(t => (TransformationType?)t)
             .FirstOrDefault(t => t.ToString()!.Equals(pairing.Transformation?.Trim(), StringComparison.OrdinalIgnoreCase))
             ?? (sources is [var only] && only.Name == row.Target.Name ? TransformationType.Direct : TransformationType.Rename);
+        // enumMap and lookup need valueMap entries the prompt schema cannot carry; downgrade to a rename.
+        if (transformation is TransformationType.EnumMap or TransformationType.Lookup)
+        {
+            transformation = TransformationType.Rename;
+        }
+
         var reasoning = Blank(pairing.Reasoning) ?? "No reasoning given.";
         return row with
         {
