@@ -9,6 +9,24 @@
   transform: rotate(180deg);
 }
 
+.down {
+  transform: rotate(90deg);
+  vertical-align: -2px;
+}
+
+.pair-target {
+  margin-top: 2px;
+  color: var(--mw-muted);
+}
+
+td .confidence {
+  margin-top: 4px;
+}
+
+td .confidence .bar {
+  width: 48px;
+}
+
 .page-head .meta {
   margin-top: 6px;
 }

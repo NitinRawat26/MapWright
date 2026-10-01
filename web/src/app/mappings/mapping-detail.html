@@ -124,7 +124,7 @@
           </div>
           <table class="grid" data-testid="rows">
             <thead>
-              <tr><th></th><th>ID</th><th>Target</th><th>Source</th><th>Transformation</th><th>Confidence</th><th>Mapped by</th><th>Review</th></tr>
+              <tr><th></th><th>ID</th><th>Source → Target</th><th>Transformation</th><th>Mapped by</th><th>Review</th></tr>
             </thead>
             <tbody>
             @for (r of rows(); track r.id) {
@@ -132,21 +132,23 @@
                 <td class="pick" (click)="$event.stopPropagation()">
                   <input type="checkbox" [checked]="checked().has(r.id)" (change)="toggleCheck(r)" [attr.aria-label]="'Ask AI about ' + r.id" data-testid="pick" />
                 </td>
-                <td class="mono">{{ r.id }}</td>
-                <td class="mono">{{ r.target.path }}@if (r.target.required) {<b> *</b>}</td>
+                <td class="mono">
+                  <div>{{ r.id }}</div>
+                  <span class="confidence" [title]="'Confidence ' + r.confidencePercent + '%'">
+                    <span class="bar"><i [class]="band(r)" [style.width.%]="r.confidencePercent"></i></span>{{ r.confidencePercent }}%
+                  </span>
+                </td>
                 <td class="mono">
                   @for (s of r.sources; track s.path) {
                     <div>{{ s.path }}</div>
                   } @empty {
-                    <span class="muted">none</span>
+                    <div class="muted">none</div>
                   }
+                  <div class="pair-target">
+                    <app-icon name="arrow_forward" [size]="14" class="down" /> {{ r.target.path }}@if (r.target.required) {<b> *</b>}
+                  </div>
                 </td>
                 <td>{{ r.type === 'unmapped' ? '—' : (r.transformation.rule ?? r.transformation.type) }}</td>
-                <td>
-                  <span class="confidence">
-                    <span class="bar"><i [class]="band(r)" [style.width.%]="r.confidencePercent"></i></span>{{ r.confidencePercent }}%
-                  </span>
-                </td>
                 <td>
                   @if (aiProvider(r); as provider) {
                     <span class="chip ai" [title]="'Suggested by ' + provider + '; check it before relying on it'" data-testid="ai-row">AI</span>
@@ -160,7 +162,7 @@
               </tr>
               @if (selected() === r.id) {
                 <tr>
-                  <td colspan="8" class="detail" data-testid="row-detail">
+                  <td colspan="6" class="detail" data-testid="row-detail">
                     <div class="flow detail-flow">
                       @for (src of r.sources; track src.path) {
                         <span class="node">{{ src.path }}</span>
