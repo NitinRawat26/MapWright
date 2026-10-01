@@ -7,10 +7,11 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatTabsModule } from '@angular/material/tabs';
 import { RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { catchError, finalize, of } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { Api } from '../core/api';
 import { Icon } from '../core/icon';
-import { FieldMapping, MappingDocument, MappingOrigin, MappingSummary, ReviewDecision, ReviewDecisionKind, ReviewStatus } from '../core/models';
+import { AiSuggestion, FieldMapping, MappingDocument, MappingOrigin, MappingSummary, ReviewDecision, ReviewDecisionKind, ReviewStatus } from '../core/models';
 import { UserService } from '../core/user';
 import { Replay } from './replay';
 
@@ -100,6 +101,10 @@ export class MappingDetail {
   protected readonly comment = signal('');
   protected readonly override = signal('');
   protected readonly busy = signal(false);
+  protected readonly checked = signal<ReadonlySet<string>>(new Set());
+  protected readonly ai = toSignal(this.api.ai().pipe(catchError(() => of(null))), { initialValue: null });
+  protected readonly bands = ['high', 'medium', 'low'] as const;
+  protected readonly aiBusy = signal(false);
 
   protected readonly rows = computed(() => {
     const text = this.search().trim().toLowerCase();
@@ -167,6 +172,7 @@ export class MappingDetail {
   }
 
   protected readonly row = computed(() => this.mapping()?.mappings.find((m) => m.id === this.selected()) ?? null);
+  protected readonly checkedRows = computed(() => (this.mapping()?.mappings ?? []).filter((m) => this.checked().has(m.id)));
   protected readonly overrideError = computed(() => {
     if (!this.override()) {
       return '';
@@ -192,6 +198,91 @@ export class MappingDetail {
 
   protected exportUrl(format: 'xlsx' | 'csv' | 'html' | 'pdf'): string {
     return this.api.exportUrl(this.id(), format);
+  }
+
+  /** Toggles a row's Ask-AI checkbox without opening the row detail. */
+  protected toggleCheck(row: FieldMapping): void {
+    this.checked.update((set) => {
+      const next = new Set(set);
+      if (next.has(row.id)) {
+        next.delete(row.id);
+      } else {
+        next.add(row.id);
+      }
+
+      return next;
+    });
+  }
+
+  /** Selects every row in a confidence band, or clears them all when they were already selected. */
+  protected toggleBand(band: 'high' | 'medium' | 'low'): void {
+    const inBand = (this.mapping()?.mappings ?? []).filter((r) => r.type !== 'unmapped' && this.band(r) === band).map((r) => r.id);
+    this.checked.update((set) => {
+      const next = new Set(set);
+      if (inBand.length > 0 && inBand.every((id) => next.has(id))) {
+        inBand.forEach((id) => next.delete(id));
+      } else {
+        inBand.forEach((id) => next.add(id));
+      }
+
+      return next;
+    });
+  }
+
+  protected bandAllChecked(band: 'high' | 'medium' | 'low'): boolean {
+    const inBand = (this.mapping()?.mappings ?? []).filter((r) => r.type !== 'unmapped' && this.band(r) === band);
+    return inBand.length > 0 && inBand.every((r) => this.checked().has(r.id));
+  }
+
+  /** Sends the checked rows to the configured provider; answers land on the rows as aiSuggestion candidates. */
+  protected askAi(): void {
+    const ids = [...this.checked()];
+    if (!ids.length) {
+      return;
+    }
+
+    this.aiBusy.set(true);
+    this.api
+      .askAi(this.id(), ids)
+      .pipe(finalize(() => this.aiBusy.set(false)))
+      .subscribe({
+        next: (document) => {
+          this.mapping.set(document);
+          this.checked.set(new Set());
+          this.loadSummary();
+        },
+        error: () => undefined,
+      });
+  }
+
+  /** Applies the row's AI candidate as a reviewer override on the existing pairing. */
+  protected pickAi(row: FieldMapping, ai: AiSuggestion): void {
+    const { aiSuggestion: _ai, ...rest } = row;
+    const replacement: FieldMapping = {
+      ...rest,
+      type: ai.sources.length > 1 ? 'manyToOne' : 'oneToOne',
+      sources: ai.sources,
+      transformation: ai.transformation,
+      confidencePercent: ai.confidencePercent,
+      reasoning: `Picked AI candidate (${ai.provider}). ${ai.reasoning}`,
+      evidence: [...(row.evidence ?? []), { kind: 'aiSuggestion', reference: ai.provider, detail: ai.reasoning }],
+      aiSuggestion: ai,
+    };
+    this.busy.set(true);
+    this.api
+      .review(this.id(), row.id, 'override', this.comment().trim() || undefined, replacement)
+      .pipe(finalize(() => this.busy.set(false)))
+      .subscribe({
+        next: (result) => {
+          this.mapping.update((m) => (m ? { ...m, mappings: m.mappings.map((r) => (r.id === result.rowId ? result.row : r)) } : m));
+          this.comment.set('');
+          this.loadSummary();
+          if (this.reviews().length) {
+            this.loadReviews();
+          }
+        },
+        error: () => undefined,
+      });
   }
 
   protected select(row: FieldMapping): void {

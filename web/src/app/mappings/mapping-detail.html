@@ -106,6 +106,17 @@
               <input matInput [ngModel]="search()" (ngModelChange)="search.set($event)" />
             </mat-form-field>
             <span class="muted" data-testid="row-count">{{ rows().length }} row(s)</span>
+            @if (ai()?.available) {
+              <span class="ai-select" data-testid="ai-select">
+                Ask AI for:
+                @for (b of bands; track b) {
+                  <button mat-stroked-button type="button" [class.active]="bandAllChecked(b)" (click)="toggleBand(b)" [attr.data-band]="b">{{ b }}</button>
+                }
+                <button mat-flat-button type="button" color="primary" [disabled]="!checked().size || aiBusy()" (click)="askAi()" data-testid="ask-ai">
+                  <app-icon name="star_shine" [size]="18" /> {{ aiBusy() ? 'Asking…' : 'Ask AI' + (checked().size ? ' (' + checked().size + ')' : '') }}
+                </button>
+              </span>
+            }
             @if (filterLabels[filter()]; as label) {
               <span class="chip" data-testid="card-filter">{{ label }}</span>
               <button mat-button type="button" (click)="show('all')" data-testid="clear-filter">Show all</button>
@@ -113,11 +124,14 @@
           </div>
           <table class="grid" data-testid="rows">
             <thead>
-              <tr><th>ID</th><th>Target</th><th>Source</th><th>Transformation</th><th>Confidence</th><th>Mapped by</th><th>Review</th></tr>
+              <tr><th></th><th>ID</th><th>Target</th><th>Source</th><th>Transformation</th><th>Confidence</th><th>Mapped by</th><th>Review</th></tr>
             </thead>
             <tbody>
             @for (r of rows(); track r.id) {
               <tr class="clickable" [class.selected]="selected() === r.id" (click)="select(r)" [attr.data-row]="r.id">
+                <td class="pick" (click)="$event.stopPropagation()">
+                  <input type="checkbox" [checked]="checked().has(r.id)" (change)="toggleCheck(r)" [attr.aria-label]="'Ask AI about ' + r.id" data-testid="pick" />
+                </td>
                 <td class="mono">{{ r.id }}</td>
                 <td class="mono">{{ r.target.path }}@if (r.target.required) {<b> *</b>}</td>
                 <td class="mono">
@@ -146,7 +160,7 @@
               </tr>
               @if (selected() === r.id) {
                 <tr>
-                  <td colspan="7" class="detail" data-testid="row-detail">
+                  <td colspan="8" class="detail" data-testid="row-detail">
                     <div class="flow detail-flow">
                       @for (src of r.sources; track src.path) {
                         <span class="node">{{ src.path }}</span>
@@ -185,6 +199,33 @@
                       }
                       @if (r.suggestedResolution) {
                         <dt>Suggested</dt><dd>{{ r.suggestedResolution }}</dd>
+                      }
+                      @if (r.aiSuggestion; as ai) {
+                        <dt>AI candidate</dt>
+                        <dd>
+                          <div class="ai-alt" data-testid="ai-candidate">
+                            <div class="flow">
+                              @for (src of ai.sources; track src.path) {
+                                <span class="node">{{ src.path }}</span>
+                              } @empty {
+                                <span class="node muted">no source</span>
+                              }
+                              <app-icon name="arrow_forward" [size]="16" />
+                              <span class="chip info">{{ ai.transformation.type }}</span>
+                              <app-icon name="arrow_forward" [size]="16" />
+                              <span class="node target">{{ r.target.path }}</span>
+                            </div>
+                            <div class="muted">
+                              {{ ai.provider }} · {{ ai.confidencePercent }}% — {{ ai.reasoning }}
+                              @if (ai.question) {
+                                <div>Question: {{ ai.question }}</div>
+                              }
+                            </div>
+                            <button mat-stroked-button type="button" [disabled]="!user.name() || busy()" (click)="pickAi(r, ai)" data-testid="use-ai">
+                              <app-icon name="star_shine" [size]="16" /> Use AI suggestion
+                            </button>
+                          </div>
+                        </dd>
                       }
                       @if (r.review.openQuestion) {
                         <dt>Open question</dt><dd>{{ r.review.openQuestion }}</dd>

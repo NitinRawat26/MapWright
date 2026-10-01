@@ -188,6 +188,11 @@ export class Api {
     return `/api/mappings/${encodeURIComponent(id)}/export/${format}`;
   }
 
+  /** Asks the AI for an alternative source on the selected rows; the rows keep their pairing and gain an aiSuggestion. */
+  askAi(id: string, rowIds: string[]): Observable<MappingDocument> {
+    return this.http.post<MappingDocument>(`/api/mappings/${encodeURIComponent(id)}/ask-ai`, { rowIds });
+  }
+
   review(id: string, rowId: string, decision: ReviewDecisionKind, comment?: string, row?: FieldMapping): Observable<ReviewDecision> {
     return this.http.post<ReviewDecision>(`/api/mappings/${encodeURIComponent(id)}/rows/${encodeURIComponent(rowId)}/review`, { decision, comment, row });
   }

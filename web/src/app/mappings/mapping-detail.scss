@@ -98,3 +98,38 @@ button.stat.active {
   font-size: 24px;
   font-weight: 700;
 }
+
+.ai-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--mw-muted, #64748b);
+}
+
+.ai-select button[mat-stroked-button].active {
+  border-color: var(--mw-brand);
+  color: var(--mw-brand);
+  background: #eef0ff;
+}
+
+td.pick {
+  width: 32px;
+  text-align: center;
+}
+
+.ai-alt {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 4px;
+  border: 1px dashed var(--mw-brand, #6366f1);
+  border-radius: 10px;
+  background: rgba(129, 140, 248, 0.08);
+}
+
+.ai-alt button {
+  align-self: flex-start;
+}
