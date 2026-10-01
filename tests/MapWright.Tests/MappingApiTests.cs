@@ -1,4 +1,7 @@
 using System.Net;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using MapWright.Ai;
 using MapWright.Core.Matching;
 using MapWright.Core.Playbooks;
 using MapWright.Core.Profile;
@@ -21,9 +24,11 @@ public sealed class MappingApiTests : IDisposable
 
     private static IEnumerable<string> Files(string directory) => Directory.EnumerateFiles(directory).Order(StringComparer.Ordinal);
 
-    private async Task<HttpClient> WithProfiles()
+    private async Task<HttpClient> WithProfiles() => await WithProfiles(_api);
+
+    private static async Task<HttpClient> WithProfiles(ApiFactory api)
     {
-        var ana = _api.As("ana");
+        var ana = api.As("ana");
         foreach (var system in new[] { "sales-alpha", "uw-core" })
         {
             var put = await ana.PutJson($"/api/profiles/{system}", await File.ReadAllTextAsync(Systems(system, "profile.json")));
@@ -241,5 +246,41 @@ public sealed class MappingApiTests : IDisposable
 
         var decisions = (await (await client.GetAsync("/api/mappings/sales-alpha__uw-core/reviews")).Node()).AsArray();
         Assert.Equal(["approve", "override"], decisions.Select(d => d!["decision"].Text()));
+    }
+
+    [Fact]
+    public async Task Ask_ai_attaches_a_candidate_to_the_selected_rows_only()
+    {
+        var ai = new FakeProvider("fake", prompt =>
+        {
+            var input = JsonNode.Parse(prompt.Input)!;
+            var target = input["targets"]!.AsArray()[0]!["path"]!.GetValue<string>();
+            var source = input["sources"]!.AsArray()[0]!["path"]!.GetValue<string>();
+            return JsonSerializer.Serialize(new { pairings = new[] { new { target, sources = new[] { source }, transformation = "rename", confidence = 80, reasoning = "Candidate." } } });
+        });
+        using var api = new ApiFactory(ai);
+        var client = await WithProfiles(api);
+        await client.Post("/api/mappings", new { source = "sales-alpha", target = "uw-core" });
+        var document = MappingSpecSerializer.Deserialize(await client.GetStringAsync("/api/mappings/sales-alpha__uw-core"));
+        var row = document.Mappings.First(m => m.Sources.Count > 0);
+        var other = document.Mappings.First(m => m.Id != row.Id);
+
+        var bad = await client.Post("/api/mappings/sales-alpha__uw-core/ask-ai", new { rowIds = Array.Empty<string>() });
+        Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
+        var unknown = await client.Post("/api/mappings/sales-alpha__uw-core/ask-ai", new { rowIds = new[] { "M999" } });
+        Assert.Equal(HttpStatusCode.BadRequest, unknown.StatusCode);
+
+        var asked = await client.Post("/api/mappings/sales-alpha__uw-core/ask-ai", new { rowIds = new[] { row.Id } });
+        Assert.Equal(HttpStatusCode.OK, asked.StatusCode);
+        Assert.Single(ai.Prompts);
+
+        var updated = MappingSpecSerializer.Deserialize(await asked.Content.ReadAsStringAsync());
+        var changed = updated.Row(row.Target.Path);
+        Assert.Equal(row.Sources.Select(s => s.Path), changed.Sources.Select(s => s.Path));
+        var candidate = Assert.IsType<MapWright.Core.Spec.AiSuggestion>(changed.AiSuggestion);
+        Assert.Equal("fake/fake-model", candidate.Provider);
+        Assert.True(candidate.ConfidencePercent <= AiFieldAssistant.DefaultMaxConfidence);
+        Assert.Null(updated.Row(other.Target.Path).AiSuggestion);
+        Assert.Equal("ana", updated.ChangeLog.Last().Author);
     }
 }

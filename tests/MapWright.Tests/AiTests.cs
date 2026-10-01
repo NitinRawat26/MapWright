@@ -565,6 +565,48 @@ public sealed class AiMappingTests
     }
 
     [Fact]
+    public async Task SuggestRows_attaches_a_candidate_and_keeps_the_pairing()
+    {
+        var row = Playbooks.Row("/UnderwritingRequest/Merchant/TaxId/Number");
+        var ai = new FakeProvider("fake", _ => JsonSerializer.Serialize(new
+        {
+            pairings = new[] { new { target = row.Target.Path, sources = new[] { "$.account.dbaName" }, transformation = "rename", confidence = 88, reasoning = "Close enough.", question = "Sure?" } },
+        }));
+
+        var result = await new AiMappingAssistant(ai).SuggestRowsAsync(Playbooks, Source, Target, StarterPlaybooks.Library().Domains, [row.Id]);
+
+        Assert.Equal([row.Id], result.Suggested);
+        var updated = result.Document.Row(row.Target.Path);
+        Assert.Equal(row.Sources.Select(s => s.Path), updated.Sources.Select(s => s.Path));
+        Assert.Equal(row.Review.Status, updated.Review.Status);
+        var candidate = Assert.IsType<MapWright.Core.Spec.AiSuggestion>(updated.AiSuggestion);
+        Assert.Equal("$.account.dbaName", Assert.Single(candidate.Sources).Path);
+        Assert.Equal(AiFieldAssistant.DefaultMaxConfidence, candidate.ConfidencePercent);
+        Assert.Equal("fake/fake-model", candidate.Provider);
+        Assert.Equal(TransformationType.Rename, candidate.Transformation.Type);
+        Assert.Equal("Sure?", candidate.Question);
+        Assert.Null(result.Document.AiPass);
+        Assert.DoesNotContain(MappingSpecValidator.Validate(result.Document), i => i.Severity == IssueSeverity.Error);
+    }
+
+    [Fact]
+    public async Task SuggestRows_also_works_on_unmapped_rows_and_rejects_unknown_ids()
+    {
+        var unmapped = Playbooks.Row("/UnderwritingRequest/Merchant/EstablishedDate");
+        var ai = Established();
+
+        var result = await new AiMappingAssistant(ai).SuggestRowsAsync(Playbooks, Source, Target, StarterPlaybooks.Library().Domains, [unmapped.Id]);
+
+        var updated = result.Document.Row(unmapped.Target.Path);
+        Assert.Equal(MappingType.Unmapped, updated.Type);
+        Assert.Empty(updated.Sources);
+        Assert.Equal("$.account.incorporationDate", Assert.Single(updated.AiSuggestion!.Sources).Path);
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => new AiMappingAssistant(ai).SuggestRowsAsync(Playbooks, Source, Target, StarterPlaybooks.Library().Domains, ["M999"]));
+    }
+
+    [Fact]
     public async Task Nothing_is_sent_when_every_target_is_mapped()
     {
         var ai = Established();

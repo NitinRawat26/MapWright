@@ -22,6 +22,11 @@ public sealed record GenerateMappingRequest(string Source, string Target, string
 /// <param name="Row">The replacement row, for an override. It keeps the row id and target path.</param>
 public sealed record ReviewRequest(ReviewDecisionKind Decision, string? Comment = null, FieldMapping? Row = null);
 
+/// <param name="RowIds">Mapping row ids to ask the AI about; each keeps its own pairing and gains an aiSuggestion candidate.</param>
+/// <param name="Source">Source profile id; defaults to the stored profile for the mapping's source system.</param>
+/// <param name="Target">Target profile id; defaults to the stored profile for the mapping's target system.</param>
+public sealed record AskAiRequest(IReadOnlyList<string> RowIds, string? Source = null, string? Target = null);
+
 /// <param name="Payload">The target payload built from the sample. It holds the sample's real values.</param>
 public sealed record ReplaySample(string Sample, string Payload, ValidationRun Run);
 
@@ -170,6 +175,53 @@ public static class MappingEndpoints
             .DisableAntiforgery()
             .WithSummary("Run source samples through the mapping, build the target payloads and check them; record=true saves the runs; mask=true masks sensitive values in the payloads.");
 
+        group.MapPost("/{id}/ask-ai", async (
+                string id, AskAiRequest body, MappingStore mappings, ProfileStore profiles, PlaybookStore playbooks, AiAccess ai,
+                HttpContext context, [FromHeader(Name = ApiErrors.UserHeader)] string? user) =>
+            {
+                var actor = ApiErrors.Actor(user);
+                var document = mappings.Get(id);
+                if (body.RowIds.Count == 0)
+                {
+                    throw new StoreException(StoreError.Invalid, "Send at least one row id in 'rowIds'.");
+                }
+
+                var source = ResolveProfile(profiles, body.Source, document.Source);
+                var target = ResolveProfile(profiles, body.Target, document.Target);
+                var library = playbooks.Library();
+                AiPairingResult result;
+                try
+                {
+                    result = await new AiMappingAssistant(ai.Require(), AiAccess.Cap(library))
+                        .SuggestRowsAsync(document, source, target, library.Domains, body.RowIds, context.RequestAborted);
+                }
+                catch (ArgumentException ex)
+                {
+                    throw new StoreException(StoreError.Invalid, ex.Message);
+                }
+
+                var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.UtcDateTime);
+                document = result.Document with
+                {
+                    ChangeLog =
+                    [
+                        .. document.ChangeLog,
+                        new ChangeLogEntry
+                        {
+                            Version = document.Version,
+                            Date = today,
+                            Author = actor,
+                            Description = $"Ask AI: {result.Suggested.Count} of {body.RowIds.Count} selected row(s) got an AI candidate" +
+                                (result.Warnings.Count > 0 ? $"; {result.Warnings.Count} warning(s)." : "."),
+                        },
+                    ],
+                };
+                mappings.Save(document, actor);
+                return Json(document);
+            })
+            .Produces<MappingDocument>()
+            .WithSummary("Ask the AI for alternative sources on the selected rows; each keeps its pairing and gains an aiSuggestion a reviewer can pick via an override.");
+
         group.MapPost("/{id}/rows/{rowId}/review", (
                 string id, string rowId, ReviewRequest body, MappingStore store, [FromHeader(Name = ApiErrors.UserHeader)] string? user) =>
                 store.Decide(id, rowId, body.Decision, ApiErrors.Actor(user), body.Comment, body.Row))
@@ -185,6 +237,25 @@ public static class MappingEndpoints
 
     private static IResult Json(MappingDocument document) =>
         Results.Text(MappingSpecSerializer.Serialize(document), "application/json");
+
+    /// <summary>The stored profile behind one side of the mapping: an explicit id, else the one matching the system name and format.</summary>
+    private static SystemProfile ResolveProfile(ProfileStore profiles, string? id, SystemRef side)
+    {
+        if (!string.IsNullOrWhiteSpace(id))
+        {
+            return profiles.Get(id);
+        }
+
+        var matches = profiles.List().Where(p => p.System == side.Name && p.Format == side.Format).ToList();
+        var match = matches.Count == 1 ? matches[0] : matches.FirstOrDefault(p => p.Version == side.Version);
+        return match is not null
+            ? profiles.Get(match.Id)
+            : throw new StoreException(
+                StoreError.Invalid,
+                matches.Count == 0
+                    ? $"No stored profile for system '{side.Name}'; build it again or send its profile id."
+                    : $"Several stored profiles are '{side.Name}'; send 'source'/'target' with the profile id.");
+    }
 
     /// <summary>The rows an AI pass filled in that still need review, as inbox suggestions about their first source field.</summary>
     private static IEnumerable<SuggestionContent> AiPairings(MappingDocument document) =>
