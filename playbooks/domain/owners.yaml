@@ -407,6 +407,12 @@ domain:
       pattern: object
       weight: 10
       note: an address is a structured object
+    - id: OWN-SIG-ADDR-SCALAR
+      kind: dataType
+      appliesTo: Address
+      pattern: boolean|integer|decimal|string|date|dateTime
+      weight: -40
+      note: a flag or scalar named 'address' is not an address, e.g. forceAddressOverride
   derivations:
     - id: OWN-PCT-01
       description: Fraction (0–1) to percent (0–100).
@@ -753,3 +759,19 @@ domain:
         dataType: string
       expect: Owner.AddressLine1
       minScore: 80
+    - id: OWN-T-20
+      description: A flag whose name contains 'address' is not an address.
+      field:
+        name: forceAddressOverride
+        ancestors:
+          - owners
+        dataType: boolean
+      expect: null
+    - id: OWN-T-21
+      description: A count of years at an address is not an address.
+      field:
+        name: yrsAtAddress
+        ancestors:
+          - owners
+        dataType: integer
+      expect: null
