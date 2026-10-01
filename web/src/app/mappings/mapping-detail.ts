@@ -5,6 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { RouterLink } from '@angular/router';
 import { catchError, finalize, of } from 'rxjs';
@@ -82,6 +83,7 @@ const cardFilterLabels: Partial<Record<RowFilter, string>> = {
 })
 export class MappingDetail {
   private readonly api = inject(Api);
+  private readonly snackBar = inject(MatSnackBar);
   protected readonly user = inject(UserService);
 
   readonly id = input.required<string>();
@@ -159,7 +161,7 @@ export class MappingDetail {
       return null;
     }
     const has = (kind: string) => row.evidence?.some((e) => e.kind === kind) ?? false;
-    return has('aiSuggestion') ? 'ai' : has('playbook') ? 'playbook' : has('nameSimilarity') ? 'nameMatch' : has('reviewer') ? 'reviewer' : 'other';
+    return row.aiSuggestion || has('aiSuggestion') ? 'ai' : has('playbook') ? 'playbook' : has('nameSimilarity') ? 'nameMatch' : has('reviewer') ? 'reviewer' : 'other';
   }
 
   protected band(row: FieldMapping): 'high' | 'medium' | 'low' {
@@ -168,7 +170,7 @@ export class MappingDetail {
   }
 
   protected aiProvider(row: FieldMapping): string | null {
-    return row.evidence?.find((e) => e.kind === 'aiSuggestion')?.reference ?? null;
+    return row.aiSuggestion?.provider ?? row.evidence?.find((e) => e.kind === 'aiSuggestion')?.reference ?? null;
   }
 
   protected readonly row = computed(() => this.mapping()?.mappings.find((m) => m.id === this.selected()) ?? null);
@@ -250,6 +252,8 @@ export class MappingDetail {
           this.mapping.set(document);
           this.checked.set(new Set());
           this.loadSummary();
+          const answered = document.mappings.filter((r) => ids.includes(r.id) && r.aiSuggestion).length;
+          this.snackBar.open(`AI suggested sources for ${answered} of ${ids.length} row(s).`, undefined, { duration: 5000 });
         },
         error: () => undefined,
       });
