@@ -43,7 +43,7 @@ Source of truth in code: `src/MapWright.Core/Playbooks/` (`Playbook.cs` model, `
 
 | Kind | Id prefix | Answers | Example |
 | --- | --- | --- | --- |
-| **Domain** | `domain/` | *What is this field, and how does it relate to other fields?* One business concept, its names, units/periods, arithmetic between variants, allowed codes, sanity checks. | `domain/processing-volume`, `domain/owners`, `domain/tax-id`, `domain/entity-type`, `domain/channel-mix` |
+| **Domain** | `domain/` | *What is this field, and how does it relate to other fields?* One business concept, its names, units/periods, arithmetic between variants, allowed codes, sanity checks. | `domain/processing-volume`, `domain/owners`, `domain/tax-id`, `domain/entity-type`, `domain/channel-mix`, `domain/ach` |
 | **Process** | `process/` | *How do we run and gate a mapping exercise?* Steps, which domain playbooks to use, whether AI may run, gates, reviewer roles, thresholds, output formats. | `process/onboard-new-system` |
 
 A file has exactly one of a `domain:` or `process:` section, matching its `kind` (rule `PB005`).

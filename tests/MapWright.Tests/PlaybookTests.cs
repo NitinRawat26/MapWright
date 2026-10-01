@@ -28,7 +28,7 @@ public sealed class StarterPlaybookTests
 
         Assert.Equal(
             [
-                "domain/bank-accounts@1.0.0", "domain/business@1.0.0", "domain/channel-mix@1.0.0",
+                "domain/ach@1.0.0", "domain/bank-accounts@1.0.0", "domain/business@1.0.0", "domain/channel-mix@1.0.0",
                 "domain/entity-type@1.0.0", "domain/merchant-category@1.0.0",
                 "domain/owners@1.0.0", "domain/processing-volume@1.0.0", "domain/tax-id@1.0.0",
                 "process/onboard-new-system@1.1.0",

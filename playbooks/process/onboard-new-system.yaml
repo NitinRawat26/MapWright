@@ -1,7 +1,7 @@
 # Process playbook: Onboard New System.
 # Edit a draft in the MapWright UI, or edit this file and check it with: mapwright playbook test playbooks
 # Values that look like numbers or dates (versions, dates, codes) are quoted so every YAML tool reads them as text.
-
+ 
 specVersion: "1.0"
 id: process/onboard-new-system
 name: Onboard New System
@@ -15,6 +15,10 @@ changeNotes:
     date: "2026-03-25"
     author: MapWright starter set
     description: Initial version.
+  - version: "1.1.0"
+    date: "2026-09-27"
+    author: Nitin
+    description: The match step also applies the new domain/business and domain/bank-accounts playbooks.
 process:
   inputs:
     - side: source
@@ -70,6 +74,7 @@ process:
         - domain/merchant-category
         - domain/business
         - domain/bank-accounts
+        - domain/ach
     - id: ai-assist
       name: Decode remaining fields with AI
       kind: aiAssist

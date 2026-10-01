@@ -297,7 +297,7 @@ public sealed class AiFieldAssistantTests
         }
 
         var concepts = AiSamples.Input(prompt)["concepts"]!.AsArray();
-        Assert.Equal(8, concepts.Count);
+        Assert.Equal(9, concepts.Count);
         Assert.Contains(concepts, c => c!["concept"]!.GetValue<string>() == "Owner" && c["guidance"] is not null);
     }
 

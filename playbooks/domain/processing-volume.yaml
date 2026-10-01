@@ -32,6 +32,18 @@ domain:
         description: Largest expected single transaction.
         dataType: decimal
         sensitivity: financial
+      - name: Seasonal
+        description: Whether the merchant's card sales are seasonal.
+        dataType: boolean
+      - name: SeasonalMonthsOpen
+        description: Months per year a seasonal merchant operates.
+        dataType: integer
+      - name: PeakPeriodDays
+        description: Length of the merchant's peak season in days.
+        dataType: integer
+      - name: PeakPeriodPercent
+        description: Share of annual card volume made in the peak period.
+        dataType: decimal
   # Names systems use for the concept or one of its attributes; relation is equivalent unless stated.
   vocabulary:
     - term: processing volume
@@ -97,6 +109,46 @@ domain:
       appliesTo: HighTicket
     - term: largest transaction
       appliesTo: HighTicket
+    - term: seasonal
+      appliesTo: Seasonal
+    - term: seasonal business
+      appliesTo: Seasonal
+    - term: seasonal merchant
+      appliesTo: Seasonal
+    - term: months open
+      appliesTo: SeasonalMonthsOpen
+    - term: seasonal months open
+      appliesTo: SeasonalMonthsOpen
+    - term: months per year
+      appliesTo: SeasonalMonthsOpen
+    - term: peak period
+      appliesTo: PeakPeriodDays
+      relation: related
+    - term: peak period days
+      appliesTo: PeakPeriodDays
+    - term: peak period no of days
+      appliesTo: PeakPeriodDays
+    - term: peak period number of days
+      appliesTo: PeakPeriodDays
+    - term: peak season days
+      appliesTo: PeakPeriodDays
+    - term: peak season
+      appliesTo: PeakPeriodDays
+      relation: related
+    - term: peak period percent
+      appliesTo: PeakPeriodPercent
+    - term: peak period percentage
+      appliesTo: PeakPeriodPercent
+    - term: peak turnover percentage
+      appliesTo: PeakPeriodPercent
+    - term: peak season percentage
+      appliesTo: PeakPeriodPercent
+    - term: american express volume
+      appliesTo: CardVolume
+    - term: amex volume
+      appliesTo: CardVolume
+    - term: amex sales volume
+      appliesTo: CardVolume
   qualifiers:
     - name: period
       description: The period a volume covers.
@@ -120,6 +172,30 @@ domain:
             - yr
             - per annum
             - pa
+    - name: cardScheme
+      description: Card brand a volume covers, when a system breaks volume out by scheme.
+      appliesTo:
+        - CardVolume
+      values:
+        - value: visa
+          terms:
+            - visa
+        - value: mastercard
+          terms:
+            - mastercard
+            - master card
+            - mc
+        - value: amex
+          terms:
+            - amex
+            - american express
+        - value: discover
+          terms:
+            - discover
+        - value: other
+          terms:
+            - other cards
+            - other schemes
     - name: currencyUnit
       description: Major units (dollars) or minor units (cents).
       values:
@@ -166,6 +242,33 @@ domain:
       pattern: ^(?!-?(\d+|\d{1,3}(,\d{3})+)(\.\d+)?$)
       weight: -30
       note: text that is not a number, e.g. a volume tier
+    - id: VOL-SIG-BOOL-SEASONAL
+      kind: dataType
+      appliesTo: Seasonal
+      pattern: boolean
+      weight: 10
+      note: a yes/no flag
+    - id: VOL-SIG-PEAKDAYS
+      kind: valueRange
+      appliesTo: PeakPeriodDays
+      minValue: 1
+      maxValue: 366
+      weight: 10
+      note: a day count
+    - id: VOL-SIG-PEAKPCT
+      kind: valueRange
+      appliesTo: PeakPeriodPercent
+      minValue: 0
+      maxValue: 100
+      weight: 10
+      note: a share between 0 and 100
+    - id: VOL-SIG-MONTHS
+      kind: valueRange
+      appliesTo: SeasonalMonthsOpen
+      minValue: 1
+      maxValue: 12
+      weight: 10
+      note: a month count
   derivations:
     - id: VOL-PERIOD-01
       description: Annual volume to monthly volume.
@@ -362,3 +465,50 @@ domain:
       expectQualifiers:
         period: annual
       expectReview: true
+    - id: VOL-T-09
+      description: Peak season length in days.
+      field:
+        name: PeakPeriodNoOfDays
+        ancestors:
+          - CustomMarkers
+        dataType: integer
+        minValue: 30
+        maxValue: 120
+      expect: ProcessingVolume.PeakPeriodDays
+      minScore: 70
+    - id: VOL-T-10
+      description: Seasonal flag.
+      field:
+        name: Seasonal
+        ancestors:
+          - CustomMarkers
+        dataType: boolean
+      expect: ProcessingVolume.Seasonal
+      minScore: 70
+    - id: VOL-T-11
+      description: Amex volume carries the card-scheme qualifier.
+      field:
+        name: amexVolume
+        ancestors:
+          - processing
+        dataType: decimal
+      expect: ProcessingVolume.CardVolume
+      expectQualifiers:
+        cardScheme: amex
+    - id: VOL-T-12
+      description: Months a seasonal merchant operates.
+      field:
+        name: SeasonalMonthsOpen
+        ancestors:
+          - CustomMarkers
+        dataType: integer
+        minValue: 6
+        maxValue: 10
+      expect: ProcessingVolume.SeasonalMonthsOpen
+      minScore: 70
+    - id: VOL-T-13
+      description: A yes/no flag is not a day count.
+      field:
+        name: PeakPeriodFlag
+        dataType: boolean
+      expect: null
