@@ -1,0 +1,424 @@
+# Domain playbook: ACH capabilities.
+# Edit a draft in the MapWright UI, or edit this file and check it with: mapwright playbook test playbooks
+# Values that look like numbers or dates (versions, dates, codes) are quoted so every YAML tool reads them as text.
+
+specVersion: "1.0"
+id: domain/ach
+name: ACH
+kind: domain
+version: "1.0.0"
+status: published
+owner: Underwriting BA team
+description: 'ACH (bank-transfer) acceptance details: whether the merchant takes ACH, expected ACH volumes and tickets, transaction counts, SEC codes and file frequency.'
+changeNotes:
+  - version: "1.0.0"
+    date: "2026-09-30"
+    author: MapWright
+    description: Initial version, built from underwriting ACH fields.
+domain:
+  concept:
+    name: AchCapabilities
+    description: How much and how the merchant expects to process ACH bank transfers.
+    attributes:
+      - name: AcceptsAch
+        description: Whether the merchant accepts ACH payments.
+        dataType: boolean
+      - name: AchAverageTicket
+        description: Average ACH transaction amount.
+        dataType: decimal
+        sensitivity: financial
+      - name: AchHighTicket
+        description: Largest expected single ACH transaction.
+        dataType: decimal
+        sensitivity: financial
+      - name: AnnualSalesVolume
+        description: Expected ACH sales volume per year.
+        dataType: decimal
+        sensitivity: financial
+      - name: AnnualCreditsVolume
+        description: Expected ACH credit volume per year.
+        dataType: decimal
+        sensitivity: financial
+      - name: AnnualTransactionCount
+        description: Expected number of ACH transactions per year.
+        dataType: integer
+      - name: AnnualCreditTransactionCount
+        description: Expected number of ACH credit transactions per year.
+        dataType: integer
+      - name: HighestMonthlyAmount
+        description: Largest expected ACH amount in a single month.
+        dataType: decimal
+        sensitivity: financial
+      - name: InternetSalesPercent
+        description: Share of ACH sales volume taken over the internet.
+        dataType: decimal
+      - name: InternetCreditsPercent
+        description: Share of ACH credit volume taken over the internet.
+        dataType: decimal
+      - name: FileFrequency
+        description: How often the merchant sends ACH files.
+        dataType: string
+      - name: SecCode
+        description: Whether the merchant uses a given ACH SEC (Standard Entry Class) code. NACHA codes like CCD, PPD, WEB, TEL, ARC, BOC, POP.
+        dataType: boolean
+      - name: CheckVerificationServices
+        description: Check verification or guarantee services the merchant uses for ACH and e-check acceptance.
+        dataType: boolean
+  # Names systems use for the concept or one of its attributes; relation is equivalent unless stated.
+  vocabulary:
+    - term: ach
+    - term: automated clearing house
+    - term: ach payment
+    - term: bank transfer
+      relation: related
+      note: Bank transfer may cover rails other than ACH.
+    - term: direct debit
+      relation: related
+    - term: consumer ach
+      appliesTo: AcceptsAch
+    - term: accept consumer ach
+      appliesTo: AcceptsAch
+    - term: accepts ach
+      appliesTo: AcceptsAch
+    - term: ach enabled
+      appliesTo: AcceptsAch
+    - term: ach average ticket
+      appliesTo: AchAverageTicket
+    - term: ach avg ticket
+      appliesTo: AchAverageTicket
+    - term: ach average transaction
+      appliesTo: AchAverageTicket
+    - term: ach highest ticket
+      appliesTo: AchHighTicket
+    - term: ach high ticket
+      appliesTo: AchHighTicket
+    - term: ach max ticket
+      appliesTo: AchHighTicket
+    - term: annual ach sales volume
+      appliesTo: AnnualSalesVolume
+    - term: ach sales volume
+      appliesTo: AnnualSalesVolume
+    - term: annual ach volume
+      appliesTo: AnnualSalesVolume
+    - term: ach volume
+      appliesTo: AnnualSalesVolume
+      relation: related
+      note: Period not stated; annual assumed.
+    - term: annual ach credits volume
+      appliesTo: AnnualCreditsVolume
+    - term: ach credits volume
+      appliesTo: AnnualCreditsVolume
+    - term: ach transactions
+      appliesTo: AnnualTransactionCount
+    - term: annual ach transactions
+      appliesTo: AnnualTransactionCount
+    - term: annual quantity ach transactions
+      appliesTo: AnnualTransactionCount
+    - term: ach transaction count
+      appliesTo: AnnualTransactionCount
+    - term: ach credit transactions
+      appliesTo: AnnualCreditTransactionCount
+    - term: annual ach credit transactions
+      appliesTo: AnnualCreditTransactionCount
+    - term: annual quantity ach credit transactions
+      appliesTo: AnnualCreditTransactionCount
+    - term: ach highest monthly amount
+      appliesTo: HighestMonthlyAmount
+    - term: ach monthly maximum
+      appliesTo: HighestMonthlyAmount
+    - term: ach max monthly
+      appliesTo: HighestMonthlyAmount
+    - term: ach internet sales
+      appliesTo: InternetSalesPercent
+    - term: ach internet sales volume
+      appliesTo: InternetSalesPercent
+    - term: ach online percentage
+      appliesTo: InternetSalesPercent
+    - term: ach internet credits
+      appliesTo: InternetCreditsPercent
+    - term: ach internet credits volume
+      appliesTo: InternetCreditsPercent
+    - term: ach file frequency
+      appliesTo: FileFrequency
+    - term: ach frequency
+      appliesTo: FileFrequency
+    - term: ach file
+      appliesTo: FileFrequency
+      relation: related
+    - term: ach sec code
+      appliesTo: SecCode
+    - term: sec code
+      appliesTo: SecCode
+    - term: standard entry class
+      appliesTo: SecCode
+    - term: sec code enabled
+      appliesTo: SecCode
+    - term: check verification
+      appliesTo: CheckVerificationServices
+    - term: check verification services
+      appliesTo: CheckVerificationServices
+    - term: check guarantee
+      appliesTo: CheckVerificationServices
+      relation: related
+      note: Guarantee is a stronger service than verification; confirm which one applies.
+  qualifiers:
+    - name: sec
+      description: Which NACHA Standard Entry Class code a field refers to. There is no derivation between SEC codes; a different-code target stays unmapped.
+      appliesTo:
+        - SecCode
+      values:
+        - value: ccd
+          terms:
+            - ccd
+            - corporate credit or debit
+        - value: ppd
+          terms:
+            - ppd
+            - prearranged payment and deposit
+        - value: web
+          terms:
+            - web
+            - internet initiated
+        - value: tel
+          terms:
+            - tel
+            - telephone initiated
+        - value: arc
+          terms:
+            - arc
+            - accounts receivable conversion
+        - value: boc
+          terms:
+            - boc
+            - back office conversion
+        - value: pop
+          terms:
+            - pop
+            - point of purchase
+  # Extra evidence: each matching signal adds its weight (negative weights count against a match).
+  signals:
+    - id: ACH-SIG-BOOL-ACCEPT
+      kind: dataType
+      appliesTo: AcceptsAch
+      pattern: boolean
+      weight: 10
+      note: a yes/no flag
+    - id: ACH-SIG-BOOL-SEC
+      kind: dataType
+      appliesTo: SecCode
+      pattern: boolean
+      weight: 10
+      note: a yes/no flag
+    - id: ACH-SIG-BOOL-CVS
+      kind: dataType
+      appliesTo: CheckVerificationServices
+      pattern: boolean
+      weight: 10
+      note: a yes/no flag
+    - id: ACH-SIG-TEXT-FREQ
+      kind: dataType
+      appliesTo: FileFrequency
+      pattern: string
+      weight: 10
+      note: text such as weekly or monthly
+    - id: ACH-SIG-NUM-AVG
+      kind: dataType
+      appliesTo: AchAverageTicket
+      pattern: integer|decimal
+      weight: 10
+      note: numeric
+    - id: ACH-SIG-NUM-HIGH
+      kind: dataType
+      appliesTo: AchHighTicket
+      pattern: integer|decimal
+      weight: 10
+      note: numeric
+    - id: ACH-SIG-NUM-VOL
+      kind: dataType
+      appliesTo: AnnualSalesVolume
+      pattern: integer|decimal
+      weight: 10
+      note: numeric
+    - id: ACH-SIG-NUM-CRED
+      kind: dataType
+      appliesTo: AnnualCreditsVolume
+      pattern: integer|decimal
+      weight: 10
+      note: numeric
+    - id: ACH-SIG-NUM-COUNT
+      kind: dataType
+      appliesTo: AnnualTransactionCount
+      pattern: integer
+      weight: 10
+      note: a count
+    - id: ACH-SIG-NUM-CREDCOUNT
+      kind: dataType
+      appliesTo: AnnualCreditTransactionCount
+      pattern: integer
+      weight: 10
+      note: a count
+    - id: ACH-SIG-NUM-MONTHLY
+      kind: dataType
+      appliesTo: HighestMonthlyAmount
+      pattern: integer|decimal
+      weight: 10
+      note: numeric
+    - id: ACH-SIG-RANGE-INTPCT
+      kind: valueRange
+      appliesTo: InternetSalesPercent
+      minValue: 0
+      maxValue: 100
+      weight: 10
+      note: a share between 0 and 100
+    - id: ACH-SIG-RANGE-INTCREDPCT
+      kind: valueRange
+      appliesTo: InternetCreditsPercent
+      minValue: 0
+      maxValue: 100
+      weight: 10
+      note: a share between 0 and 100
+  validations:
+    - id: ACH-VAL-01
+      description: Average ACH ticket cannot be above high ticket.
+      inputs:
+        - name: avg
+          attribute: AchAverageTicket
+        - name: high
+          attribute: AchHighTicket
+      expression: avg <= high
+      examples:
+        - inputs:
+            avg: 150
+            high: 5000
+          expected: true
+        - inputs:
+            avg: 6000
+            high: 5000
+          expected: false
+  confidence: {}
+  risks:
+    - id: ACH-RISK-SEC
+      appliesTo: SecCode
+      level: high
+      text: SEC codes carry different NACHA rules and return risks; sending the wrong code is a compliance problem.
+  reviewGuidance:
+    - id: ACH-Q-VOLPERIOD
+      appliesTo: AnnualSalesVolume
+      when: nonEquivalentTerm
+      question: Does this ACH volume cover a year, or a shorter period?
+  aiGuidance: ACH is the US bank-transfer rail. Tickets and volumes are amounts; transaction fields are counts; SEC codes (CCD, PPD, WEB, TEL, ARC, BOC, POP) are NACHA Standard Entry Class codes and are usually yes/no flags per code. Do not map card-processing fields onto ACH fields.
+  # Fields this playbook must (or must not) recognise; a version can only be published when they pass.
+  tests:
+    - id: ACH-T-01
+      description: Consumer ACH acceptance flag.
+      field:
+        name: AcceptConsumerACH
+        ancestors:
+          - CustomMarkers
+        dataType: boolean
+      expect: AchCapabilities.AcceptsAch
+      minScore: 70
+    - id: ACH-T-02
+      description: ACH average ticket.
+      field:
+        name: ACHAvgTicket
+        ancestors:
+          - CustomMarkers
+        dataType: decimal
+      expect: AchCapabilities.AchAverageTicket
+      minScore: 70
+    - id: ACH-T-03
+      description: ACH high ticket.
+      field:
+        name: ACHHighestTicket
+        ancestors:
+          - CustomMarkers
+        dataType: decimal
+      expect: AchCapabilities.AchHighTicket
+      minScore: 70
+    - id: ACH-T-04
+      description: Annual ACH sales volume.
+      field:
+        name: AnnualACHSalesVolume
+        ancestors:
+          - CustomMarkers
+        dataType: decimal
+      expect: AchCapabilities.AnnualSalesVolume
+      minScore: 70
+    - id: ACH-T-05
+      description: Annual ACH transaction count.
+      field:
+        name: AnnualQuantityACHTransactions
+        ancestors:
+          - CustomMarkers
+        dataType: integer
+      expect: AchCapabilities.AnnualTransactionCount
+      minScore: 70
+    - id: ACH-T-06
+      description: SEC code flag carries the code as a qualifier.
+      field:
+        name: ACHSECCodeWEB
+        ancestors:
+          - CustomMarkers
+        dataType: boolean
+      expect: AchCapabilities.SecCode
+      expectQualifiers:
+        sec: web
+      minScore: 70
+    - id: ACH-T-07
+      description: SEC code under a different name.
+      field:
+        name: ACHSECCodeCCD
+        ancestors:
+          - CustomMarkers
+        dataType: boolean
+      expect: AchCapabilities.SecCode
+      expectQualifiers:
+        sec: ccd
+      minScore: 70
+    - id: ACH-T-08
+      description: ACH file frequency.
+      field:
+        name: ACHFileFrequency
+        ancestors:
+          - CustomMarkers
+        dataType: string
+      expect: AchCapabilities.FileFrequency
+      minScore: 70
+    - id: ACH-T-09
+      description: Card fields are not ACH fields.
+      field:
+        name: cardPresentPercent
+        ancestors:
+          - processing
+        dataType: integer
+      expect: null
+    - id: ACH-T-10
+      description: ACH internet sales share.
+      field:
+        name: PercentageACHInternetSalesVolume
+        ancestors:
+          - CustomMarkers
+        dataType: decimal
+        minValue: 0
+        maxValue: 100
+      expect: AchCapabilities.InternetSalesPercent
+      minScore: 70
+    - id: ACH-T-11
+      description: ACH highest monthly amount.
+      field:
+        name: ACHHighestMonthlyAmount
+        ancestors:
+          - CustomMarkers
+        dataType: decimal
+      expect: AchCapabilities.HighestMonthlyAmount
+      minScore: 70
+    - id: ACH-T-12
+      description: Check verification flag.
+      field:
+        name: CheckVerificationServices
+        ancestors:
+          - CustomMarkers
+        dataType: boolean
+      expect: AchCapabilities.CheckVerificationServices
+      minScore: 70

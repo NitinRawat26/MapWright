@@ -142,7 +142,7 @@ public sealed class CliAppTests : IDisposable
     public void Playbook_validate_and_test_pass_for_the_starter_set()
     {
         Assert.Equal(CliApp.Success, Run("playbook", "validate", StarterPlaybooks.Directory));
-        Assert.Contains("9 playbook(s) valid (0 warning(s))", _out.ToString());
+        Assert.Contains("10 playbook(s) valid (0 warning(s))", _out.ToString());
 
         Assert.Equal(CliApp.Success, Run("playbook", "test", StarterPlaybooks.Directory));
         Assert.Matches(@"(\d+) of \1 playbook test\(s\) passed", _out.ToString());

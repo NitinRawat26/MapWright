@@ -19,7 +19,7 @@ public sealed class PlaybookApiTests : IDisposable
         var taxId = await client.GetAsync("/api/playbooks/domain/tax-id/1.0.0");
 
         Assert.Equal(HttpStatusCode.OK, health.StatusCode);
-        Assert.Equal(9, list.AsArray().Count);
+        Assert.Equal(10, list.AsArray().Count);
         Assert.All(list.AsArray(), p => Assert.Equal("published", p!["status"].Text()));
         Assert.Equal(PlaybookSerializer.Serialize(StarterPlaybooks.Get("domain/tax-id")), await taxId.Content.ReadAsStringAsync());
         Assert.Equal("imported", (await (await client.GetAsync("/api/playbooks/domain/tax-id/history")).Node())[0]!["action"].Text());
