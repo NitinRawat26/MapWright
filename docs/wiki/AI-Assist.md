@@ -16,6 +16,7 @@ Code: `src/MapWright.Ai/` — `IAiProvider`, `VertexAiProvider`, `OllamaProvider
 | `POST /api/profiles/{id}/detect` `{ "useAi": true }` | same | Suggestions filed in the **AI suggestions inbox** |
 | `mapwright map … --ai ask\|yes\|no` | "Which source field(s) and transformation supply each *unmapped* target?" | Extra rows in the mapping, marked AI |
 | `POST /api/mappings` `{ "useAi": true }` | same | Rows + an `aiPass` summary stored with the mapping |
+| `POST /api/mappings/{id}/ask-ai` `{ "rowIds": […] }` | "Re-pick sources for these *selected* rows" (mapped or unmapped) | An `aiSuggestion` candidate on each answered row — the pairing stays until a reviewer picks it via an override |
 | `POST /api/profiles` `useAi=true` (PDF/Word) | "Which fields does the free text of this spec describe?" | Profile fields with `aiExtracted` findings |
 
 With `ask` the CLI prints *"Do you want to use AI to decode the remaining N field(s)? Masked field details are sent to

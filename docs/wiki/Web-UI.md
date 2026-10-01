@@ -42,6 +42,11 @@ Generate a mapping from two profiles; see coverage and confidence; filter/search
 open a row to read *why* it was mapped — reasoning, evidence, transformation, risk, open question — then approve,
 reject or override it; see review history; download Excel, CSV, HTML or PDF.
 
+With an AI provider configured, the rows toolbar gains an **Ask AI** group: tick rows individually or toggle the
+*high / medium / low* buttons to select a whole confidence band, then Ask AI sends just those rows to the provider.
+Each answered row gains an **AI candidate** panel in its detail — provider, capped confidence, sources and reasoning —
+which never replaces the playbook pairing by itself; *Use AI suggestion* applies it as a reviewer override.
+
 For row M017 of the sample this shows: `ProcessingVolume.CardVolume`, `domain/processing-volume@1.0.0`,
 `periodConversion`, `annual / 12`, `annual = $.processing.annualCardVolume`, 95 %, `autoAccepted`.
 

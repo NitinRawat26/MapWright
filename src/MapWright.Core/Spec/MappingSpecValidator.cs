@@ -84,6 +84,24 @@ public static class MappingSpecValidator
                 Warn("MW021", at, "Required target field is unmapped and has no suggestedResolution.");
             }
 
+            if (mapping.AiSuggestion is { } suggestion)
+            {
+                if (suggestion.ConfidencePercent is < 0 or > 100)
+                {
+                    Error("MW031", at, "aiSuggestion.confidencePercent must be between 0 and 100.");
+                }
+
+                if (string.IsNullOrWhiteSpace(suggestion.Reasoning) || string.IsNullOrWhiteSpace(suggestion.Provider))
+                {
+                    Error("MW031", at, "aiSuggestion needs reasoning and a provider.");
+                }
+
+                if (suggestion.Sources.Count == 0)
+                {
+                    Error("MW031", at, "aiSuggestion with no sources carries no candidate; remove it.");
+                }
+            }
+
             if (mapping.Review.Status == ReviewStatus.AutoAccepted && policy.BandFor(mapping.ConfidencePercent) != ConfidenceBand.High)
             {
                 Error("MW022", at, $"Only High-confidence mappings (>= {policy.HighThreshold}%) may be auto-accepted.");
@@ -97,7 +115,7 @@ public static class MappingSpecValidator
 
             if (mapping.Risk.Sensitivity != Sensitivity.None)
             {
-                foreach (var field in mapping.Sources.Append(mapping.Target))
+                foreach (var field in mapping.Sources.Append(mapping.Target).Concat(mapping.AiSuggestion?.Sources ?? []))
                 {
                     if (field.SampleValue is { } sample && sample.Count(char.IsAsciiDigit) > MaxVisibleDigitsInSensitiveSample)
                     {

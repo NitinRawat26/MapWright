@@ -51,30 +51,9 @@ public sealed class AiMappingAssistant(IAiProvider provider, int maxConfidence =
             return new() { Document = document };
         }
 
-        var sourceFields = source.Fields.Where(f => f.Kind == FieldNodeKind.Value).ToDictionary(f => f.Path, StringComparer.Ordinal);
         var targetFields = target.Fields.ToDictionary(f => f.Path, StringComparer.Ordinal);
-        var used = document.Mappings.SelectMany(m => m.Sources).Select(f => f.Path).ToHashSet(StringComparer.Ordinal);
-        var sourceContexts = FieldContext.FromProfile(source).ToDictionary(f => f.Path!, StringComparer.Ordinal);
-        var targetContexts = FieldContext.FromProfile(target).ToDictionary(f => f.Path!, StringComparer.Ordinal);
         List<string> targetPaths = [.. unmapped.Select(m => m.Target.Path).Where(targetFields.ContainsKey).Distinct(StringComparer.Ordinal)];
-
-        var input = new JsonObject
-        {
-            ["sourceSystem"] = source.System,
-            ["targetSystem"] = target.System,
-            ["concepts"] = new JsonArray([.. domainPlaybooks.Where(p => p.Domain is not null).Select(AiFieldAssistant.Describe)]),
-            ["targets"] = new JsonArray([.. targetPaths.Select(p => (JsonNode)AiFieldAssistant.MaskedField(targetFields[p], targetContexts[p]))]),
-            ["sources"] = new JsonArray([.. sourceFields.Values.Select(f =>
-            {
-                var field = AiFieldAssistant.MaskedField(f, sourceContexts[f.Path]);
-                field["used"] = used.Contains(f.Path);
-                return (JsonNode)field;
-            })]),
-        };
-
-        var reply = await provider.GenerateJsonAsync(new(Instructions, input.ToJsonString(), ResponseSchema(targetPaths, [.. sourceFields.Keys])), cancellationToken).ConfigureAwait(false);
-        var warnings = new List<string>();
-        var pairings = Parse(reply, warnings);
+        var (_, sourceFields, reply, warnings, pairings) = await Ask(document, source, target, domainPlaybooks, targetFields, targetPaths, cancellationToken).ConfigureAwait(false);
 
         var rows = document.Mappings.ToList();
         var suggested = new List<string>();
@@ -93,6 +72,7 @@ public sealed class AiMappingAssistant(IAiProvider provider, int maxConfidence =
                 warnings.Add($"{reply.Provider}: ignored a pairing for '{pairing.Target}', which is not an unmapped target field.");
                 continue;
             }
+
 
             var sources = (pairing.Sources ?? []).Where(p => !string.IsNullOrWhiteSpace(p)).Distinct(StringComparer.Ordinal).ToList();
             if (sources.Count == 0)
@@ -133,18 +113,129 @@ public sealed class AiMappingAssistant(IAiProvider provider, int maxConfidence =
         };
     }
 
-    private FieldMapping Suggest(FieldMapping row, IReadOnlyList<ProfileField> sources, PairingDto pairing, AiReply reply)
+    /// <summary>
+    /// Asks the provider to re-pick sources for rows the reviewer selected — mapped or unmapped. The answer is
+    /// stored on each row as <see cref="FieldMapping.AiSuggestion"/>; the row's own pairing is left untouched
+    /// until a reviewer picks the AI candidate via an override.
+    /// </summary>
+    public async Task<AiPairingResult> SuggestRowsAsync(
+        MappingDocument document, SystemProfile source, SystemProfile target, IEnumerable<Playbook> domainPlaybooks,
+        IReadOnlyList<string> rowIds, CancellationToken cancellationToken = default)
+    {
+        var wanted = rowIds.ToHashSet(StringComparer.Ordinal);
+        var selected = document.Mappings.Where(m => wanted.Contains(m.Id)).ToList();
+        var unknownIds = wanted.Where(id => document.Mappings.All(m => m.Id != id)).ToList();
+        if (unknownIds.Count > 0)
+        {
+            throw new ArgumentException($"Unknown row id(s): {string.Join(", ", unknownIds)}.");
+        }
+
+        var targetFields = target.Fields.ToDictionary(f => f.Path, StringComparer.Ordinal);
+        List<string> targetPaths = [.. selected.Select(m => m.Target.Path).Where(targetFields.ContainsKey).Distinct(StringComparer.Ordinal)];
+        var warnings = new List<string>();
+        var rows = document.Mappings.ToList();
+        var suggested = new List<string>();
+        if (targetPaths.Count > 0)
+        {
+            var (_, sourceFields, reply, askWarnings, pairings) = await Ask(document, source, target, domainPlaybooks, targetFields, targetPaths, cancellationToken).ConfigureAwait(false);
+            warnings.AddRange(askWarnings);
+            var answered = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var pairing in pairings)
+            {
+                if (!answered.Add(pairing.Target!))
+                {
+                    warnings.Add($"{reply.Provider}: ignored a repeated pairing for '{pairing.Target}'.");
+                    continue;
+                }
+
+                var index = rows.FindIndex(m => wanted.Contains(m.Id) && m.Target.Path == pairing.Target);
+                if (index < 0)
+                {
+                    warnings.Add($"{reply.Provider}: ignored a pairing for '{pairing.Target}', which was not asked about.");
+                    continue;
+                }
+
+                var sources = (pairing.Sources ?? []).Where(p => !string.IsNullOrWhiteSpace(p)).Distinct(StringComparer.Ordinal).ToList();
+                if (sources.Count == 0)
+                {
+                    continue;
+                }
+
+                if (sources.FirstOrDefault(p => !sourceFields.ContainsKey(p)) is { } unknown)
+                {
+                    warnings.Add($"{reply.Provider}: ignored a pairing for '{pairing.Target}' with unknown source '{unknown}'.");
+                    continue;
+                }
+
+                rows[index] = rows[index] with { AiSuggestion = Candidate(rows[index], [.. sources.Select(p => sourceFields[p])], pairing, reply) };
+                suggested.Add(rows[index].Id);
+            }
+        }
+
+        return new()
+        {
+            Document = document with { Mappings = rows },
+            Suggested = suggested,
+            Warnings = warnings,
+        };
+    }
+
+    private async Task<(JsonObject Input, Dictionary<string, ProfileField> SourceFields, AiReply Reply, List<string> Warnings, List<PairingDto> Pairings)> Ask(
+        MappingDocument document, SystemProfile source, SystemProfile target, IEnumerable<Playbook> domainPlaybooks,
+        Dictionary<string, ProfileField> targetFields, List<string> targetPaths, CancellationToken cancellationToken)
+    {
+        var sourceFields = source.Fields.Where(f => f.Kind == FieldNodeKind.Value).ToDictionary(f => f.Path, StringComparer.Ordinal);
+        var used = document.Mappings.SelectMany(m => m.Sources).Select(f => f.Path).ToHashSet(StringComparer.Ordinal);
+        var sourceContexts = FieldContext.FromProfile(source).ToDictionary(f => f.Path!, StringComparer.Ordinal);
+        var targetContexts = FieldContext.FromProfile(target).ToDictionary(f => f.Path!, StringComparer.Ordinal);
+
+        var input = new JsonObject
+        {
+            ["sourceSystem"] = source.System,
+            ["targetSystem"] = target.System,
+            ["concepts"] = new JsonArray([.. domainPlaybooks.Where(p => p.Domain is not null).Select(AiFieldAssistant.Describe)]),
+            ["targets"] = new JsonArray([.. targetPaths.Select(p => (JsonNode)AiFieldAssistant.MaskedField(targetFields[p], targetContexts[p]))]),
+            ["sources"] = new JsonArray([.. sourceFields.Values.Select(f =>
+            {
+                var field = AiFieldAssistant.MaskedField(f, sourceContexts[f.Path]);
+                field["used"] = used.Contains(f.Path);
+                return (JsonNode)field;
+            })]),
+        };
+
+        var reply = await provider.GenerateJsonAsync(new(Instructions, input.ToJsonString(), ResponseSchema(targetPaths, [.. sourceFields.Keys])), cancellationToken).ConfigureAwait(false);
+        var warnings = new List<string>();
+        var pairings = Parse(reply, warnings);
+        return (input, sourceFields, reply, warnings, pairings);
+    }
+
+    private MapWright.Core.Spec.AiSuggestion Candidate(FieldMapping row, IReadOnlyList<ProfileField> sources, PairingDto pairing, AiReply reply)
+    {
+        var reasoning = Blank(pairing.Reasoning) ?? "No reasoning given.";
+        return new()
+        {
+            Sources = [.. sources.Select(f => Masked(MappingGenerator.Describe(f)))],
+            Transformation = new() { Type = Transformation(pairing, sources, row), Expression = Blank(pairing.Expression) },
+            ConfidencePercent = Math.Clamp(pairing.Confidence ?? 0, 0, maxConfidence),
+            Reasoning = $"AI suggestion ({reply.Provider}/{reply.Model}). {reasoning}",
+            Question = Blank(pairing.Question),
+            Provider = $"{reply.Provider}/{reply.Model}",
+        };
+    }
+
+    private static TransformationType Transformation(PairingDto pairing, IReadOnlyList<ProfileField> sources, FieldMapping row)
     {
         var transformation = Enum.GetValues<TransformationType>()
             .Select(t => (TransformationType?)t)
             .FirstOrDefault(t => t.ToString()!.Equals(pairing.Transformation?.Trim(), StringComparison.OrdinalIgnoreCase))
             ?? (sources is [var only] && only.Name == row.Target.Name ? TransformationType.Direct : TransformationType.Rename);
         // enumMap and lookup need valueMap entries the prompt schema cannot carry; downgrade to a rename.
-        if (transformation is TransformationType.EnumMap or TransformationType.Lookup)
-        {
-            transformation = TransformationType.Rename;
-        }
+        return transformation is TransformationType.EnumMap or TransformationType.Lookup ? TransformationType.Rename : transformation;
+    }
 
+    private FieldMapping Suggest(FieldMapping row, IReadOnlyList<ProfileField> sources, PairingDto pairing, AiReply reply)
+    {
+        var transformation = Transformation(pairing, sources, row);
         var reasoning = Blank(pairing.Reasoning) ?? "No reasoning given.";
         return row with
         {

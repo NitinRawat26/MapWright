@@ -237,7 +237,7 @@ describe('Mappings', () => {
     respond('/api/mappings/a__b/summary', summary(2, 0));
     await settle(fixture);
     const root = fixture.nativeElement as HTMLElement;
-    const origin = (id: string) => root.querySelector(`tr[data-row="${id}"] td:nth-child(6)`)?.textContent?.trim();
+    const origin = (id: string) => root.querySelector(`tr[data-row="${id}"] td:nth-child(7)`)?.textContent?.trim();
     expect(origin('M001')).toBe('Playbook');
     expect(origin('M002')).toBe('Name match');
     expect(origin('M003')).toBe('—');

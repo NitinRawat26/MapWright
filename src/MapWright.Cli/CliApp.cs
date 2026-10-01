@@ -478,7 +478,7 @@ public static class CliApp
 
         stdout.WriteLine($"{recognised.Count} of {fields.Count} field(s) recognised; {remaining.Count} remaining.");
 
-        var suggestions = new List<AiSuggestion>();
+        var suggestions = new List<MapWright.Ai.AiSuggestion>();
         if (remaining.Count > 0 && aiMode != "no")
         {
             if (DecodeWithAi(profile, remaining, library, aiMode, ai, stdin, stdout, stderr) is { } decoded)

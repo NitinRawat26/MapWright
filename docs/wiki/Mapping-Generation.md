@@ -214,6 +214,7 @@ Row (`FieldMapping`):
 | risk | `dataLoss`, `sensitivity`, `targetValidationRules[]` |
 | review | `status` (`autoAccepted | needsReview | approved | rejected | overridden`), `reviewer`, `reviewedAt`, `comments`, `openQuestion` |
 | gap | `suggestedResolution` (unmapped rows) |
+| alternative | `aiSuggestion` (optional) — an AI-picked candidate (`sources`, `transformation`, capped `confidencePercent`, `reasoning`, `question`, `provider`) stored beside the pairing; a reviewer picks it via an override, it never applies itself |
 
 The [worked example](Worked-Example-Volume-Mapping.md) shows complete rows.
 
@@ -230,7 +231,8 @@ are available to reviewers and AI suggestions.
 
 `mapwright validate <mapping.json>` (`MappingSpecValidator`) enforces what JSON parsing cannot: unique ids and one row
 per target path; source count consistent with type (`manyToOne` ≥ 2, `unmapped` 0); `enumMap` carries a value map;
-only High-band rows may be `autoAccepted`; sensitive samples reveal ≤ 4 digits; findings and validation runs
+only High-band rows may be `autoAccepted`; `aiSuggestion` candidates need sources, reasoning and a provider and stay
+within 0–100 (MW031); sensitive samples reveal ≤ 4 digits; findings and validation runs
 reference existing rows; unknown or missing JSON properties are rejected.
 
 ## 12. Rendering

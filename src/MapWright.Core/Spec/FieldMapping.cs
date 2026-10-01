@@ -24,6 +24,22 @@ public sealed record FieldMapping
 
     /// <summary>Suggested resolution when the target field has no source (gap report).</summary>
     public string? SuggestedResolution { get; init; }
+
+    /// <summary>An alternative source the AI suggested on demand; the row keeps its own sources until a reviewer picks this.</summary>
+    public AiSuggestion? AiSuggestion { get; init; }
+}
+
+/// <summary>An AI answer for a row that already has a pairing; a candidate, not the mapping itself.</summary>
+public sealed record AiSuggestion
+{
+    public IReadOnlyList<FieldDescriptor> Sources { get; init; } = [];
+    public Transformation Transformation { get; init; } = new() { Type = TransformationType.Direct };
+    /// <summary>Capped below the auto-accept threshold, so accepting it can never silently auto-approve.</summary>
+    public required int ConfidencePercent { get; init; }
+    public required string Reasoning { get; init; }
+    public string? Question { get; init; }
+    /// <summary>"provider/model" that answered.</summary>
+    public required string Provider { get; init; }
 }
 
 public sealed record FieldDescriptor

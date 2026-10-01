@@ -383,6 +383,18 @@ export interface FieldMapping {
   risk?: { dataLoss: string; dataLossNote?: string; sensitivity: string; targetValidationRules?: string[] };
   review: { status: ReviewStatus; reviewer?: string; reviewedOn?: string; comments?: string; openQuestion?: string };
   suggestedResolution?: string;
+  /** An AI-suggested alternative pairing; the row keeps its own sources until a reviewer picks this. */
+  aiSuggestion?: AiSuggestion;
+}
+
+export interface AiSuggestion {
+  sources: FieldDescriptor[];
+  transformation: FieldMapping['transformation'];
+  confidencePercent: number;
+  reasoning: string;
+  question?: string;
+  /** "provider/model" that answered. */
+  provider: string;
 }
 
 export interface ValidationResult {

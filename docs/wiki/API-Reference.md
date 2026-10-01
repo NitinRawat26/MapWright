@@ -75,6 +75,7 @@ curl -X POST localhost:5080/api/playbooks/domain/processing-volume/1.1.0/status 
 | `GET /api/mappings/{id}/summary` | Coverage, confidence bands, review status and validation counts |
 | `GET /api/mappings/{id}/export/{xlsx\|csv\|html\|pdf}` | Download a rendered document |
 | `POST /api/mappings/{id}/replay` | multipart `files`, `target` profile id, optional `xmlNamespace`, `record`, `mask` |
+| `POST /api/mappings/{id}/ask-ai` | `{ "rowIds": ["M001", …], "source"?, "target"? }` — asks the AI for an alternative source on those rows and stores it as `aiSuggestion` on each answered row; optional `source`/`target` profile ids override the lookup by system name |
 | `POST /api/mappings/{id}/rows/{rowId}/review` | `{ "decision": "approve" \| "reject" \| "override", "comment": "…", "row": { … } }` — `override` replaces the row with the supplied one |
 | `GET /api/mappings/{id}/reviews` | Review decisions, oldest first |
 
