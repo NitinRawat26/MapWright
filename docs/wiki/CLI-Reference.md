@@ -77,7 +77,7 @@ to the mapping file; `--strict` exits 1 on any failing check; `--mask` masks sen
 ## Environment variables (AI)
 
 `MAPWRIGHT_VERTEX_PROJECT`, `MAPWRIGHT_VERTEX_LOCATION`, `MAPWRIGHT_VERTEX_MODEL`, `MAPWRIGHT_OLLAMA_URL`,
-`MAPWRIGHT_OLLAMA_MODEL`, `MAPWRIGHT_OLLAMA_CONTEXT_TOKENS`, `MAPWRIGHT_AI_TIMEOUT_SECONDS` — see
+`MAPWRIGHT_OLLAMA_MODEL`, `MAPWRIGHT_OLLAMA_CONTEXT_TOKENS`, `MAPWRIGHT_OLLAMA_MAX_OUTPUT_TOKENS`, `MAPWRIGHT_AI_TIMEOUT_SECONDS` — see
 [AI Assist](AI-Assist.md#providers-and-configuration). With none set every command runs playbooks only.
 
 ## Typical session

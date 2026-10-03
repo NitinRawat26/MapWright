@@ -251,7 +251,7 @@ with none configured MapWright uses playbooks only.
 | Provider | Variables |
 |---|---|
 | Vertex AI (Gemini, first) | `MAPWRIGHT_VERTEX_PROJECT` (enables it), `MAPWRIGHT_VERTEX_LOCATION` (default `global`), `MAPWRIGHT_VERTEX_MODEL` (default `gemini-3.5-flash`); credentials from Application Default Credentials, e.g. `GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json` |
-| Ollama (fallback) | `MAPWRIGHT_OLLAMA_URL` (enables it, e.g. `http://localhost:11434`), `MAPWRIGHT_OLLAMA_MODEL` (default `qwen3`), `MAPWRIGHT_OLLAMA_CONTEXT_TOKENS` (default 16384; Ollama's own default can be 4096, too small for a mapping prompt) |
+| Ollama (fallback) | `MAPWRIGHT_OLLAMA_URL` (enables it, e.g. `http://localhost:11434`), `MAPWRIGHT_OLLAMA_MODEL` (default `qwen3`), `MAPWRIGHT_OLLAMA_CONTEXT_TOKENS` (default 16384; Ollama's own default can be 4096, too small for a mapping prompt), `MAPWRIGHT_OLLAMA_MAX_OUTPUT_TOKENS` (default 8192, capped at half the context — raise it when answers report being cut off) |
 | Both | `MAPWRIGHT_AI_TIMEOUT_SECONDS` (default 180) |
 
 What the AI sees and what it can do:

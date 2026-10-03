@@ -30,7 +30,7 @@ Providers are tried in order; the first configured one is used, the next on fail
 | Provider | Variables |
 | --- | --- |
 | Vertex AI (Gemini) — first | `MAPWRIGHT_VERTEX_PROJECT` (enables), `MAPWRIGHT_VERTEX_LOCATION` (default `global`), `MAPWRIGHT_VERTEX_MODEL` (default `gemini-3.5-flash`); credentials via Application Default Credentials (`GOOGLE_APPLICATION_CREDENTIALS`) |
-| Ollama — fallback | `MAPWRIGHT_OLLAMA_URL` (enables, e.g. `http://localhost:11434`), `MAPWRIGHT_OLLAMA_MODEL` (default `qwen3`), `MAPWRIGHT_OLLAMA_CONTEXT_TOKENS` (default 16384) |
+| Ollama — fallback | `MAPWRIGHT_OLLAMA_URL` (enables, e.g. `http://localhost:11434`), `MAPWRIGHT_OLLAMA_MODEL` (default `qwen3`), `MAPWRIGHT_OLLAMA_CONTEXT_TOKENS` (default 16384), `MAPWRIGHT_OLLAMA_MAX_OUTPUT_TOKENS` (default 8192, capped at half the context) |
 | Both | `MAPWRIGHT_AI_TIMEOUT_SECONDS` (default 180) |
 
 `GET /api/ai` reports whether a provider is configured, its name and the confidence cap.
