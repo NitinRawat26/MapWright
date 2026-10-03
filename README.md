@@ -5,6 +5,8 @@ MapWright generates field-level mapping documents between two systems that excha
 application data (e.g. a sales system → an underwriting system, or underwriting → boarding), without
 requiring a shared canonical model. Either side may use JSON or XML, in any combination.
 
+https://github.com/user-attachments/assets/875f0925-030d-4355-a4c6-c11acc8bd6dd
+
 Detailed documentation, one topic per page, is in [`docs/wiki`](docs/wiki/Home.md): [Playbooks](docs/wiki/Playbooks.md),
 [Mapping Generation](docs/wiki/Mapping-Generation.md), [AI Assist](docs/wiki/AI-Assist.md) and a
 [worked volume-mapping example](docs/wiki/Worked-Example-Volume-Mapping.md).
