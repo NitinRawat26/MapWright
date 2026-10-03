@@ -235,6 +235,31 @@ public sealed class AiProviderTests
         Assert.Equal((context, output), (ollama.Options.ContextTokens, ollama.Options.MaxOutputTokens));
     }
 
+    [Fact]
+    public void Ollama_output_budget_comes_from_the_environment()
+    {
+        var env = new Dictionary<string, string?>
+        {
+            [AiProviders.OllamaUrlVariable] = "http://ollama:11434",
+            [AiProviders.OllamaContextVariable] = "32768",
+            [AiProviders.OllamaMaxOutputVariable] = "12288",
+        };
+
+        var ollama = Assert.IsType<OllamaProvider>(AiProviders.FromEnvironment(env.GetValueOrDefault, new HttpClient()));
+
+        Assert.Equal(12288, ollama.Options.MaxOutputTokens);
+    }
+
+    [Theory]
+    [InlineData("100")]
+    [InlineData("lots")]
+    public void Invalid_ollama_output_budget_is_rejected(string value)
+    {
+        var env = new Dictionary<string, string?> { [AiProviders.OllamaUrlVariable] = "http://ollama:11434", [AiProviders.OllamaMaxOutputVariable] = value };
+
+        Assert.Throws<AiProviderException>(() => AiProviders.FromEnvironment(env.GetValueOrDefault, new HttpClient()));
+    }
+
     [Theory]
     [InlineData("1000")]
     [InlineData("lots")]

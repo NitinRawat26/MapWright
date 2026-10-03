@@ -6,7 +6,8 @@ public sealed record OllamaOptions
 {
     public const string DefaultModel = "qwen3";
     public const int DefaultContextTokens = 16384;
-    public const int DefaultMaxOutputTokens = 4096;
+    /// <summary>Default answer budget. A full field-suggestion batch needs several thousand tokens of JSON.</summary>
+    public const int DefaultMaxOutputTokens = 8192;
 
     public required Uri BaseUrl { get; init; }
     public string Model { get; init; } = DefaultModel;
@@ -57,7 +58,7 @@ public sealed class OllamaProvider(HttpClient http, OllamaOptions options) : IAi
         {
             throw new AiProviderException(
                 $"{Name}: the answer was cut off after {options.MaxOutputTokens} tokens, or the prompt did not fit in {options.ContextTokens}; " +
-                $"raise {AiProviders.OllamaContextVariable} or use a larger model.");
+                $"raise {AiProviders.OllamaMaxOutputVariable} or {AiProviders.OllamaContextVariable} (the answer budget never exceeds half the context), or use a larger model.");
         }
 
         return new(Name, options.Model, HttpJson.RequireJson(Name, response["message"]?["content"]?.GetValue<string>()));

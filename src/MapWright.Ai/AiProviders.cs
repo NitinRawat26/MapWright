@@ -9,6 +9,7 @@ public static class AiProviders
     public const string OllamaUrlVariable = "MAPWRIGHT_OLLAMA_URL";
     public const string OllamaModelVariable = "MAPWRIGHT_OLLAMA_MODEL";
     public const string OllamaContextVariable = "MAPWRIGHT_OLLAMA_CONTEXT_TOKENS";
+    public const string OllamaMaxOutputVariable = "MAPWRIGHT_OLLAMA_MAX_OUTPUT_TOKENS";
     public const string TimeoutVariable = "MAPWRIGHT_AI_TIMEOUT_SECONDS";
 
     public static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(180);
@@ -44,12 +45,18 @@ public static class AiProviders
                 throw new AiProviderException($"{OllamaContextVariable} must be a whole number of tokens, at least 2048.");
             }
 
+            var output = OllamaOptions.DefaultMaxOutputTokens;
+            if (Value(environment, OllamaMaxOutputVariable) is { } maxTokens && (!int.TryParse(maxTokens, out output) || output < 1024))
+            {
+                throw new AiProviderException($"{OllamaMaxOutputVariable} must be a whole number of tokens, at least 1024.");
+            }
+
             providers.Add(new OllamaProvider(http, new()
             {
                 BaseUrl = baseUrl,
                 Model = Value(environment, OllamaModelVariable) ?? OllamaOptions.DefaultModel,
                 ContextTokens = context,
-                MaxOutputTokens = Math.Min(OllamaOptions.DefaultMaxOutputTokens, context / 2),
+                MaxOutputTokens = Math.Min(output, context / 2),
             }));
         }
 
