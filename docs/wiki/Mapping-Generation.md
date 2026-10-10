@@ -62,6 +62,18 @@ var draft = ByConcept(target) ?? ByDerivation(target) ?? ByCondition(target) ?? 
 
 The first that returns a draft wins; there is no scoring across strategies.
 
+Every playbook [anatomy](Playbooks.md) section is consumed at a different point — detection once up front, the
+rule sections inside one strategy each:
+
+| Anatomy section | Consumed where |
+| --- | --- |
+| `concept`, `vocabulary`, `qualifiers`, `signals` | **Detection** — `RecognisedField.From` → `PlaybookMatcher` (`src/MapWright.Core/Playbooks/PlaybookMatcher.cs`: vocabulary term scoring at lines 111–119, ancestor context points at 165–173, signals just below). Produces the `DetectionResult`s (`Concept`, `Attribute`, `Score`, `Qualifiers`, `Triggers`, `Questions`, `Warnings`) that all four mapping strategies read. |
+| `derivations` | §3.2 `ByDerivation` only. |
+| `conditions` | §3.3 `ByCondition` only. |
+| `valueMaps` | `enumMap` transformation in §3.1/§3.4 rows (§4 step 1) and spelling source values into canonical codes inside §3.3 `ByCondition`. |
+| `validations` | **Never used in matching.** Attached to the row as `targetValidationRules` (e.g. `VOL-VAL-01 avg <= high`, `processing-volume.yaml` lines 329–339) and run at replay/validation time. |
+| `confidence` | Review triggers (`AddDetectionReview`) and the `autoAcceptAt` threshold in `Finish` (§7). |
+
 ### 3.1 ByConcept – same business concept on both sides
 
 * Needs a target detection.
@@ -78,7 +90,13 @@ The first that returns a draft wins; there is no scoring across strategies.
   * list-pairing risks (§5);
   * playbook evidence for both sides and sample evidence naming the payloads the field was seen in;
   * the detections' review questions.
-* Transformation chosen by §4.
+* Transformation chosen by §4 — including `enumMap` when the target attribute has a `valueMaps` entry.
+
+Consumes: detection output only (`vocabulary`/`qualifiers`/`signals` via detection, `valueMaps` via §4).
+Examples from `playbooks/domain/`: `cardVolume → MonthlyVolume` — vocabulary term `CardVolume` +60, ancestor
+`processing` +25, `period` qualifiers agree (the worked example in [Playbooks](Playbooks.md) lines 320–334);
+`taxId → TaxId/Number` — differing `valueShapes` produce a `typeCast` reformat (`tax-id.yaml`);
+`entityType → EntityType` — `enumMap` through `ENTITY-TYPES` in `entity-type.yaml`.
 
 ### 3.2 ByDerivation – compute the target variant from same-concept sources
 
@@ -97,9 +115,11 @@ Detailed in [Playbooks §9](Playbooks.md#9-derivation-rules). Summary:
 * Confidence `min(inputs…, target)` − 10 if `requiresReview` − 10 if `dataLoss ≥ medium`; review items "Rule X rests
   on an assumption." / data-loss note; the rule `note` becomes an **assumption finding**.
 
-Examples from the sample mapping: `MonthlyVolume = annual / 12` (periodConversion), `OwnershipPct = fraction * 100`
-(unitConversion, triggered by a qualifier conflict on the source), `CardNotPresentPct = moto + ecomm` (aggregate,
-manyToOne), `Officer/FullName = first ⧺ last` (concat, manyToOne).
+Consumes: `derivations` (plus detection output to satisfy inputs).
+Examples from `playbooks/domain/`: `VOL-PERIOD-01` — annual/12 → monthly, `periodConversion`
+(`processing-volume.yaml` lines 273–288); `VOL-UNIT-01` — cents/100, `unitConversion` (same file, 311–327);
+`MIX-CNP-01` — aggregate `CardNotPresentPct = moto + ecomm`, manyToOne (`channel-mix.yaml` line 164);
+`OWN-NAME-01` — concat `FullName = first ⧺ last`, manyToOne (`owners.yaml` line 451).
 
 ### 3.3 ByCondition – infer a code from another concept
 
@@ -109,6 +129,11 @@ rule, every `when` clause concept must have a detected source. Produces `type: d
 `defaultValue`, a per-observed-value `valueMap`, and — when a case names more than one concept — `cases` that replay
 executes. Confidence `min(...) − 10`; always reviewed ("Conditional rule X infers the value; confirm the exceptions
 with the business."); assumption finding "… is inferred, not sent".
+
+Consumes: `conditions`, with `valueMaps` spelling source values into canonical codes.
+Example: `TIN-TYPE-01` (`tax-id.yaml` lines 100–110) — `TaxIdType` is inferred from the other concept:
+`LegalEntity.EntityType in (SOLE_PROPRIETORSHIP) → SSN`, `otherwise → EIN`; `TAX-ID-TYPES` normalises source
+spellings, and the assumption finding records "inferred, not sent".
 
 ### 3.4 ByName – name similarity when a playbook is missing
 
@@ -122,6 +147,11 @@ with the business."); assumption finding "… is inferred, not sent".
 * Transformation by §4. Sample rows: `legalName → LegalName` (70, direct), `dbaName → DoingBusinessAs` (60, rename),
   `mcc → MCC` (70, typeCast string → integer).
 
+Consumes: **no playbook anatomy** — pure `NameMatcher.Score` on field names
+(`src/MapWright.Core/Matching/NameMatcher.cs`: `Abbreviates` at lines 33–44; `MinimumScore` 50,
+`MaximumConfidence` 75 at lines 9–12), and only when at least one side has `Detection is null`
+(`MappingBuilder.cs` lines 488–496, 511–512).
+
 ### 3.5 Unmapped
 
 * `type: unmapped`, confidence 0, no sources.
@@ -131,6 +161,13 @@ with the business."); assumption finding "… is inferred, not sent".
   "Confirm the field's meaning, then add a playbook term, agree a default or ask the source team."
 * If the target was seen in > 1 sample with exactly one distinct value and is not sensitive: "Every target sample
   holds 'X'; if it is fixed for this source system, map it as a constant."
+
+Consumes: nothing — it fires when no strategy produced a draft. The two reason strings distinguish a
+**recognised target with no provider** (detection found a playbook concept but no source supplies it) from an
+**unrecognised target** (no playbook detection and no name match).
+
+Note that playbook `validations` never reach matching — `VOL-VAL-01` (`avg <= high`) in
+`processing-volume.yaml` lines 329–339 only lands on the row as `targetValidationRules` for replay.
 
 The optional [AI pass](AI-Assist.md) runs only over these rows.
 
