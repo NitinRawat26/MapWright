@@ -122,6 +122,13 @@
               <button mat-button type="button" (click)="show('all')" data-testid="clear-filter">Show all</button>
             }
           </div>
+          @if (aiBusy()) {
+            <div class="ai-loading" data-testid="ai-loading">
+              <mat-spinner diameter="28" />
+              <div>Asking AI about {{ checked().size }} row(s)…</div>
+              <div class="muted">This can take a moment; the panel clears when the AI replies or the request fails.</div>
+            </div>
+          }
           <table class="grid" data-testid="rows">
             <thead>
               <tr><th></th><th>ID</th><th>Source → Target</th><th>Transformation</th><th>Mapped by</th><th>Review</th></tr>

@@ -5,6 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { RouterLink } from '@angular/router';
@@ -77,7 +78,7 @@ const cardFilterLabels: Partial<Record<RowFilter, string>> = {
 
 @Component({
   selector: 'app-mapping-detail',
-  imports: [DatePipe, FormsModule, Icon, UpperCasePipe, MatButtonModule, MatButtonToggleModule, MatFormFieldModule, MatInputModule, MatTabsModule, Replay, RouterLink],
+  imports: [DatePipe, FormsModule, Icon, UpperCasePipe, MatButtonModule, MatButtonToggleModule, MatFormFieldModule, MatInputModule, MatProgressSpinnerModule, MatTabsModule, Replay, RouterLink],
   templateUrl: './mapping-detail.html',
   styleUrl: './mapping-detail.scss',
 })
@@ -260,7 +261,7 @@ export class MappingDetail {
           const answered = document.mappings.filter((r) => ids.includes(r.id) && r.aiSuggestion).length;
           this.snackBar.open(`AI suggested sources for ${answered} of ${ids.length} row(s).`, undefined, { duration: 5000 });
         },
-        error: () => undefined,
+        error: () => this.snackBar.open('AI did not answer (request failed or timed out). Try again.', undefined, { duration: 6000 }),
       });
   }
 

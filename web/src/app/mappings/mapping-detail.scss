@@ -151,3 +151,23 @@ td.pick {
 .ai-alt button {
   align-self: flex-start;
 }
+
+.ai-loading {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 280px;
+  text-align: center;
+  padding: 24px 32px;
+  background: var(--mw-card, #fff);
+  border: 1px solid var(--mw-line, #e2e5f0);
+  border-radius: 14px;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.25);
+}
