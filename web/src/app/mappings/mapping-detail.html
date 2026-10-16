@@ -131,7 +131,7 @@
           }
           <table class="grid" data-testid="rows">
             <thead>
-              <tr><th></th><th>ID</th><th>Source → Target</th><th>Transformation</th><th>Mapped by</th><th>Review</th></tr>
+              <tr><th></th><th>ID</th><th>Mapped by</th><th>Source → Target</th><th>Transformation</th><th>Review</th></tr>
             </thead>
             <tbody>
             @for (r of rows(); track r.id) {
@@ -145,6 +145,15 @@
                     <span class="bar"><i [class]="band(r)" [style.width.%]="r.confidencePercent"></i></span>{{ r.confidencePercent }}%
                   </span>
                 </td>
+                <td>
+                  @if (aiProvider(r); as provider) {
+                    <span class="chip ai" [title]="'Suggested by ' + provider + '; check it before relying on it'" data-testid="ai-row">AI</span>
+                  } @else if (origin(r); as o) {
+                    <span class="chip" [class]="originClasses[o]">{{ originLabels[o] }}</span>
+                  } @else {
+                    <span class="muted">—</span>
+                  }
+                </td>
                 <td class="mono">
                   @for (s of r.sources; track s.path) {
                     <div>{{ s.path }}</div>
@@ -156,15 +165,6 @@
                   </div>
                 </td>
                 <td>{{ r.type === 'unmapped' ? '—' : (r.transformation.rule ?? r.transformation.type) }}</td>
-                <td>
-                  @if (aiProvider(r); as provider) {
-                    <span class="chip ai" [title]="'Suggested by ' + provider + '; check it before relying on it'" data-testid="ai-row">AI</span>
-                  } @else if (origin(r); as o) {
-                    <span class="chip" [class]="originClasses[o]">{{ originLabels[o] }}</span>
-                  } @else {
-                    <span class="muted">—</span>
-                  }
-                </td>
                 <td><span class="chip" [class]="classes[r.review.status]">{{ labels[r.review.status] }}</span></td>
               </tr>
               @if (selected() === r.id) {
