@@ -105,7 +105,7 @@ export class MappingDetail {
   protected readonly busy = signal(false);
   protected readonly checked = signal<ReadonlySet<string>>(new Set());
   protected readonly ai = toSignal(this.api.ai().pipe(catchError(() => of(null))), { initialValue: null });
-  protected readonly bands = ['high', 'medium', 'low'] as const;
+  protected readonly bands = ['high', 'medium', 'low', 'unmapped'] as const;
   protected readonly aiBusy = signal(false);
 
   protected readonly rows = computed(() => {
@@ -216,9 +216,9 @@ export class MappingDetail {
     });
   }
 
-  /** Selects every row in a confidence band, or clears them all when they were already selected. */
-  protected toggleBand(band: 'high' | 'medium' | 'low'): void {
-    const inBand = (this.mapping()?.mappings ?? []).filter((r) => r.type !== 'unmapped' && this.band(r) === band).map((r) => r.id);
+  /** Selects every row in a confidence band (or every unmapped row), or clears them all when they were already selected. */
+  protected toggleBand(band: 'high' | 'medium' | 'low' | 'unmapped'): void {
+    const inBand = this.bandRows(band).map((r) => r.id);
     this.checked.update((set) => {
       const next = new Set(set);
       if (inBand.length > 0 && inBand.every((id) => next.has(id))) {
@@ -231,9 +231,14 @@ export class MappingDetail {
     });
   }
 
-  protected bandAllChecked(band: 'high' | 'medium' | 'low'): boolean {
-    const inBand = (this.mapping()?.mappings ?? []).filter((r) => r.type !== 'unmapped' && this.band(r) === band);
+  protected bandAllChecked(band: 'high' | 'medium' | 'low' | 'unmapped'): boolean {
+    const inBand = this.bandRows(band);
     return inBand.length > 0 && inBand.every((r) => this.checked().has(r.id));
+  }
+
+  private bandRows(band: 'high' | 'medium' | 'low' | 'unmapped'): FieldMapping[] {
+    const rows = this.mapping()?.mappings ?? [];
+    return band === 'unmapped' ? rows.filter((r) => r.type === 'unmapped') : rows.filter((r) => r.type !== 'unmapped' && this.band(r) === band);
   }
 
   /** Sends the checked rows to the configured provider; answers land on the rows as aiSuggestion candidates. */
